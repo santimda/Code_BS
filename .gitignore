@@ -5,9 +5,8 @@
 *.dat
 *.eps
 *.ps
-*.sc
 *.pdf
-*.gp
+*.sc
 *fixbb*
 
 # Prerequisites
