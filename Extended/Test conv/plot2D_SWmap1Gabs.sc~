@@ -1,0 +1,19 @@
+set encoding iso_8859_1
+set title 'Synthetic map at 1.4 GHz (abs)'
+set xlabel 'x'
+set ylabel 'y'
+set cblabel ''
+set key off
+
+Rst = 20.*6.96e10/1.496e13  # NOT TO SCALE
+set object 1 circle at 0,0 size 1.*Rst front fc rgb "blue" fs solid 1.0
+
+set pm3d explicit
+set view map
+splot './SW_radiomap_1GHz.dat' u ($1):($2):($3) w points palette
+
+set terminal postscript colour
+set output 'radiomap_1GHz_abs.ps'
+replot
+
+!./fixbb radiomap_1GHz_abs.ps

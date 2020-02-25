@@ -1,0 +1,59 @@
+module CD_termo
+  
+  use global
+  
+  implicit none
+  private
+  public :: CD_termo_run
+  
+contains
+  
+  !============================================================================
+  ! CD_termo_run
+  !============================================================================
+  subroutine CD_termo_run
+    
+
+    use global
+    implicit none
+    
+    real(dp) :: L_inj(m_theta),L_inj_tot
+    
+80  format(A11,X,Es10.2)
+    
+    open(11,file='CD.dat')
+    do l=1,m_theta
+       read(11,*) i,z(l),dR(l) 
+    enddo
+    close(11) 
+    
+    L_inj_tot = 0.d0
+
+    L_inj = 1.d2 ! almost zero, i.e. no injection
+    L_inj(1) = L_wind/float(m_theta)
+    open(42,file='Linj_sw.dat')            ! stores L_inj in one quadrant
+    do l=1,m_theta      
+       L_inj(l) = L_wind/float(m_theta)
+       L_inj_tot = L_inj_tot + L_inj(l)
+       write(42,*) l,z(l),L_inj(l),dR(l)/R0
+    enddo
+    close(42)
+    write(*,80) 'L_NT/L_W(%)=', frac_NT*(L_inj_tot)/L_wind*100.d0
+
+    do l=1,m_theta              
+       B(l) = Beq0!*sqrt(z(1)/z(l))
+    enddo
+
+    open(16,file='termo_sw.dat')
+    open(17,file='termonorm_sw.dat') ! normalized
+    do l=1,m_theta
+       write(16,*) l,B(l) 
+       write(17,*) l,B(l)/B(1) 
+    enddo
+    close(16)
+    close(17)
+
+  END subroutine CD_termo_run
+  
+END module CD_termo
+

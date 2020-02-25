@@ -1,0 +1,196 @@
+module CD_termo
+  
+  use global
+  
+  implicit none
+  private
+  public :: CD_termo_run
+  
+contains
+  
+  !============================================================================
+  ! CD_termo_run
+  !============================================================================
+  subroutine CD_termo_run
+    
+    !ииииииииииииииииииииииииииииииииииииииииииииииииииииииииииииииииииииииии
+    ! This program calculates the thermodynamical quantities along the shock 
+    ! (the shock position comes from CD.f90). On one side of the CD there is 
+    ! shocked stellar-wind and on the other shocked ISM; the quantities are saved in
+    ! termo_sw.dat and termo_sism.dat. This program also calculates the injected 
+    ! luminosity at each position of the shock.
+    !________________________________________________________________________
+
+    use global
+    !$ use omp_lib
+    implicit none
+    
+    real(dp) :: A_z,A_omega,st,ct
+    real(dp) :: cte_P,cte_T,cte_rho
+    real(dp) :: rho_w,Beq0
+    real(dp) :: dOmega,dtheta,dR(m_theta)
+    real(dp) :: L_inj(m_theta),L_wind,L_wind_perp,L_inj_tot
+    allocate ( theta(m_theta),r_norm(m_theta),H_norm(m_theta) )
+    allocate ( P(m_theta),rho(m_theta),T(m_theta),B(m_theta),v_t(m_theta),v_perp(m_theta) )
+    
+80  format(A11,X,Es10.2)
+
+    !///////////////////////////////////////////////////////////////////////////
+    !
+    ! Read the shock position and cell size: theta,r_norm(theta),dR(theta)
+    
+    open(11,file='CD.dat')
+    do l=1,m_theta
+       read(11,*) theta(l),r_norm(l),dR(l) 
+    enddo
+    close(11)
+    dtheta = theta(2)-theta(1)    ! Constant step in theta    
+    
+    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+    !/                                                                   C
+    !/      Shocked stellar-wind (SW)                                    C
+    !/                                                                   C
+    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+    
+    ! First we calculate the normal and tangential vectors at each position
+    ! using Eqs.12-16 from Christie+16; we also calculate H(theta)/R(theta)
+
+    open(18,file='Hnorm_sw.dat') ! normalized
+    do l=1,m_theta
+       st = sin(theta(l))
+       ct = cos(theta(l))
+       call A_theta(theta(l),st,ct,r_norm(l),A_z,A_omega,H_norm(l))
+       v_perp(l) = v_w * ( -st*A_z + ct*A_omega ) !Eq 18
+       v_t(l) = v_w * ( ct*A_z + st*A_omega )
+!       v_t(l) = sqrt(v_w**2.-v_perp(l)**2.) ! The same   
+       
+       write(18,*) theta(l),H_norm(l)
+    enddo
+    close(18)
+
+    ! particle accel. efficiency at the sw, depending on theta
+    allocate( efi_ac_sw(m_theta) )
+    open (18,file='efi_ac_sw.dat')
+    do l = 1,m_theta
+       efi_ac_sw(l) = 2.d0*pi*(c/v_perp(l))**2.d0
+       write(18,*) theta(l),efi_ac_sw(l)
+    enddo
+    close(18)
+    deallocate( efi_ac_sw )
+
+    !--------------------------------------------------------!
+    !                                                        !          
+    !                 Injected luminosity                    !
+    !                                                        !    
+    !--------------------------------------------------------!
+
+    ! The injected luminosity available for acceleration of NT particles
+    ! depends on the energy flux perpendicular to the shock
+
+    L_wind = (Mdot*v_w**2.)/2.d0  
+    L_inj_tot = 0.d0
+
+    open(42,file='Linj_sw.dat')            ! stores L_inj in one quadrant
+    do l=1,m_theta      
+       dOmega = sin(theta(l))*dtheta*d_phi ! sen(o)*do*dphi
+       L_wind_perp = (Mdot*v_perp(l)**2.)/2.d0
+       L_inj(l) = L_wind_perp*(dOmega/4.d0/pi)
+       L_inj_tot = L_inj_tot + L_inj(l)
+       write(42,*) theta(l),r_norm(l),L_inj(l),dR(l)/R0
+    enddo
+    close(42)
+    
+    write(*,80) 'L_inj(sw)=', L_inj_tot*(mphi*4.) ! It was just 1 quadrant
+    write(*,80) 'L_NT/L_W(%)=', frac_NT*(L_inj_tot*mphi*4.)/L_wind*100.d0
+
+
+    !//////////////////////////////////////////////////////////////////////
+    !                                                                     !
+    !        Thermodynamical quantities (sw)                              !
+    !                                                                     !
+    !//////////////////////////////////////////////////////////////////////
+
+    ! set omp threads number
+    ! $ call omp_set_num_threads(nth)   
+
+    cte_P = 2./(g_ad+1.)
+    cte_T = ( (g_ad-1.)/(g_ad+1.)**2. ) * (mp/k)
+    cte_rho = (g_ad+1.)/(g_ad-1.)*(v_ISM/v_w)**2./(1.-lambda)
+
+    !  $omp parallel do private(l)
+    do l=1,m_theta                                ! Calculo para la mitad de arriba
+       rho_w = Mdot/(4.d0*pi*(R0*r_norm(l))**2.*v_w)
+       rho(l) = (rho_ISM*cte_rho)/(r_norm(l)**2.) ! Eq. 17
+       !Equivalent: rho(l) = (g_ad+1.)/(g_ad-1.)*rho_w    !  rho(l) = 4*rho_w
+       P(l) = cte_P*rho_w*v_perp(l)**2.           ! Eq. 19
+       T(l) = cte_T*v_perp(l)**2.                 ! Eq. 20
+       Beq0 = sqrt(8.d0*pi*P(l)) !sqrt(4.d0*pi*rho(l)*v(l)**2.d0)
+       ! If U_mag = frac*U_th -> B^2/4pi = frac*(g_ad/g_ad - 1)*P 
+       ! If P_mag = frac*P_th -> B^2/8pi = frac*P 
+       B(l) = frac_sw*Beq0
+!       st = sin(theta(l))
+!       ct = cos(theta(l))
+!       write(*,*) (rho_w/rho(l))*(v_w/v_t(l))*(1.-ct)/st 
+!       write(*,*) 0.5*(rho_ISM/rho(l))*(v_ISM/v_t(l))*st
+!       write(*,*) (rho_w/rho(l))*(v_w/v_t(l))*(1.-ct)/st + 0.5*(rho_ISM/rho(l))*(v_ISM/v_t(l))*st
+    enddo
+    !  $omp end parallel do
+
+    !------------------------------
+    ! Write the results
+
+    open(16,file='termo_sw.dat')
+    open(17,file='termonorm_sw.dat') ! normalized
+    do l=1,m_theta
+       write(16,*) l,rho(l),P(l),v_t(l),T(l),B(l) 
+       write(17,*) theta(l),rho(l)/rho(1),P(l)/P(1),v_t(l)/v_w,T(l)/T(1),B(l)/B(1) 
+    enddo
+    close(16)
+    close(17)
+
+    write(*,*) 'At the stagnation point (sw):'
+    write(*,41) 'R0[pc] =',R0/pc
+    write(*,41) 'rho0/rho_w =',rho(1)/(Mdot/(4.d0*pi*R0**2.*v_w))
+    write(*,41) 'n_a0 =',rho(1)/mp/mu_sw 
+    write(*,41) 'P0 =',P(1)
+    write(*,41) 'v0_t =',v_t(1)
+    write(*,41) 'T0 =',T(1)
+    write(*,41) 'B0 =',B(1)
+    write(*,41) 'Beq0 =',sqrt(8.d0*pi*P(1))
+    write(*,41) 'B_st <',(B(1)/4.d0)*(R0/R_st)*(v_w/v_st_rot)*1.d0 ! Assume r_A = 1.0*R_st
+41  format (A12,ES9.2)
+
+    deallocate ( P,rho,T,B,v_t,v_perp,theta,r_norm,H_norm )
+  END subroutine CD_termo_run
+  
+END module CD_termo
+
+
+
+!============================================================================
+
+SUBROUTINE A_theta(theta0,st,ct,r1,A_z,A_omega,H0_norm)
+  use global
+  real(dp), intent(in) :: theta0,st,ct,r1
+  real(dp), intent(out) :: A_z,A_omega,H0_norm
+  real(dp) :: f_theta,g_theta
+  
+  f_theta = sqrt( (theta0-st*ct)**2.*(1.-lambda*r1**2.)**2.+st**4.*(1.-r1**2.)**2. ) ! Eq.15
+  
+  A_z = st**2.*(1.-r1**2.)/f_theta ! Eq. 14
+  A_omega = (theta0-st*ct)*(1.-lambda*r1**2.)/f_theta ! Eq. 13
+
+  g_theta = 2.*(v_ISM/v_w)*(1.-ct) !+ r1**2.*st**2.*(1.-lambda) ! Eq. 22
+
+!  H0_norm = 0.5*(g_ad-1.)/(g_ad+1.) * (v_w/v_ISM)**2.* (g_theta**2.)/(f_theta*st) ! Eq. 23
+  H0_norm = 0.2d0 ! + (theta0/2./pi)**2.
+  
+!  write(*,*) 0.5*(g_ad-1.)/(g_ad+1.)*(v_w/v_ISM)**2.,(g_theta**2.),(f_theta*st), H0_norm
+
+  RETURN
+END SUBROUTINE A_theta
+
+
+!============================================================================
+  
+  

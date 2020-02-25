@@ -1,0 +1,249 @@
+module global
+
+implicit none
+public
+
+!===================================================
+
+integer, parameter :: dp = kind(1.d0)
+integer, parameter :: nth = 2   ! number of threads (paralelizar)
+
+real(dp), parameter :: pi = acos(-1.d0)
+real(dp), parameter :: par = sqrt(2.d0/3.d0)
+
+!Physical constants in CGS units:
+real(dp), parameter :: eV = 1.602176d-12  ! electron-volt
+real(dp), parameter :: c = 2.99792458d10  ! speed of light in vacuum
+real(dp), parameter :: k = 1.380658d-16   ! boltzmann's constant 
+real(dp), parameter :: qe = 4.8032068d-10 ! electron charge
+real(dp), parameter :: mec2 = 0.511d6*eV  ! electron rest energy
+real(dp), parameter :: re = 2.8d-13       ! electron classical radius
+real(dp), parameter :: sigma = 5.6705d-5  ! stephan-boltzmann's constant
+real(dp), parameter :: h = 6.6260755d-27  ! planck's constant
+real(dp), parameter :: h_bar = h/(2.*pi)  ! 
+real(dp), parameter :: alfa = 7.29735308d-3 ! fine structure constant
+real(dp), parameter :: M_sun_yr = 1.989d33/31556926.d0 ! M_sun/yr
+real(dp), parameter :: R_sun = 6.96d10    ! solar radius 
+real(dp), parameter :: L_sun = 4.d33      ! solar luminosity (CGS)
+real(dp), parameter :: AU = 1.496d13      ! Astronomical Unit
+real(dp), parameter :: pc = 3.0856d18     ! parsec
+real(dp), parameter :: kpc = 3.0856d21    ! kiloparsec
+real(dp), parameter :: mp = 1.673d-24     ! proton mass
+real(dp), parameter :: g_ad = 5.d0/3.d0   ! adiabatic coefficient 
+real(dp), parameter :: m_pic2 = 134.98d6*eV ! pion rest energy
+real(dp), parameter :: mpc2 = 1836.d0*mec2  ! proton rest energy
+
+!===================================================
+
+
+! System Parameters:
+! ******************
+real(dp), parameter :: v_w =  1000.d5         
+real(dp), parameter :: R0 = 2.d0*pc
+real(dp), parameter :: Beq0 = 1.d-2 
+real(dp), parameter :: L_wind = 1.d36
+
+! Non-thermal particles:
+! **********************
+real(dp), parameter :: efi_ac = 2.d0*pi*(c/v_w)**2 ! particle accel. efficiency at the sw 
+real(dp), parameter :: alpha_sw = 2.0_dp           ! injection spectral index in the sw 
+real(dp), parameter :: frac_NT = 0.2_dp            ! Fraction of L_inj_perp converted to L_NT
+real(dp), parameter :: iny_e = frac_NT*0.1d0       ! Fraction L_NT_e/L_NT
+
+!===================================================
+
+! grid/vectors size
+integer, parameter :: m_theta = 50  ! angular resolution in the CD/shock
+integer, parameter :: mE_e = 100    ! energy resolution for electrons
+
+
+!===================================================
+
+
+integer :: i,j,l
+
+! CD
+real(dp) :: z(m_theta),dR(m_theta)
+
+! termo
+real(dp) :: B(m_theta),B_par(m_theta)
+
+! dist
+real(dp), parameter :: Emin_e = 2.d0*mec2   ! ~1 MeV
+real(dp), parameter :: Emax_e = 1.d14*eV    ! 100 TeV
+real(dp) :: Eint_e,dE_e
+real(dp), dimension(:,:), allocatable :: N_etot ! Ne(theta,E_i)
+real(dp), dimension(:), allocatable :: E_e,N_e  ! N_e(E_i) is for a fixed "l"
+
+
+!===================================================
+! emission
+
+real(dp) :: P_Eps, dP_Eps, P_Ef, dP_Ef
+
+! syn
+integer, parameter :: m_nu = 600  ! frequency resolution for synchrotron photons
+real(dp), dimension(:,:), allocatable :: Lsy      ! L_sy(l,E_i)
+real(dp), dimension(:), allocatable :: nu,Lsy_tot,Lsy_tot_abs ! Lsy_tot(i) = sum_l L_sy(l,i)
+
+
+
+!===================================================
+
+contains
+
+!============================================================================
+! vectorE
+!============================================================================
+  
+  SUBROUTINE vector_log(Emin,Emax,Eint,E_vec)
+    implicit none
+    integer, parameter :: dp = kind(1.d0)
+    real(dp), intent(in) :: Emin,Emax
+    integer :: N_puntos, i_vec
+    real(dp), intent(out) :: Eint
+    real(dp), intent(out) :: E_vec(:)
+
+    N_puntos = SIZE(E_vec)
+    Eint = (Emax/Emin)**(1.d0/dfloat(N_puntos-1))
+
+ !   write(*,*) Emin, Emax, Eint,N_puntos
+
+    E_vec(1) = Emin
+    do i_vec=2,N_puntos
+       E_vec(i_vec)=E_vec(i_vec-1)*Eint    
+    enddo
+
+    RETURN
+
+  END SUBROUTINE vector_log
+
+
+!============================================================================
+! integrate
+!============================================================================
+  
+  SUBROUTINE integrate(N,H,FI,S)
+    ! Subroutine for integration over f(x) with the Simpson rule.
+    ! FI: integrand f(x); H: interval; S: integral.
+    integer, intent(in) :: N
+    real*8, intent(in) :: H,FI(N)
+    real*8, intent(out) :: S
+    real*8 :: S0,S1,S2
+
+    S  = 0.d0
+    S0 = 0.d0
+    S1 = 0.d0
+    S2 = 0.d0
+!    DO 100 I = 2, N-1, 2
+    DO I = 2, N-1, 2
+       S1 = S1 + FI(I-1)
+       S0 = S0 + FI(I)
+       S2 = S2 + FI(I+1)
+!100    CONTINUE
+    END DO
+    S = H*(S1 + 4.*S0 + S2)/3.
+    ! If N is even, add the last slice separately
+    IF(MOD(N,2).eq.0) S = S + H*(5.d0*FI(N) + 8.d0*FI(N-1) - FI(N-2))/12.d0
+    RETURN
+    
+  End SUBROUTINE integrate
+
+!============================================================================
+!  Cooling_IC
+    
+  Function F_iso(u)  ! Used for isotropic IC (Khangulyan 2014)
+    integer, parameter :: dp = kind(1.d0)
+    real(dp) :: F_iso,g_u
+    real(dp), intent(in):: u
+    real(dp), parameter:: c_iso = 5.68
+    
+    g_u = 1./(1. + (-0.362*u**0.682)/(1. + 0.826*u**1.281))
+    F_iso = (c_iso*u*log(1.+0.722*u/c_iso)) / (1.+c_iso*u/0.822)*g_u ! Corregido
+    
+    RETURN
+  end Function F_iso
+
+  !   N^dot_IC
+    
+  Function F_1(x0)  ! Used for anisotropic IC (Khangulyan 2014)
+    integer, parameter :: dp = kind(1.d0)
+    real(dp) :: F_1,g
+    real(dp), intent(in):: x0
+    g = 1./(1. + (0.153*x0**0.857)/(1. + 0.254*x0**1.84))
+    F_1 = ( (pi**2./6. + x0)*exp(-x0) )*g   
+    RETURN
+  end Function F_1
+
+  Function F_2(x0)  ! Used for anisotropic IC (Khangulyan 2014)
+    integer, parameter :: dp = kind(1.d0)
+    real(dp) :: F_2,g
+    real(dp), intent(in):: x0
+    g = 1./(1. + (1.33*x0**0.691)/(1. + 0.534*x0**1.668))
+    F_2 = ( (pi**2./6. + x0)*exp(-x0) )*g   
+    RETURN
+  end Function F_2
+
+  Function F_3(x0)  ! Used for isotropic IC (Khangulyan 2014)
+    integer, parameter :: dp = kind(1.d0)
+    real(dp) :: F_3,g
+    real(dp), intent(in):: x0
+    real(dp), parameter:: c_3 = 0.319
+    g = 1./(1. + (0.443*x0**0.606)/(1. + 0.54*x0**1.481))
+    F_3 = (pi**2./6.*(1.+c_3*x0)/(1.+pi**2.*c_3*x0/6.)*exp(-x0) )*g   
+    RETURN
+  end Function F_3
+
+  Function F_4(x0)  ! Used for isotropic IC (Khangulyan 2014)
+    integer, parameter :: dp = kind(1.d0)
+    real(dp) :: F_4,g
+    real(dp), intent(in):: x0
+    real(dp), parameter:: c_4 = 6.62
+    g = 1./(1. + (0.726*x0**0.461)/(1. + 0.382*x0**1.457))
+    F_4 = (pi**2./6.*(1.+c_4*x0)/(1.+pi**2.*c_4*x0/6.)*exp(-x0) )*g   
+    RETURN
+  end Function F_4
+  
+ !============================================================================
+     
+  Function nBB(Epho,T)
+    integer, parameter :: dp = kind(1.d0)
+    real(dp) :: nBB,Epho,T,pi,k,c,h
+    pi = acos(-1.d0)
+    k = 1.380658d-16
+    c = 2.99792458d10
+    h = 6.6260755d-27
+    nBB = 2.d0*pi/((h*c)**3.)*(Epho**2./(exp(Epho/(k*T))-1.))
+    RETURN
+  end Function nBB
+
+  !============================================================================
+  
+  
+  SUBROUTINE versorresta(V1,V2,N,versor)
+    ! subroutine to calculate the versor: (V1-V2)/|V1-V2|
+    integer, intent(in) :: N
+    real(dp), intent(in) :: V1,V2
+    real(dp), intent(out) :: versor
+    real(dp) :: resta,suma
+    DIMENSION V1(N),V2(N),versor(N),resta(N)
+    
+    suma=0.d0
+    do i=1,N
+       resta(i)=V1(i)-V2(i)
+       suma=suma+resta(i)**2.
+    enddo
+    suma=sqrt(suma)          ! suma = || versor_resta ||
+    do j=1,N
+       versor(j)=resta(j)/suma
+    enddo
+    
+    RETURN
+  END SUBROUTINE versorresta
+  
+  
+  !============================================================================
+  
+
+
+END module global

@@ -1,0 +1,135 @@
+set encoding iso_8859_1
+set title ''  #'Synthetic map at 1.4 GHz'
+set yrange [-3.:5.]
+set xrange [-6.:6.]
+set view map
+unset key
+set terminal postscript colour enhanced dl 2.5 lw 2. "Helvetica" 16
+set output 'maps_pre_post_conv_1GHz.eps'
+set multiplot layout 3,2  #filas, columnas
+set pointsize 0.65
+
+set title ''
+set size ratio 0.8/1.2
+set arrow 4 from -0.01,0.1 to -0.01,1.2 head filled front linecolor rgb '#6495ED' linewidth 2.0
+set label 2 "{/ZapfDingbats \110}" at -0.6,0.0 front textcolor rgb '#008B8B' font "Helvetica,28"
+
+set cbrange [0:3.]
+
+# Enable the use of macros
+set macros
+
+# MACROS
+# x-, y-, and cb-tics for each row resp. column    
+NOXTICS = "set format x ''; unset xlabel"
+XTICS = "set xtics ('-4' -4, '-2' -2, '0' 0, '2' 2, '4' 4);\
+      set mxtics 2; set xlabel 'x [mas]'"
+NOYTICS = "set ytics  ('' -20, '' 0, '' 20, '' 40); unset ylabel"
+YTICS = "set ytics  ('-2' -2, '0' 0, '2' 2, '4' 4);\
+      set mytics 2; set ylabel 'y [mas]'"
+NOCBTICS = "set format cb ''; set cbtics (); unset colorbox; unset cblabel"
+CBTICS = "set colorbox; set cbtics ('0' 0, '0.5' 0.5, '1' 1, '1.5' 1.5, '2' 2);\
+       unset cblabel"
+CBTICS_LAB1 = "set colorbox; set cbtics ('0' 0, '1' 1, '2' 2, '3' 3, '4' 4);\
+	set cblabel 'Flux [{/Symbol m}Jy]'; set cblabel offset 0.1,0
+#CBTICS_LAB1 = "set colorbox; set cbtics ('0' 0, '0.1' 0.1, '0.2' 0.2, '0.3' 0.3, '0.4' 0.4, '0.5' 0.5, '0.6' 0.6);\
+#	set cblabel 'Flux [{/Symbol m}Jy]'
+CBTICS_LAB2 = "set colorbox; set cbtics ('0' 0, '0.5' 0.5, '1' 1, '1.5' 1.5, '2' 2);\
+       set cblabel 'Flux [mJy beam^{-1}]'"
+#CBTICS_LAB2 = "set colorbox; set cbtics ('0' 0, '50' 0.05, '100' 0.1, '150' 0.15, '200' 0.2);\
+#       set cblabel 'Flux [{/Symbol m}Jy beam^{-1}]'"
+
+# Margins for each row resp. column
+VMARGINTOP = "set tmargin at screen 1.0; set bmargin at screen 0.65"
+VMARGINBOT = "set tmargin at screen 0.65; set bmargin at screen 0.3"
+HMARGINL = "set lmargin at screen 0.0; set rmargin at screen 0.32"
+HMARGINM = "set lmargin at screen 0.33; set rmargin at screen 0.65"
+HMARGINR = "set lmargin at screen 0.66; set rmargin at screen 0.98"
+
+set pm3d explicit
+
+# Primer grafico
+@VMARGINTOP; @HMARGINL
+@NOXTICS; @YTICS; @NOCBTICS
+LABEL = "i=45°"
+set obj 10 rect at -4.4,3.8 size char strlen(LABEL), char 2 
+set obj 10 fillstyle solid border -1 front
+set label 10 at -4.4,3.8 LABEL font "Helvetica,14" front center
+
+splot './SW_radiomap_1GHz_45.dat' u ($2/60.):(-$1/60.):($4*1000.) w points palette,\
+      './R0_proj_45.dat' u ($1/60.):($2/60.):1 ps 3 lw 2 pt 1 lc rgb "coral"
+
+
+# Segundo grafico
+@VMARGINTOP; @HMARGINM
+@NOXTICS; @NOYTICS; @NOCBTICS
+LABEL = "i=60°"
+set obj 10 rect at -4.4,3.8 size char strlen(LABEL), char 2 
+set obj 10 fillstyle solid border -1 front
+set label 10 at -4.4,3.8 LABEL font "Helvetica,14" front center
+
+splot './SW_radiomap_1GHz_60.dat' u ($2/60.):(-$1/60.):($4*1000.) w points palette,\
+      './R0_proj_60.dat' u ($1/60.):($2/60.):1 ps 3 lw 2 pt 1 lc rgb "coral"
+
+
+# Tercer grafico
+@VMARGINTOP; @HMARGINR
+@NOXTICS; @NOYTICS; @CBTICS_LAB1
+LABEL = "i=75°"
+set obj 10 rect at -4.4,3.8 size char strlen(LABEL), char 2 
+set obj 10 fillstyle solid border -1 front
+set label 10 at -4.4,3.8 LABEL font "Helvetica,14" front center
+
+splot './SW_radiomap_1GHz_75.dat' u ($2/60.):(-$1/60.):($4*1000.) w points palette,\
+      './R0_proj_75.dat' u ($1/60.):($2/60.):1 ps 3 lw 2 pt 1 lc rgb "coral"
+
+#---------------------------------------
+
+set pm3d interpolate 0,0
+set cbrange [0.0:2.0]
+set palette defined (0 "white", 1 "grey40")
+
+res = 12./60.
+coc = 2.5
+siz = res*coc
+set object 5 ellipse center graph 0.91,0.91 size siz,siz angle 0. fc rgb "grey" fs solid 1.0 border -1 front
+
+# Cuarto grafico
+@VMARGINBOT; @HMARGINL
+@XTICS; @YTICS; @NOCBTICS
+LABEL = "i=45°"
+set obj 10 rect at -4.4,3.8 size char strlen(LABEL), char 2 
+set obj 10 fillstyle solid border -1 front
+set label 10 at -4.4,3.8 LABEL font "Helvetica,14" front center
+
+splot './SW_conv_1Gabs_45.dat' u ($1/60.):(-$2/60.):($3) w pm3d, 'cont_45.dat' w l lt -1 lw 1.3,\
+      './R0_proj_45.dat' u ($1/60.):($2/60.):1 ps 3 pt 1 lc rgb "coral" 
+
+
+# Quinto grafico
+@VMARGINBOT; @HMARGINM
+@XTICS; @NOYTICS; @NOCBTICS
+LABEL = "i=60°"
+set obj 10 rect at -4.4,3.8 size char strlen(LABEL), char 2 
+set obj 10 fillstyle solid border -1 front
+set label 10 at -4.4,3.8 LABEL font "Helvetica,14" front center
+
+splot './SW_conv_1Gabs_60.dat' u ($1/60.):(-$2/60.):($3) w pm3d, 'cont_60.dat' w l lt -1 lw 1.3,\
+      './R0_proj_60.dat' u ($1/60.):($2/60.):1 ps 3 pt 1 lc rgb "coral" 
+
+
+# Sexto grafico
+@VMARGINBOT; @HMARGINR
+@XTICS; @NOYTICS; @CBTICS_LAB2
+LABEL = "i=75°"
+set obj 10 rect at -4.4,3.8 size char strlen(LABEL), char 2 
+set obj 10 fillstyle solid border -1 front
+set label 10 at -4.4,3.8 LABEL font "Helvetica,14" front center
+
+splot './SW_conv_1Gabs_75.dat' u ($1/60.):(-$2/60.):($3) w pm3d, 'cont_75.dat' w l lt -1 lw 1.3,\
+      './R0_proj_75.dat' u ($1/60.):($2/60.):1 ps 3 pt 1 lc rgb "coral" 
+
+
+unset multiplot
+!./fixbb maps_pre_post_conv_1GHz.eps
+!epstopdf maps_pre_post_conv_1GHz.eps

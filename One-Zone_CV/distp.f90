@@ -1,0 +1,193 @@
+module distp
+  
+  use global
+  
+  implicit none
+  private 
+  public :: distp_run
+  
+contains
+  
+  !============================================================================
+  ! distp_run
+  !============================================================================
+  
+  subroutine distp_run  
+    use global
+    implicit none
+
+    real(dp) :: integral,K_p,Emax_p,log10Emax
+    real(dp) :: t_adi,t_pp,t_diff,t_ac,t_loss,t_esc,E_NT,D_Bohm
+    real(dp) :: b_pp,sigma_pp,L1,t_cool_p !, c_s
+    real(dp), parameter :: E_th=1.22d9*eV, TeV=1.d12*eV
+    
+    interface
+       subroutine Biseccion_p(logEmax,t_pp,t_adi)
+         use iso_fortran_env, only: dp => real64
+         implicit none
+         real(dp), intent(in) :: t_pp,t_adi
+         real(dp), intent(out) :: logEmax
+       end subroutine Biseccion_p
+    end interface
+    
+    allocate( N_p(mE_p),E_p(mE_p) )
+80  format(A8,X,Es10.2)
+
+    write(*,*) 'Calculate the non-thermal proton distribution in the SW'
+    
+    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+    !                                                                    C
+    !                            PROTONS                                 C
+    !                                                                    C
+    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+      
+    !c_s = v_w/sqrt(8.d0)  ! sound speed ~ sqrt(g_ad*P_sw/rho_sw), P_sw ~ 3/4 rho_w*v_w^2
+    t_adi = R0/v_w !c_s  --> No escape losses
+    t_pp = 1.d15/n_a       ! approx expression for p-p losses 
+
+    call Biseccion_p(log10Emax,t_pp,t_adi)
+    Emax_p = MIN(10.d0**log10Emax,qe*B_par*R_acel)! Hillas criterion
+    write(*,80) 'Emax(p)[eV]=',Emax_p/eV
+
+    ! Build a logarithmic-spaced energy vector
+    call vector_log(Emin_p,10.d0*Emax_p,Eint_p,E_p)
+
+    ! Q = Ka*E**-alpha*e^(-E/Emax), alpha=2. Calculate Ka from: 
+    ! int Q(E')*E'dE' = Linj. [Lrel]=erg/s, [Ka]=erg/s, [Q]=erg/erg**2/s
+    
+    integral=0.d0
+    do i=1,mE_p
+       N_p(i) = E_p(i)**(-alpha_sw)*exp(-E_p(i)/Emax_p)  
+       dE_p = E_p(i)*(Eint_p-1.d0)
+       integral = integral + E_p(i)**(-alpha_sw+1.d0)*exp(-E_p(i)/Emax_p)*dE_p
+    enddo
+    K_p = (B**2/(8.*pi)/integral)*eta_mag*eta_p
+    write(*,80) 'Kp =',K_p
+    N_p = K_p*N_p*Vol
+        
+    ! Calculate the proton steady-state energy distribution
+    
+    open(70,file='tcoolp.dat')
+
+    do i =1,mE_p 
+
+       if (E_p(i) < E_th) then !E_th= 1.22 GeV
+          sigma_pp = 0.d0
+          b_pp = 1.d-30         ! invento para no dividir por cero 
+       else            
+          L1 = log(E_p(i)/TeV)    ! L = ln(Ep/1TeV)
+          sigma_pp = (34.3d0 + 1.88d0*L1 + 0.25d0*L1**2)*1.d-27 !cm²
+          ! Agregamos un factor para que ajuste mejor a bajas energías
+          sigma_pp = sigma_pp*(1.d0-(E_th/E_p(i))**4)**2 
+          b_pp = c*0.5*n_a*sigma_pp*E_p(i)
+       endif
+       t_pp = E_p(i)/b_pp
+       t_cool_p = 1.d0/(1.d0/t_pp + 1.d0/t_adi)
+
+       D_Bohm = E_p(i)*c/(3.d0*qe*B)
+       t_diff = H0**2/(2.*D_Bohm) ! del Valle 2012
+       t_esc = t_diff !1./( 1./t_adv + 1.d0/t_diff ) ! escape
+       
+       t_loss = min(t_cool_p,t_esc) ! general losses
+       
+       t_ac = efi_ac_sw*E_p(i)/(B_par*c*qe)
+
+       write(70,*) E_p(i)/eV,t_ac,t_pp,t_adi,t_diff,t_cool_p,t_esc,t_loss
+
+    enddo
+
+    !===================================================
+    !   Save the distribution 
+ 
+    open(79,file='dist_p.dat')
+    do i=1,mE_p
+       dE_p = E_p(i)*(Eint_p-1.d0)
+       E_NT = E_NT + E_p(i)*N_p(i)*dE_p
+       write(79,*) E_p(i)/eV,N_p(i) 
+    enddo
+    close(79)
+    write(*,80) 'E_NT(p)=', E_NT
+
+    deallocate( N_p,E_p ) 
+ 
+  END subroutine distp_run
+  
+
+
+END module distp
+
+
+
+
+    !///////////////////////////////////////////////////////////////////////////
+    !                                                                         //
+    !                            SUBRUTINAS                                   //
+    !                                                                         //
+    !///////////////////////////////////////////////////////////////////////////
+
+    Subroutine Biseccion_p(x3,t_pp,t_adi)
+      use global
+      implicit none
+      integer t_err
+      real(dp), intent(in) :: t_pp,t_adi
+      real(dp), intent(out) :: x3
+      real(dp) :: a_,b_,c_,err
+
+      interface
+         function resta_p(a,t1,t2)
+           use iso_fortran_env, only: dp => real64
+           implicit none
+           real(dp) :: resta_p
+           real(dp), intent(in) :: a,t1,t2
+         end function resta_p
+      end interface
+      
+      !     El error en el n-esimo será menor a |a-b|/2**n
+      a_ = log10(1.d10*eV) ! log10(Emin [CGS]) ~ 10 GeV
+      b_ = log10(1.d15*eV) ! log10(Emax [CGS]) ~ 100 TeV
+      t_err = 4
+      err = 10.d0**(-t_err) ! error menor que 10**-t
+      i = 0
+      do while ( abs(b_ - a_) > err )
+         i = i+1
+         c_ = (a_+b_)/2.
+         if (resta_p(c_,t_pp,t_adi)==0) then
+            b_ = c_
+         else if (resta_p(a_,t_pp,t_adi)*resta_p(c_,t_pp,t_adi) < 0) then
+            b_ = c_
+         else if (resta_p(a_,t_pp,t_adi)*resta_p(c_,t_pp,t_adi) > 0) then
+            a_ = c_
+         endif
+      enddo
+      x3=b_
+      return
+    end Subroutine Biseccion_p
+    
+    !/////////////////////////////////////////////////////////////////////////
+    
+    Function resta_p(log10E,t_pp,t_adi)
+      use global
+      implicit none
+      real(dp), intent(in) :: log10E,t_pp,t_adi
+      real(dp) :: resta_p,E_l,t_diff,t_ac,t_coolp
+      real(dp) :: D_Bohm,t_loss,t_esc
+
+      E_l = 10.d0**log10E
+
+      D_Bohm = E_l*c/(3.d0*qe*B)
+      t_diff = H0**2/(2.*D_Bohm) ! del Valle 2012
+      t_esc = t_diff !1./(1./t_adv + 1.d0/t_diff) ! escape
+
+      t_coolp = 1./(1.d0/t_pp + 1.d0/t_adi)
+      
+      t_loss = min(t_coolp,t_esc) ! general losses
+
+      t_ac = efi_ac_sw*E_l/(B_par*c*qe)
+      resta_p = t_loss - t_ac
+
+      return
+
+    end Function resta_p
+    
+    !/////////////////////////////////////////////////////////////////////////
+

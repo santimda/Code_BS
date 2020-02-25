@@ -1,3 +1,10 @@
+# Plot-related files
+*.dat
+*.eps
+*.ps
+*.sc
+*fixbb*
+
 # Prerequisites
 *.d
 
@@ -30,3 +37,4 @@
 *.exe
 *.out
 *.app
+run.x

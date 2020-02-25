@@ -1,0 +1,234 @@
+module CD_abssyn
+  !This module calculates the f-f absorption of radio emission from the shock
+  use global
+  
+ implicit none
+  private
+  public :: CD_abssyn_run
+
+  contains
+    
+    !========================================================================
+    !        abssyn_run        
+    !========================================================================
+  
+    subroutine CD_abssyn_run
+      use global
+
+      !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+      ! This program calculates the total radio opacity for a radio photon 
+      ! emitted from a position (x(l),y(l)) in the CD. The output is the file
+      ! radsyn.dat which contains E(i), L_sy(E(i), L_sy_abs(E(i)).
+      ! The program uses the results of f-f opacity (tauffw); we have an estimate 
+      ! if the wind alpha(r,nu_i), with "r" tabulated in r.dat is the distance to 
+      ! the star. The f-f absorption in the shock is negligible given the large T
+      !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+
+      !$ use omp_lib
+      Implicit none
+!      real(dp), intent(in) :: phi
+      real(dp) :: dtheta, alphaffw(mr_ff,mE_ff)
+      Real(dp) :: r_ff(mr_ff),dr_ff
+      Real(dp) :: theta1,x1,y1,z1,r1,dr0,x1_0,y1_0,z1_0
+      Real(dp) :: dr_x,dr_y,tginc,sinc,cinc
+      Real(dp) :: Ef(m_nu),log_nu_int,flux,flux1,flux2
+      Real(dp) :: u_proj,v_proj  ! coords in the plane of the sky 
+      Real(dp) :: emision1,emision2,emision1_abs,emision2_abs,convert
+      Real(dp) :: dummy
+      Integer :: ir,nl,inu_max,i_1G,i_5G,i_ff,i_theta
+      integer, parameter :: m_l = 2*m_theta  ! CD position, both sides
+      Logical :: integra
+ 
+      allocate ( tauff(m_l,m_nu) ) 
+      allocate ( x(m_l),y(m_l),z(m_l) )
+      allocate ( theta(m_theta),r_norm(m_theta) )
+      allocate ( nu(m_nu),Lsy(m_l,m_nu),Lsy_tot(m_nu),Lsy_tot_abs(m_nu) )
+  
+!100  format(A15,X,Es10.2)
+
+      tauff = 0.d0
+      Lsy_tot = 0.d0
+      Lsy_tot_abs = 0.d0
+      convert = 206265/distance             ! image to angular size ["]
+      flux = 1.d26/(4.d0*pi*(distance)**2.) ! luminosity to flux in mJy
+
+!      write(*,100) 'R0_proj[arcmin] =',R0_proj/60
+
+      tginc = tan(incli)
+      sinc = sin(incli)
+      cinc = cos(incli)
+      ! set omp threads number
+      !$ call omp_set_num_threads(nth)  
+
+      !======================================================
+      !
+      !    Read the position and opacity table
+      
+      open(10,file='CD.dat')
+      do l=1,m_theta
+         read(10,*) theta(l),r_norm(l),dummy
+      enddo
+      close(10)
+      dtheta = theta(2)-theta(1)  ! Equiesp.
+
+      open(11,file='CDrot.dat')
+      do l=1,m_l     ! "up" and "down"
+         read(11,*) x(l),y(l),z(l)
+      enddo
+      close(11)
+      x = R0*x
+      y = R0*y
+      z = R0*z
+
+      open(12,file='nu.dat')
+      do i=1,m_nu
+         read(12,*) nu(i)
+      enddo
+      close(12)
+      log_nu_int = log(nu(2)/nu(1))
+
+      open(15,file='r_ff.dat')
+      do i_ff=1,mr_ff
+         read(15,*) r_ff(i_ff)
+      enddo
+      close(15)
+      dr_ff = r_ff(2)-r_ff(1)          ! equiespaciated
+
+      open(18,file='windalphaff.dat')
+      do j=1,mr_ff
+         read(18,*) (alphaffw(j,i), i=1,m_nu)
+      enddo
+      close(18)
+
+      !/////////////////////////////////////////////////////////////////////
+      !
+      ! We calculate the total f-f opacity, tauff, for photons coming from a 
+      ! point in the CD integrating at distances d > r_shock along the LOS, and 
+      ! for photons with nu < 2 GHz ( ~ 4.1e-5 eV). Note that the stellar wind  
+      ! absorbs only when the photons are "inside" the CD ( r_xy < r(theta) )
+  
+      inu_max = int( log(0.5d9/nu(1))/log_nu_int ) + 1
+!      write(*,*) 'inu_max=', inu_max
+
+      do l=1,m_l        ! Position in the CD 
+
+         if (l <= m_theta) then
+            dr0 = 0.2d0*r_norm(l)*R0               ! Estimate of the shock width, USE H0 for consistency!!!!
+         else
+            dr0 = 0.2d0*r_norm(l-m_theta)*R0       ! Estimate of the shock width, USE H0 for consistency!!!!
+         endif
+
+         x1_0 = x(l) - dr0*sinc                 ! i = 0° = face-on, in that case dx=0
+         y1_0 = y(l) + dr0*cinc
+         z1_0 = z(l)                            ! it does not vary, it moves at cte z 
+         dr_ff = dr0/16.d0                       ! integration step along the LOS
+         dr_x = -dr_ff*sinc                      ! If i > 0°, x decreaces
+         dr_y = dr_ff*cinc     
+
+         ! !$omp parallel do private(i,r,x1,y1,z1,ir,integra)
+         do i=1,inu_max           ! Photon frequency
+            x1 = x1_0  
+            y1 = y1_0
+            z1 = z1_0          
+            
+            integra = .true.
+            do while(integra) 
+               r1 = sqrt(x1**2. + y1**2. + z1**2.)                     
+               
+               theta1 = abs(atan(y1/x1))
+               i_theta = min( int((theta1 - theta(1))/dtheta) + 1 , m_theta)
+               
+               if( r1 > r_ff(mr_ff)) then        ! Stop integration too far
+                  integra = .false.
+               elseif ( r1 < r_norm(i_theta)*R0 .or. i_theta == m_theta) then ! "inside" the BS
+                  ir = int((r1-r_ff(1))/dr_ff) + 1       
+                  integra = .true.  
+                  tauff(l,i) = tauff(l,i) + alphaffw(ir,i)*dr_ff 
+               else
+                  integra = .false.
+               endif
+               
+               x1 = x1 + dr_x ! CHECK
+               y1 = y1 + dr_y
+               
+            enddo
+         enddo
+         ! !$omp end parallel do
+
+      enddo
+
+      open (25,file='CD_tauff.dat')
+      do l=1,m_l
+         do i=1,m_nu
+            write(25,*) l,nu(i),tauff(l,i) 
+         enddo
+      enddo
+      close(25)
+
+      !/////////////////////////////////////////////////////////////////////
+
+      open (31,file='emisyn_sw.dat')
+      do l=1,m_theta
+         do i=1,m_nu
+            read(31,*) nl,Ef(i),Lsy(l,i)  ! Lsy is already multiplied by Ef(i)
+            Lsy(l+m_theta,i) = Lsy(l,i)   ! symmetry 
+        enddo
+      enddo
+      close(31)
+
+      i_1G = int(log(1.42d9/nu(1))/log_nu_int) + 1        ! 1.4 GHz
+      i_5G = int(log(4.86d9/nu(1))/log_nu_int) + 1        ! 4.8 GHz
+      flux1 = flux/nu(i_1G)   
+      flux2 = flux/nu(i_5G) 
+      ! Chequeo si caen cerca:
+      !write(*,*) '1.4GHz aprox', nu(i_1G)/1.d9, '4.8GHz aprox', nu(i_5G)/1.d9
+      !write(*,*) i_1G, i_5G
+
+      !-----------------------------------------------------------------------
+      ! Calculate the total and absorbed emission for each linear emitter. 
+      ! Also stores the emission projected in the plane of the sky, (u_proj,v_proj)
+
+      open(70,file='CD_radiomap_1GHz.dat')
+      open(71,file='CD_radiomap_5GHz.dat')
+      do l=1,m_l
+!         u_proj = (y(l)+x(l)/tginc)*sinc *convert ! ?
+         u_proj = (y(l)+x(l)/abs(tginc))*abs(sinc) *convert 
+         v_proj = z(l)*convert
+
+         do i=1,m_nu
+            Lsy_tot(i) = Lsy_tot(i) + Lsy(l,i)
+
+            if (i < inu_max) then !  The abs was calculated at these freqs  
+               Lsy_tot_abs(i) = Lsy_tot_abs(i) + Lsy(l,i)*exp(-tauff(l,i))  
+            else
+               Lsy_tot_abs(i) = Lsy_tot_abs(i) + Lsy(l,i)
+            endif         
+         enddo
+         
+         emision1 = Lsy(l,i_1G) * flux1 ! At 1.4 GHz
+         emision1_abs = emision1 * exp(-tauff(l,i_1G))
+         emision2 = Lsy(l,i_5G) * flux2 ! At 4.8 GHz
+         emision2_abs = emision2 * exp(-tauff(l,i_5G))
+         
+         write(70,*) u_proj,v_proj,emision1,emision1_abs
+         write(71,*) u_proj,v_proj,emision2,emision2_abs
+
+      enddo
+      close(70)
+      close(71)
+
+      open(33,file='radsyn_abs.dat')
+      do i=1,m_nu
+         write(33,*) Ef(i),Lsy_tot(i),Lsy_tot_abs(i)
+      enddo
+     close(33)
+
+      deallocate ( tauff ) 
+      deallocate ( x,y,z,nu,Lsy,Lsy_tot,Lsy_tot_abs )
+      deallocate( theta,r_norm )
+   
+
+    END subroutine CD_abssyn_run
+    
+  END module CD_abssyn
+  
