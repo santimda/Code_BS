@@ -1,8 +1,0 @@
-set encoding iso_8859_1
-set title 'N_{tot} in S2'
-set key off
-set ylabel 'alpha'
-set xlabel 'log_{10}(E [eV])'
-set yrange []
-eV = 1.602176e-12 
-plot './dist2_total.dat' u 1:2 w l
