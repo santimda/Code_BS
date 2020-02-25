@@ -55,7 +55,7 @@ module opac_ff
          end subroutine S_ff_map
       end interface
 
-      allocate ( nu(mE_ff) )
+      allocate( nu(mE_ff) )
       S = 0.d0
       Ry = 2.17987d-11          ! Rydberg unit = 2.18e-18 J
 
@@ -63,6 +63,8 @@ module opac_ff
       !$ call omp_set_num_threads(nth)
       ! !$ write(*,'(a, i3, a)') '# Using OpenMP with ', nth ,' threads'
       ! !$ write(*,*)
+
+      write(*,*) 'Calculate the f-f abs. and emi. coefficients in the stellar wind'
       
 !///////////////////////////////////////////////////////////////////////////
 !

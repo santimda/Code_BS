@@ -40,6 +40,8 @@ contains
 80    format(A7,X,Es10.2)
       
       
+      write(*,*) 'Calculate the (unabsorbed) rel. brem. emission in the SW'
+
       !////////////////////////////////////////////////////////////////////////
       !
       ! Read thermodynamical quantites at each position

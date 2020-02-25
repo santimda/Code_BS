@@ -37,6 +37,8 @@ contains
     
 80    format(A7,X,Es10.2)
 
+    write(*,*) 'Calculate the p-p emission in the SW'
+
     !////////////////////////////////////////////////////////////////////////
     !
     ! Read thermodynamical quantites at each position

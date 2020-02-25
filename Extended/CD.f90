@@ -24,7 +24,7 @@ contains
       interface
          Subroutine RK(x1,y1,dx,y2)
             use iso_fortran_env, only: dp => real64
-            implicit nones
+            implicit none
             real(dp), intent(out) :: y2
             real(dp), intent(in) :: x1,y1,dx
          end Subroutine RK

@@ -20,12 +20,13 @@ contains
     integer :: nl
     real(dp), parameter :: g_average = 1.2 ! Rybicki, Eq. 5.15 b
 
-    allocate ( theta(m_theta),r_norm(m_theta),R_theta(m_theta),H_norm(m_theta),H_theta(m_theta) )
-    allocate ( rho(m_theta),T(m_theta) )
+    allocate( theta(m_theta),r_norm(m_theta),R_theta(m_theta),H_norm(m_theta),H_theta(m_theta) )
+    allocate( rho(m_theta),T(m_theta) )
 
 80  format(A12,X,Es10.2)
 
 
+     write(*,*) 'Calculate the total thermal emission from the shocked wind'
     !------------------------------------------------------------
     !     
     !    Read shock position and thermodynamical quantities   
@@ -124,9 +125,11 @@ contains
     
     Ry = 2.17987d-11          ! Rydberg unit = 2.18e-18 J    
 
-    allocate ( theta(m_theta),r_norm(m_theta),R_theta(m_theta),H_norm(m_theta),H_theta(m_theta) )
-    allocate ( rho(m_theta),T(m_theta) )
+    allocate( theta(m_theta),r_norm(m_theta),R_theta(m_theta),H_norm(m_theta),H_theta(m_theta) )
+    allocate( rho(m_theta),T(m_theta) )
    
+    write(*,*) 'Calculate the spectrum of the thermal emission from the shocked wind'
+
     LX_sw = 0.d0
     L_tot = 0.d0
 

@@ -97,6 +97,7 @@ module global
    real(dp), parameter :: mu_ISM = 1.37_dp        ! K2018 
    real(dp), parameter :: Zq_ISM = 1.0_dp         ! Z = rms ionic charge
    real(dp), parameter :: gamma_ISM = 1.0_dp      ! ?
+   real(dp), parameter :: r_A_st = 1.0_dp         ! r_A/R_st
 
    real(dp), parameter :: rho_ISM = n_ISM*mp*mu_ISM ! CHECK
    real(dp), parameter :: R0 = sqrt( (Mdot*v_w)/(4.*pi*(1.+alpha_ISM)*rho_ISM*v_ISM**2) ) 

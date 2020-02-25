@@ -28,8 +28,10 @@ contains
        end subroutine rotacion
     end interface
     
-    allocate ( x(m_theta),y(m_theta),z(m_theta) )
-    
+    allocate( x(m_theta),y(m_theta),z(m_theta) )
+              
+     write(*,*) 'Rotate the coords'
+
     open(12,file='CD_xy.dat')
     open(13,file='CDrot.dat')
     do l = 1,m_theta
@@ -45,7 +47,7 @@ contains
     close(12)
     close(13)
     
-    deallocate ( x,y,z )
+    deallocate( x,y,z )
     
   END subroutine CD_rot_run
   

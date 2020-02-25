@@ -18,6 +18,8 @@ contains
     integer, parameter :: mE_ph = 200
     real(dp) :: Eph_0, Eph_min, Eph_max, Eph_int, Eph(mE_ph)
     real(dp) :: L_BB,Rst2
+
+    write(*,*) 'Calculate the BB thermal emission from the star'
     
     Eph_0 = 3.d0*k*T_st
     Eph_min = Eph_0/2.d6
