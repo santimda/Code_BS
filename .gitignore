@@ -1,8 +1,13 @@
+# Backup files
+*~
+
 # Plot-related files
 *.dat
 *.eps
 *.ps
 *.sc
+*.pdf
+*.gp
 *fixbb*
 
 # Prerequisites
