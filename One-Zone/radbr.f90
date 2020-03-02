@@ -21,6 +21,8 @@ contains
     
     allocate( E_e(mE_e),N_e(mE_e),Lbr(mE_f) )
     
+    write(*,*) '\n Calculate the (unabsorbed) rel. brem. emission in the SW'
+
     cte_sigma = 4.d0*alfa*re**2*Zq_sw**2 
     
     !     Ahora la distribución de e- con energía Ee(i): N_e(i)

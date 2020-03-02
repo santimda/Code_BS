@@ -35,8 +35,10 @@ contains
     allocate ( N_p(mE_p),E_p(mE_p) )
 80  format(A8,X,Es10.2)
     
-    L_wind = (Mdot*v_w**2.)/2.d0
-    L_inj_p = iny_p*L_wind*0.1d0 ! L_inj_wind ~ 10% L_wind
+    write(*,*) '\n Calculate the non-thermal proton distribution in the SW'
+
+    L_wind = (Mdot*v_w**2)/2.d0
+    L_inj_p = inj_p*L_wind*0.1d0 ! L_inj_wind ~ 10% L_wind
 
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
     !                                                                    C
@@ -46,7 +48,7 @@ contains
       
     c_s = v_w/sqrt(8.d0)  ! sound speed ~ sqrt(g_ad*P_sw/rho_sw), P_sw ~ 3/4 rho_w*v_w^2
     t_adv = R0/c_s 
-    t_pp = 1.d15/n_a       ! approx expression for p-p losses 
+    t_pp = 1.d15/n_a      ! approx expression for p-p losses, used only to calculate Emax_p
 
     call Biseccion_p(log10Emax,t_pp,t_adv)
     Emax_p = MIN(10.d0**log10Emax,qe*B_par*R_acel)! Hillas criterion

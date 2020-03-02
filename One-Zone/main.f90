@@ -15,11 +15,9 @@ PROGRAM main
   integer :: i_IC
   real(dp) :: Ef_IC(mE_f)
   
-  write(*,*) ''
-  write(*,*) '============================'
+  write(*,*) '\n ============================'
   write(*,*) ' START'
-  write(*,*) '============================'
-  write(*,*) ''
+  write(*,*) '============================ \n'
 
 
 88    format(A11,X,Es10.2)
@@ -33,33 +31,17 @@ PROGRAM main
 !  write(*,88) 'T_IR[K]=',16.4* ( (L_st/(4.*pi*R0**2.))/0.0217 )**(1./6.) ! Kobulnicky 2016
 !  write(*,88) 'T_IR[K]=',T_st*(R_st/(2*R0))**(1./3.) ! Meyer 2016
 
-  write(*,*) ''
 
-  IF (electrons.eqv.yes) then
-     write(*,*) 'ELECTRONS:'
+  IF (electrons) then
+     write(*,*) '\n ELECTRONS:'
      
-     if (diste_calc.eqv.yes) then
-        write(*,*) 'Calculate the non-thermal electron distribution in the SW'
-        call diste_run  
-     endif
-     
-     write(*,*) ''
+     if (diste_calc) call diste_run  
 
-     if (radsyn_calc.eqv.yes) then       
-        write(*,*) 'Calculate the (unabsorbed) sync. emission in the SW'
-        call radsyn_run
-     endif
+     if (radsyn_calc) call radsyn_run
      
-     write(*,*) ''
+     if (radbr_calc) call radbr_run
      
-     if (radbr_calc.eqv.yes) then
-        write(*,*) 'Calculate the (unabsorbed) rel. brem. emission in the SW'
-        call radbr_run
-     endif
-     
-     write(*,*) ''
-     
-     if (radic_calc.eqv.yes) then
+     if (radic_calc) then
 
         write(*,*) 'Calculate the (unabsorbed) IC-dust emission in the SW'
         call radic_run(T_IR,Kappa_IR,Ef_IC,Lic)
@@ -79,41 +61,21 @@ PROGRAM main
 
      endif
      
-     write(*,*) ''
-     
-     if (opac_ff_calc.eqv.yes) then
-        write(*,*) 'Calculate the f-f abs. and emi. coefficients in the stellar wind'
-        call opac_ff_run
-     end if    
-     
-     write(*,*) ''    
+     if (opac_ff_calc) call opac_ff_run
 
-     if (abssyn_calc.eqv..true.) then
-        write(*,*) 'Calculate the free-free synchrotron absorption'
-        call abssyn_run
-     endif
-     
-     write(*,*) ''
+     if (abssyn_calc) call abssyn_run
 
   ENDIF
 
   !--------------------------------
 
-  IF (protons.eqv.yes) then
-     write(*,*) 'PROTONS:'
+  IF (protons) then
+     write(*,*) '\n PROTONS:'
      
-     if (distp_calc.eqv.yes) then
-        write(*,*) 'Calculate the non-thermal proton distribution in the SW'
-        call distp_run 
-        write(*,*) '' 
-     endif
-     
+     if (distp_calc) call distp_run      
 
-     if (radpp_calc.eqv.yes) then
-        write(*,*) 'Calculate the p-p emission in the SW'
-        call radpp_run 
-        write(*,*) '' 
-     endif
+     if (radpp_calc) call radpp_run
+         
   ENDIF
 
   !================================================================

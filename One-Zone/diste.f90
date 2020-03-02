@@ -37,12 +37,14 @@ contains
 80  format(A7,X,Es10.2)
 810  format(A15,X,Es10.2)
 
-    L_wind = (Mdot*v_w**2.)/2.d0
-    L_inj_e = iny_e*L_wind*0.5 ! L_wind_perp ~ 50% L_wind
+    write(*,*) '\n Calculate the non-thermal electron distribution in the SW'
+
+    L_wind = (Mdot*v_w**2)/2.d0
+    L_inj_e = inj_e*L_wind*0.5 ! L_wind_perp ~ 50% L_wind
 
     write(*,810) 'L_inj =',L_wind*0.5
     write(*,810) 'L_inje =',L_inj_e
-    write(*,810) 'L_injp =',L_wind*0.5*iny_p
+    write(*,810) 'L_injp =',L_wind*0.5*inj_p
     write(*,810) 'L_st =',L_st
 !    write(*,810) 'U_IR [eV/cm3] =',(4.*sigma/c)*T_IR**4/eV
     write(*,810) 'U_IR [eV/cm3] =',L_IR/(pi*R0**2.*c)/eV
@@ -146,7 +148,7 @@ contains
 
     E_NT = 0.d0
     open(79,file='dist_e.dat')
-    open(69,file='iny_e.dat')
+    open(69,file='inj_e.dat')
     do i=1,mE_e
        dE_e = E_e(i)*(Eint_e - 1.d0)  
        E_NT = E_NT + E_e(i)*N_e(i)*dE_e  ! Control

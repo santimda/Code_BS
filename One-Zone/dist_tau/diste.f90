@@ -34,18 +34,16 @@ contains
        end subroutine Biseccion
     end interface
     
-    allocate ( N_e(mE_e),E_e(mE_e) )
+    allocate( N_e(mE_e),E_e(mE_e) )
 80  format(A7,X,Es10.2)
 810  format(A15,X,Es10.2)
 
-    L_wind = (Mdot*v_w**2.)/2.d0
-    L_inj_e = iny_e*L_wind*0.1d0 ! L_inj_wind ~ 10% L_wind
+    L_wind = (Mdot*v_w**2)/2.d0
+    L_inj_e = inj_e*L_wind*0.1d0 ! L_inj_wind ~ 10% L_wind
 
-!    write(*,810) 'U_IR [eV/cm3] =',(4.*sigma/c)*T_IR**4/eV
-    write(*,810) 'U_IR [eV/cm3] =',(5.7d36)/(4.*pi*H0**2.*c)/eV
-    write(*,810) 'U_st [eV/cm3] =',L_st/(4.*pi*R0**2.*c)/eV
-    write(*,810) 'U_IR/U_st =',( L_IR / L_st ) * ( R0 / H0 ) **2.
-!    write(*,810) 'U_IR/U_st =',16.*pi*R0**2.*T_IR**4./L_st
+    write(*,810) 'U_IR [eV/cm3] =',(5.7d36)/(4.*pi*H0**2*c)/eV
+    write(*,810) 'U_st [eV/cm3] =',L_st/(4.*pi*R0**2*c)/eV
+    write(*,810) 'U_IR/U_st =',( L_IR / L_st ) * ( R0 / H0 ) **2
     write(*,810) 'L_IR/L_st =',L_IR/L_st
     write(*,810) 'R_IR/R0 =',R_IR/R0
     write(*,810) 'Kappa_IR =',Kappa_IR
@@ -58,9 +56,9 @@ contains
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
     
     ! Search for maximum electron energy
-    C_ic_st = ( pi*h_bar**3.*c**2./(2.*re**2.*mec2**3.) )/(T_st_ad**2.)
-    C_ic_IR = ( pi*h_bar**3.*c**2./(2.*re**2.*mec2**3.) )/(T_IR_ad**2.)
-    C_ic_CMB = ( pi*h_bar**3.*c**2./(2.*re**2.*mec2**3.) )/(T_CMB_ad**2.)
+    C_ic_st = ( pi*h_bar**3*c**2/(2.*re**2*mec2**3) )/(T_st_ad**2)
+    C_ic_IR = ( pi*h_bar**3*c**2/(2.*re**2*mec2**3) )/(T_IR_ad**2)
+    C_ic_CMB = ( pi*h_bar**3*c**2/(2.*re**2*mec2**3) )/(T_CMB_ad**2)
     kC_ic_st = C_ic_st/Kappa_st
     kC_ic_IR = C_ic_IR/Kappa_IR  
     kC_ic_CMB = C_ic_CMB/Kappa_CMB
@@ -94,7 +92,7 @@ contains
 
     S = 0.d0
     t_esc = tad                ! Ignore diffusion
-    cte_sy = 1.d0/1.6d-3/B_par**2.d0
+    cte_sy = 1.d0/1.6d-3/B_par**2
     mE1 = mE_e*16                 ! Initial number of steps in E1
     do i = 1,mE_e              ! E
        sum1 = 0.d0
@@ -138,7 +136,7 @@ contains
 !          write(*,*) i,Tau!, (1./E_e(i)-1./E1_e)/(1.6d-3*B**2.)
 !          write(*,*) 
 
-          mE2 = MAX(mE2-1,32) !  Lower down the # of points for speed
+          mE2 = MAX(mE2-1,32) !  Lower down the # of points for faster calculation
           
           dE1_e = E1_e*(Eint1_e-1.d0)
           Q_e = E1_e**(-alpha_sw)*exp(-E1_e/Emax_e)
@@ -151,7 +149,7 @@ contains
        S = sum1
 !       write(*,*) i,S
 
-       mE1 = MAX(mE1-1,64) !  Lower down the # of points for speed
+       mE1 = MAX(mE1-1,64) !  Lower down the # of points for faster calculation
        
        tsy = cte_sy/E_e(i) 
 
@@ -162,7 +160,7 @@ contains
        tic = 1./(1.d0/tic_st + 1.d0/tic_IR + 1.d0/tic_CMB)
        
        D_Bohm = E_e(i)*c/(3.d0*qe*B)
-       tdif = H0**2./(2.*D_Bohm) ! del Valle 2012
+       tdif = H0**2/(2.*D_Bohm) ! del Valle 2012
 
        tcoole = 1./(1.d0/tsy + 1.d0/tic + 1/tbr)! + 1.d0/tad + 1.d0/tdif) 
        tac = efi_ac_sw*E_e(i)/(B_par*c*qe)
@@ -192,7 +190,7 @@ contains
     close(79)
     close(69)
  
-    deallocate ( N_e,E_e ) 
+    deallocate( N_e,E_e ) 
  
   END subroutine diste_run
   
@@ -259,14 +257,14 @@ END module diste
       E_l = 10.d0**log10E
       gamm = E_l/mec2
 
-      tsy = 1.d0/1.6d-3/B_par**2.d0/E_l 
+      tsy = 1.d0/1.6d-3/B_par**2/E_l 
      
       tic_st = c1*gamm/F_iso(4.*gamm*T_st_ad)
       tic_IR = c2*gamm/F_iso(4.*gamm*T_IR_ad)    
       tic_CMB = c3*gamm/F_iso(4.*gamm*T_CMB_ad)
 
       D_Bohm = E_l*c/(3.d0*qe*B)
-      tdif = H0**2./(2.*D_Bohm) ! del Valle 2012
+      tdif = H0**2/(2.*D_Bohm) ! del Valle 2012
 
       tcoole = 1./(1.d0/tsy + 1.d0/tic_st + 1.d0/tic_IR + &
            1.d0/tic_CMB + 1.d0/tdif + 1.d0/tloss)

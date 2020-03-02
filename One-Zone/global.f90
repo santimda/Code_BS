@@ -33,8 +33,10 @@ real(dp), parameter :: g_ad = 5.d0/3.d0   ! adiabatic coefficient
 real(dp), parameter :: m_pic2 = 134.98d6*eV ! pion rest energy
 real(dp), parameter :: mpc2 = 1836.d0*mec2  ! proton rest energy
 real(dp), parameter :: T_CMB = 2.73d0             
-real(dp), parameter :: T_CMB_ad = k*T_CMB/mec2 ! h*(10.)**(34./3.)/mec2 (Ani)
-real(dp), parameter :: u_CMB = 10.d0**(-236.d0/19.d0) ! Según Ani
+real(dp), parameter :: T_CMB_ad = k*T_CMB/mec2 
+real(dp), parameter :: u_CMB = 10.d0**(-236.d0/19.d0) ! CITE?
+real(dp), parameter :: Ry = 2.17987d-11   ! Rydberg unit = 2.18e-18 J
+
 
 !===================================================
 
@@ -49,20 +51,16 @@ real(dp), parameter :: incli = pi/2.d0 - inclination   ! angle that I use
 !real(dp), parameter :: R0 = R0_proj*(distance/kpc)*UA/abs(cos(incli)) ! linear distance to the BS stagnation point
 real(dp), parameter :: theta_max = (110.d0/180.d0)*pi ! ~ extension of the BS modelled ~ pi/2
 
-!real(dp), parameter :: ab_X=0.705d0, ab_Y=0.275d0, ab_Z=0.02 ! stellar abundances 
 
 ! Star:
 ! *****
-!real(dp), parameter :: v_st = 100.d5           ! del Valle 2012 
 real(dp), parameter :: v_st = 70.d5           ! Peri 2014 
-!real(dp), parameter :: T_st = 4.25d4           ! Benaglia 2010  
 real(dp), parameter :: T_st = 4.07d4           ! K2017  
 real(dp), parameter :: T_st_ad = k*T_st/mec2   ! Adimensional stellar temperature
 !real(dp), parameter :: L_st = 7.d5*L_sun       ! del Valle 2012
 !real(dp), parameter :: R_st = sqrt( L_st/(4.*pi*sigma*T_st**4.) ) 
 real(dp), parameter :: R_st = 19.*R_sun         ! K2017  
-real(dp), parameter :: L_st = 4.d0*pi*R_st**2*sigma*T_st**4. ! Stellar luminosity 
-!real(dp), parameter :: Mdot = 1.d-4*M_sun_yr  ! del Valle 2012
+real(dp), parameter :: L_st = 4.d0*pi*R_st**2*sigma*T_st**4 ! Stellar luminosity 
 real(dp), parameter :: Mdot = 6.5d-6*M_sun_yr  ! Peri 2014
 !real(dp), parameter :: Mdot = 5.5d-6*M_sun_yr  ! Brookes 2016
 !real(dp), parameter :: v_w =  2200.d5         ! del Valle 2012
@@ -72,13 +70,13 @@ real(dp), parameter :: v_st_rot = 0.1d0*v_w   ! Rule-of-thumb
 real(dp), parameter :: mu_w = 1.3_dp          ! Leitherer 1995 
 real(dp), parameter :: Zq_w = 1.0_dp          ! Z = rms ionic charge
 real(dp), parameter :: gamma_w = 1.0_dp       ! Leitherer 1995
+!real(dp), parameter :: ab_X=0.705d0, ab_Y=0.275d0, ab_Z=0.02 ! stellar abundances 
 real(dp), parameter :: filling = 1.d-1        ! ..... 10% ?
 
 ! ISM:
 ! ****
 real(dp), parameter :: v_ISM = v_st           ! 
 !real(dp), parameter :: n_ISM = 1.d0           ! del Valle 2012 
-!real(dp), parameter :: n_ISM = 0.2d0           ! Peri 2014
 !real(dp), parameter :: n_ISM = 3.5d0           ! Peri 2015
 real(dp), parameter :: n_ISM = 2.d0           ! ?????
 real(dp), parameter :: T_ISM = 40.d0          ! ?????
@@ -104,7 +102,7 @@ real(dp), parameter :: mu_i_sw = 1.d0/(1/mu_sw-1/mu_e_sw)
 real(dp), parameter :: Zq_sw = 1.23_dp        
 real(dp), parameter :: gamma_sw = 1.34_dp
 
-real(dp), parameter :: rho_w = Mdot/(4.d0*pi*R0**2.*v_w)
+real(dp), parameter :: rho_w = Mdot/(4.d0*pi*R0**2*v_w)
 real(dp), parameter :: n_a = 4.*rho_w/(mp*mu_sw) ! ambient nuclei number density
 
 
@@ -131,15 +129,15 @@ real(dp), parameter :: frac_sw = sqrt(0.1_dp)     ! fraction UB_sw/UB_equipartit
 real(dp), parameter :: alpha_sw = 2.0_dp    ! injection spectral index in the sw 
 
 real(dp), parameter :: frac_NT = 0.1_dp            ! Fraction of L_inj_perp converted to L_NT
-real(dp), parameter :: iny_e = frac_NT*0.5d0       ! Fraction L_NT_e/L_NT
-real(dp), parameter :: iny_p = frac_NT*0.5d0       ! Fraction L_NT_p/L_NT 
+real(dp), parameter :: inj_e = frac_NT*0.05d0       ! Fraction L_NT_e/L_NT
+real(dp), parameter :: inj_p = frac_NT*0.5d0       ! Fraction L_NT_p/L_NT 
 
-!real(dp), parameter :: B = frac_sw*sqrt(4.d0*pi*rho_w*4.*v_w**2.d0) 
-       ! If U_mag = frac*U_th -> B^2/4pi = frac*(g_ad/g_ad - 1)*P 
+!real(dp), parameter :: B = frac_sw*sqrt(4.d0*pi*rho_w*4.*v_w**2) 
+       ! If U_mag = frac*U_th -> B^2/4pi = frac*(g_ad/(g_ad - 1))*P 
        ! If P_mag = frac*P_th -> B^2/8pi = frac*P 
 real(dp), parameter :: B = frac_sw*sqrt(Mdot*v_w/R0**2) ! del Valle 2012
 real(dp), parameter :: B_par = B*par
-real(dp), parameter :: R_acel = H0  ! NOT SURE
+real(dp), parameter :: R_acel = R0  !
 
 !===================================================
 
@@ -210,8 +208,6 @@ contains
     N_puntos = SIZE(E_vec)
     Eint = (Emax/Emin)**(1.d0/dfloat(N_puntos-1))
 
- !   write(*,*) Emin, Emax, Eint,N_puntos
-
     E_vec(1) = Emin
     do i_vec=2,N_puntos
        E_vec(i_vec)=E_vec(i_vec-1)*Eint
@@ -263,7 +259,7 @@ contains
     k = 1.380658d-16
     c = 2.99792458d10
     h = 6.6260755d-27
-    nBB = 2.d0*pi/((h*c)**3)*(Epho**2/(exp(Epho/(k*T))-1))
+    nBB = 2.d0*pi/((h*c)**3)*(Epho**2/(exp(Epho/(k*T))-1.))
     RETURN
   end Function nBB
     

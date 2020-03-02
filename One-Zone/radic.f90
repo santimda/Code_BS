@@ -21,7 +21,7 @@ contains
     real(dp) :: Ndot,sum,sum_ic,cte_Ndot,T_ad
     real(dp) :: T_ad_ang
     real(dp), parameter :: aniso = 1.d1 ! if = 1.d0, then anisotropic IC-star
-    allocate ( N_e(mE_e),E_e(mE_e) )
+    allocate( N_e(mE_e),E_e(mE_e) )
 
 80  format(A10,X,Es10.2)
 

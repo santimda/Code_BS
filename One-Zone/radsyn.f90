@@ -26,6 +26,8 @@ contains
 
 80  format(A14,X,Es10.2)
 
+    write(*,*) '\n Calculate the (unabsorbed) sync. emission in the SW'
+
     ! set omp threads number
     !$ call omp_set_num_threads(nth) 
 

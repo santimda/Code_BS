@@ -75,7 +75,7 @@ contains
       
       Lbr_tot = 0.d0
       
-      cte_sigma = 4.d0*alfa*re**2.*Zq_sw**2. !qe**4.d0 ?????????
+      cte_sigma = 4.d0*alfa*re**2.*Zq_sw**2.*2.785d0 !qe**4.d0 ?????????
       
       ! Build logarithmic-spaced energy vector for emitted photons, Eps(i):
       call vector_log(1.d3*eV,E_e(mE_e),Ef_int,Ef)
@@ -100,10 +100,12 @@ contains
                   dsigma_Br= cte_sigma/Ef(i)*Phi_Br(Eps(i),gamma(j),'U') !U or S
                   ! [P_eps] = 1/seg
                   ! Factor: Sum ni*Zi**2 ~ 0.705*1**2 + 0.275*2**2 + 0.020*7**2 ~ 2.785  ????????
-                  P_ef = Ef(i)*2.785d0*n_a(l)*c*dsigma_Br
-                  dE_e = E_e(j)*(Eint_e-1.d0)
-                  dP_Ef = N_e(j)*P_ef*dE_e
-                  sum = dP_Ef + sum ! P = int dP_Ef
+                  if (dsigma_Br > 0.d0) then ! bad energy ranges may yield negative values
+                    P_ef = Ef(i)*n_a(l)*c*dsigma_Br
+                    dE_e = E_e(j)*(Eint_e-1.d0)
+                    dP_Ef = N_e(j)*P_ef*dE_e
+                    sum = dP_Ef + sum ! P = int dP_Ef
+                  endif
                endif
             enddo ! j
             Lbr(i) = sum            ! [erg/seg]
@@ -144,23 +146,23 @@ contains
 
 
 
-Function Phi_Br(Ef0,Ee,nuc)
+Function Phi_Br(Ef0,Ee,nucl)
   
   use global
   implicit none
   real(dp) :: Phi_Br
   real(dp), intent(in) :: Ef0,Ee  ! Normalized / mec2
-  character, intent(in) :: nuc
+  character, intent(in) :: nucl
   real(dp) :: Z_Br
 
   Z_Br = Zq_sw  ! ????
 
-  if (nuc == 'S') then ! Screened
+  if (nucl == 'S') then ! Screened
      
      Phi_Br = ( 1. + (1.-Ef0/Ee)**2.-(2./3.)*(1.-Ef0/Ee))*&
           log(191./Z_Br**(1./3.)) + (1./9.)*(1.-Ef0/Ee)
      
-  else if (nuc == 'U') then ! Un-screened:
+  else if (nucl == 'U') then ! Un-screened:
      
      Phi_Br = ( 1. + (1.-Ef0/Ee)**2.-(2./3.)*(1.-Ef0/Ee))*&
           (log(2.*Ee*(Ee-Ef0)/Ef0)-0.5)

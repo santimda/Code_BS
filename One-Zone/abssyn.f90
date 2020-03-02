@@ -36,8 +36,10 @@ contains
     Integer :: ir,inu_max,i_1G,i_5G,i_ff
     Logical :: integra
     
-    allocate ( tauff(m_nu) ) 
-    allocate ( nu(m_nu),Lsy(m_nu),Lsy_abs(m_nu) )
+    allocate( tauff(m_nu) ) 
+    allocate( nu(m_nu),Lsy(m_nu),Lsy_abs(m_nu) )
+    
+    write(*,*) '\n Calculate the free-free synchrotron absorption'
 
     tauff = 0.d0
     convert = 206265/distance             ! image to angular size ["]

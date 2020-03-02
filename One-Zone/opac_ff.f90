@@ -26,7 +26,7 @@ module opac_ff
       !     3) r_ff.dat, a list of r_ff(n)
       !/////////////////////////////////////////////////////////////////////////
 
-      real(dp) :: Ry,T_w,S(mE_ff),ne,ni,gffinter
+      real(dp) :: T_w,S(mE_ff),ne,ni,gffinter
       real(dp) :: alphaff(mr_ff,mE_ff),gamma2,dg,dmu
       real(dp) :: r_ff(mr_ff),dr,A_ff,cte_alpha_ff
       integer :: j_mu,j_g
@@ -42,9 +42,12 @@ module opac_ff
          end subroutine interpol
       end interface
 
-      allocate ( nu(mE_ff) )
+      allocate( nu(mE_ff) )
+
+
+      write(*,*) '\n Calculate the f-f abs. and emi. coefficients in the stellar wind'
+
       S = 0.d0
-      Ry = 2.17987d-11          ! Rydberg unit = 2.18e-18 J
 
       ! set omp threads number
       !$ call omp_set_num_threads(nth)

@@ -32,7 +32,9 @@ contains
        end function F
     end interface
     
-    allocate ( E_p(mE_p),N_p(mE_p),Lpp(mE_f) )
+    allocate( E_p(mE_p),N_p(mE_p),Lpp(mE_f) )
+    
+    write(*,*) '\n Calculate the p-p emission in the SW'
     
     Lpp = 0.d0
 80  format(A7,X,Es10.2)
