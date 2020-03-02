@@ -30,7 +30,7 @@ contains
     do i=1,mE_e
        read(14,*) E_e(i),N_e(i)
        E_e(i) = E_e(i)*eV    !   Pasamos la energía a ergios
-    enddo
+    end do
     close(14) 
     Eint_e = E_e(2)/E_e(1)
     
@@ -68,11 +68,11 @@ contains
              dq_Ef = N_e(j)*q_ef*dE_e
              sum = dP_Ef + sum ! q = int dq_Eps
           endif
-       enddo ! j
+       end do ! j
        ! To transform from photon emissivity to specific luminosity:
        Lbr(i) = Ef(i)*sum            ! [erg/seg/erg]
        sum_br = sum_br + Lbr(i)*dEf
-    enddo ! i
+    end do ! i
     
     write(*,81) 'L_Br(tot)=',sum_br
 81  format(A11,X,Es10.2)
@@ -80,7 +80,7 @@ contains
     open(16,file='radbr.dat')
     do i=1,mE_f
        write(16,*) Ef(i)/eV,Ef(i)*Lbr(i)
-    enddo
+    end do
     close(16)
     
     deallocate( E_e,N_e,Lbr )

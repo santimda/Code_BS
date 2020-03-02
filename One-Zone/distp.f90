@@ -1,8 +1,5 @@
 module distp
   
-  use global
-  
-  implicit none
   private 
   public :: distp_run
   
@@ -16,7 +13,7 @@ contains
     use global
     implicit none
 
-    real(dp) :: L_inj_p,L_wind,integral,Ka_p,Emax_p,log10Emax
+    real(dp) :: L_inj_p,integral,Ka_p,Emax_p,log10Emax
     real(dp) :: Q,S,t_adv,t_pp,t_diff,t_ac,t_loss,t_esc,E_NT,D_Bohm
     real(dp) :: b_pp,sigma_pp,L1,E_punto,t_cool_p, c_s
     real(dp) :: dE2_p,E2_p,Eint2_p,Emax2_p,Emin2_p
@@ -32,13 +29,13 @@ contains
        end subroutine Biseccion_p
     end interface
     
-    allocate ( N_p(mE_p),E_p(mE_p) )
+    allocate( N_p(mE_p),E_p(mE_p) )
 80  format(A8,X,Es10.2)
     
     write(*,*) '\n Calculate the non-thermal proton distribution in the SW'
 
-    L_wind = (Mdot*v_w**2)/2.d0
-    L_inj_p = inj_p*L_wind*0.1d0 ! L_inj_wind ~ 10% L_wind
+    L_inj_p = inj_p*L_inj  
+    write(*,80) 'L_injp =',L_inj_p
 
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
     !                                                                    C
@@ -63,7 +60,7 @@ contains
     do i=1,mE_p
        dE_p = E_p(i)*(Eint_p-1.d0)
        integral = integral + E_p(i)**(-alpha_sw+1.d0)*exp(-E_p(i)/Emax_p)*dE_p
-    enddo
+    end do
     
     Ka_p = L_inj_p/integral
     
@@ -86,7 +83,7 @@ contains
           Q = E2_p**(-alpha_sw)*exp(-E2_p/Emax_p) !normalize later
           S = S + Q*dE2_p
           E2_p = E2_p*Eint2_p
-       enddo
+       end do
 
        if (mE2 >= 32) then  ! so it is faster
           mE2 = mE2-1
@@ -121,7 +118,7 @@ contains
 
        write(70,*) E_p(i)/eV,t_ac,t_pp,t_adv,t_diff,t_cool_p,t_esc,t_loss
 
-    enddo
+    end do
 
     !===================================================
     !   Save the distribution 
@@ -133,7 +130,7 @@ contains
        dE_p = E_p(i)*(Eint_p-1.d0)
        E_NT = E_NT + E_p(i)*N_p(i)*dE_p
        write(79,*) E_p(i)/eV,N_p(i) 
-    enddo
+    end do
     close(79)
     write(*,80) 'E_NT(p)=', E_NT
 
@@ -187,7 +184,7 @@ END module distp
          else if (resta_p(a_,t_pp,t_adv)*resta_p(c_,t_pp,t_adv) > 0) then
             a_ = c_
          endif
-      enddo
+      end do
       x3=b_
       return
     end Subroutine Biseccion_p

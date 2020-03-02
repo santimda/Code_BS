@@ -65,6 +65,9 @@ real(dp), parameter :: Mdot = 6.5d-6*M_sun_yr  ! Peri 2014
 !real(dp), parameter :: Mdot = 5.5d-6*M_sun_yr  ! Brookes 2016
 !real(dp), parameter :: v_w =  2200.d5         ! del Valle 2012
 real(dp), parameter :: v_w =  2325.d5          ! Peri 2014
+real(dp), parameter :: frac_BS = 0.5d0        ! Fraction of wind kinetic power injeted in the BS
+real(dp), parameter :: L_wind = 0.5d0*(Mdot*v_w**2) ! Wind kinetic power
+real(dp), parameter :: L_inj = frac_BS*L_wind ! Wind kinetic power injeted in the BS
 
 real(dp), parameter :: v_st_rot = 0.1d0*v_w   ! Rule-of-thumb
 real(dp), parameter :: mu_w = 1.3_dp          ! Leitherer 1995 
@@ -104,6 +107,7 @@ real(dp), parameter :: gamma_sw = 1.34_dp
 
 real(dp), parameter :: rho_w = Mdot/(4.d0*pi*R0**2*v_w)
 real(dp), parameter :: n_a = 4.*rho_w/(mp*mu_sw) ! ambient nuclei number density
+real(dp), parameter :: z_br = 2.23               ! Padovani+2018 for Wiilms+2000 abundances
 
 
 ! Heated dust (IR):
@@ -118,19 +122,19 @@ real(dp), parameter :: R_IR = sqrt( L_IR/(4.*pi*sigma*T_IR**4) ) ! cavity -> 1/4
 
 ! For IC (both diste.f90 and radic.f90)
 real(dp), parameter :: Kappa_st = (R_st/(2.*R0))**2
-real(dp), parameter :: Kappa_IR = ( R_IR / R0 )**2 ! Is it ok ????????
+real(dp), parameter :: Kappa_IR = ( R_IR / R0 )**2  ! Is it ok ????????
 real(dp), parameter :: Kappa_CMB = 1.d0             ! ????????
 
 
 ! Non-thermal particles:
 ! **********************
 real(dp), parameter :: efi_ac_sw = 2.d0*pi*(c/v_w)**2   ! particle accel. efficiency at the sw 
-real(dp), parameter :: frac_sw = sqrt(0.1_dp)     ! fraction UB_sw/UB_equipartition_sw
-real(dp), parameter :: alpha_sw = 2.0_dp    ! injection spectral index in the sw 
+real(dp), parameter :: frac_sw = sqrt(0.1_dp)       ! fraction UB_sw/UB_equipartition_sw
+real(dp), parameter :: alpha_sw = 2.0_dp            ! injection spectral index in the sw 
 
-real(dp), parameter :: frac_NT = 0.1_dp            ! Fraction of L_inj_perp converted to L_NT
+real(dp), parameter :: frac_NT = 0.1_dp             ! Fraction of L_inj_perp converted to L_NT
 real(dp), parameter :: inj_e = frac_NT*0.05d0       ! Fraction L_NT_e/L_NT
-real(dp), parameter :: inj_p = frac_NT*0.5d0       ! Fraction L_NT_p/L_NT 
+real(dp), parameter :: inj_p = frac_NT*0.5d0        ! Fraction L_NT_p/L_NT 
 
 !real(dp), parameter :: B = frac_sw*sqrt(4.d0*pi*rho_w*4.*v_w**2) 
        ! If U_mag = frac*U_th -> B^2/4pi = frac*(g_ad/(g_ad - 1))*P 

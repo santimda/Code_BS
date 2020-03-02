@@ -37,7 +37,7 @@ contains
     do i=1,mE_e
        read(14,*) E_e(i),N_e(i)
        E_e(i) = E_e(i)*eV    !   [erg]
-    enddo
+    end do
     close(14) 
     Eint_e = E_e(2)/E_e(1)
     gamma = E_e/mec2
@@ -83,11 +83,11 @@ contains
              dP_eps = 0.d0
           endif
           sum = dP_eps + sum
-       enddo
+       end do
        L_ic(i) = sum 
        !   P=[m_e c**2/s], lo pasamos a [erg/s]. Eps lo pasamos a eV.
        sum_ic = sum_ic + L_ic(i)*dEps*mec2
-    enddo
+    end do
     
     write(*,80) 'L_IC =',sum_ic
     

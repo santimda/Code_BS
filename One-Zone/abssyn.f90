@@ -58,21 +58,21 @@ contains
     open(12,file='nu.dat')
     do i=1,m_nu
        read(12,*) nu(i)
-    enddo
+    end do
     close(12)
     log_nu_int = log(nu(2)/nu(1))
     
     open(15,file='r_ff.dat')
     do i_ff=1,mr_ff
        read(15,*) r_ff(i_ff)
-    enddo
+    end do
     close(15)
     dr_ff = r_ff(2)-r_ff(1)          ! equiespaciated
     
     open(18,file='windalphaff.dat')
     do j=1,mr_ff
        read(18,*) (alphaffw(j,i), i=1,m_nu)
-    enddo
+    end do
     close(18)
     
     !/////////////////////////////////////////////////////////////////////
@@ -122,15 +122,15 @@ contains
           
           x1 = x1 + dr_x ! CHECK
           y1 = y1 + dr_y          
-       enddo
+       end do
 
-    enddo
+    end do
     ! !$omp end parallel do
     
     open (25,file='tauff.dat')
     do i=1,m_nu
        write(25,*) nu(i),tauff(i) 
-    enddo
+    end do
     close(25)
     
     !/////////////////////////////////////////////////////////////////////
@@ -138,7 +138,7 @@ contains
     open (31,file='radsyn.dat')
     do i=1,m_nu
        read(31,*) Ef(i),Lsy(i)  ! Lsy is E*L(E) [erg/s]; Ef(i) is in eV 
-    enddo
+    end do
     close(31)
     
     i_1G = int(log(1.4d9/nu(1))/log_nu_int) + 1        ! 1.4 GHz
@@ -157,7 +157,7 @@ contains
           Lsy_abs(i) = Lsy(i)
        endif
        
-    enddo
+    end do
     
     emision1 = Lsy(i_1G) * flux1 ! At 1.4 GHz
     emision1_abs = emision1 * exp(-tauff(i_1G))
@@ -182,7 +182,7 @@ contains
        dE_nu = (h*nu(i))*(Eint_nu - 1.d0)  
        write(33,*) Ef(i),Lsy(i),Lsy_abs(i)
        sum = sum + Lsy_abs(i)/(Ef(i)*eV)*dE_nu
-    enddo
+    end do
     close(33)
     write(*,89) 'L_syn(abs)=',sum
     

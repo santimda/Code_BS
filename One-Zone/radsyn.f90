@@ -36,7 +36,7 @@ contains
     do i=1,mE_e
        read(14,*) E_e(i),N_e(i)
        E_e(i) = E_e(i)*eV   !   energy from eV to erg
-    enddo
+    end do
     close(14) 
     Eint_e = E_e(2)/E_e(1)
     gamma = E_e/mec2
@@ -59,7 +59,7 @@ contains
     open (88,file='nu.dat')
     do i=1,m_nu
        write(88,*) nu(i)
-    enddo
+    end do
     close(88)
 
     ! Para cada posición voy a calcular la emisión sinc y luego sumo todas
@@ -91,14 +91,14 @@ contains
              dP_Eps = N_e(j)*P_eps*dE_e
           endif
           sum = dP_Eps + sum
-       enddo
+       end do
        !$omp end parallel do 
        
        Lsy(i) = sum*mec2*exp(-nu_RT/nu(i)) ! Lsy corrected for R-T effect
 
        sum_sy = sum_sy + Lsy(i)*dEps
        
-    enddo  ! Eps(i),nu(i)
+    end do  ! Eps(i),nu(i)
     
     
     write(*,80) 'L_syn(unabs)=',sum_sy
@@ -108,7 +108,7 @@ contains
     open(17,file='radsyn.dat')
     do i=1,m_nu
        write(17,*) Eps(i)*mec2/eV,Eps(i)*Lsy(i) ! [erg/s]
-    enddo
+    end do
     close(17)
 
     deallocate ( nu,Lsy )

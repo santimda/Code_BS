@@ -44,7 +44,7 @@ contains
     do i=1,mE_p
        read(14,*) E_p(i),N_p(i)
        E_p(i) = E_p(i)*eV    !   eV to erg
-    enddo
+    end do
     close(14) 
     Eint_p = E_p(2)/E_p(1)
     
@@ -93,7 +93,7 @@ contains
              qpi = N_p(in)*sigma_pp/0.17d0 ! 1/erg/seg
              integral = integral + qpi*dE_pi/sqrt(Epi(j)**2-(m_pic2)**2)
 !             write(*,*) i,qpi,integral,dE_pi
-          enddo              ! E_pi
+          end do              ! E_pi
 0979      continue
 
           Q_Ef = 2.3d0*c*n_a*integral/1.3d0! ñ=1.1 corresponds to alfa=2 (Kelner2006?)
@@ -118,7 +118,7 @@ contains
                 sigma_PP = sigma_PP*(1.d0-(E_th/E_p(j))**4)**2
                 integral = integral + sigma_PP*N_p(j)*F(x_pp,L1)*dx_pp/x_pp
              endif
-          enddo
+          end do
           Q_phi = c*n_a*integral
           Lpp(i) = Ef(i)*Q_phi
           
@@ -127,7 +127,7 @@ contains
        
        write(19,*) Ef(i)/eV,Ef(i)*Lpp(i)
        
-    enddo    ! i
+    end do    ! i
 
     close(19)
     write(*,80) 'L_pp=',sum_pp

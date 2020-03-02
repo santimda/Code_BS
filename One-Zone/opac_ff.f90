@@ -66,7 +66,7 @@ module opac_ff
       do l = 2,mr_ff
          r_ff(l) = r_ff(l-1) + dr
          write(12,*) r_ff(l)
-      enddo
+      end do
       close(12)
 
 
@@ -78,11 +78,11 @@ module opac_ff
       open(13,file='gauntff.dat')
       do i=1,16
          read(13,*)
-      enddo
+      end do
       
       do i=1,nu_mu
          read(13,*) (gff(i,j), j=1,nu_mga)
-      enddo
+      end do
       close(13)
 
 
@@ -97,7 +97,7 @@ module opac_ff
       do i=1,mE_ff
          read(14,*) nu(i)
          mu_ff(i) = h*nu(i)/k/T_w   ! assuming T = cte, no need for mu_ff(r)
-      enddo
+      end do
       close(14)
       
       ! Falceta 2012?. Not so sure about this...
@@ -121,14 +121,14 @@ module opac_ff
             call interpol(dg,dmu,gff(j_g,j_mu),gff(j_g+1,j_mu),gff(j_g,j_mu+1),gffinter)
 !            gffinter = 9.77d0*(1.d0+0.13d0*log10(T_w**1.5d0/Zq_sw/nu(i))) ! Una aprox
             alphaff(l,i) = cte_alpha_ff*nu(i)**(-3.d0)*(1.d0-exp(-h*nu(i)/k/T_w))*gffinter !1/cm
-         enddo
-      enddo
+         end do
+      end do
       !$omp end parallel do
 
       open(18,file='windalphaff.dat')
       do l=1,mr_ff
          write(18,*) (alphaff(l,i), i=1,mE_ff)
-      enddo
+      end do
       close(18)
 
       !///////////////////////////////////////////////////////////////////////////
@@ -152,7 +152,7 @@ module opac_ff
 
          write(19,*) nu(i),S(i)*1.d3 ! Stored in mJy
          i=i+1
-      enddo
+      end do
       close(19)
 
 
