@@ -87,9 +87,10 @@ contains
 
       !=======================================================================
       ! Calculate the electron steady-state energy distribution
+
       open(70,file='tcoole.dat')
 
-      ! E_e is the energy of the energy distribution and E2_e is an integration variable
+      ! E_e is the energy of the particle energy distribution and E2_e is an integration variable
       mE2 = mE_e                 ! Initial number of steps in E2
       do i =1,mE_e 
          dE_e = E_e(i)*(Eint_e - 1.d0)  
@@ -120,7 +121,7 @@ contains
 
          t_esc(i) = 1./(1./t_adv + 1.d0/t_diff) ! escape
 
-         t_loss = min(t_esc(i),t_coole)         
+         t_loss = min(t_esc(i),t_coole)    ! general losses      
 
          t_ac = efi_ac_sw*E_e(i)/(B_par*c*qe)
 

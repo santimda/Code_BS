@@ -107,7 +107,8 @@ real(dp), parameter :: gamma_sw = 1.34_dp
 
 real(dp), parameter :: rho_w = Mdot/(4.d0*pi*R0**2*v_w)
 real(dp), parameter :: n_a = 4.*rho_w/(mp*mu_sw) ! ambient nuclei number density
-real(dp), parameter :: z_br = 2.23               ! Padovani+2018 for Wiilms+2000 abundances
+real(dp), parameter :: z_br = 2.24               ! Padovani+2018 for Wiilms+2000 abundances
+real(dp), parameter :: z_pp = 2.17               ! Padovani+2018 for Wiilms+2000 abundances
 
 
 ! Heated dust (IR):
