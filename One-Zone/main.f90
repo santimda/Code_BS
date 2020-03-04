@@ -11,9 +11,7 @@ PROGRAM main
    use opac_ff, only: opac_ff_run
    use abssyn, only: abssyn_run
 
-   implicit none    
-   integer :: i_IC
-   real(dp) :: Ef_IC(mE_f)
+   implicit none  
 
    write(*,*) '\n ============================'
    write(*,*) ' START'
@@ -43,23 +41,8 @@ PROGRAM main
       if (radbr_calc) call radbr_run
 
       if (radic_calc) then
-
-         write(*,*) 'Calculate the (unabsorbed) IC-dust emission in the SW'
-         call radic_run(T_IR,Kappa_IR,Ef_IC,Lic)
-         open(17,file='radic_IR.dat')
-         do i_IC = 1,mE_f
-            write(17,*) Ef_IC(i_IC)/eV,Ef_IC(i_IC)*Lic(i_IC)
-         end do
-         close(17)
-
-         write(*,*) 'Calculate the (unabsorbed) IC-star emission in the SW'
-         call radic_run(T_st,Kappa_st,Ef_IC,Lic)
-         open(18,file='radic_st.dat')
-         do i_IC = 1,mE_f
-            write(18,*) Ef_IC(i_IC)/eV,Ef_IC(i_IC)*Lic(i_IC)
-         end do
-         close(18)
-
+         call radic_run(T_IR,Kappa_IR,iso,'IR')
+         call radic_run(T_st,Kappa_st,ani,'st')
       endif
 
       if (opac_ff_calc) call opac_ff_run

@@ -1,8 +1,5 @@
 module radbr
-  !Este módulo calcula la emisión bremsstrahlung 
-  use global
-  
-  implicit none
+
   private
   public :: radbr_run
   
@@ -11,15 +8,16 @@ contains
   !============================================================================
   ! radbr_run
   !============================================================================
+  !Este módulo calcula la emisión bremsstrahlung 
   
   subroutine radbr_run  
     use global
     implicit none
     real(dp) :: Ef_int,dEf,sum,sum_br,Phi_Br,dsigma_Br,u_br
-    real(dp) :: gamma(mE_e),Ef(mE_f),cte_sigma,dq_Ef,q_Ef,dP_Ef
+    real(dp) :: gamma(mE_e),cte_sigma,dq_Ef,q_Ef,dP_Ef
     !     mE - electrones, mE_f - fotones
     
-    allocate( E_e(mE_e),N_e(mE_e),Lbr(mE_f) )
+    allocate( E_e(mE_e),N_e(mE_e), Ef(mE_f),Lbr(mE_f) )
     
     write(*,*) '\n Calculate the (unabsorbed) rel. brem. emission in the SW'
 
@@ -83,7 +81,7 @@ contains
     end do
     close(16)
     
-    deallocate( E_e,N_e,Lbr )
+    deallocate( E_e,N_e, Ef,Lbr )
     
   END subroutine Radbr_run
   

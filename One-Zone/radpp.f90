@@ -1,8 +1,5 @@
 module radpp
-  ! This module calculates the p-p emission  
-  use global
   
-  implicit none
   private
   public :: radpp_run
   
@@ -11,12 +8,13 @@ contains
   !============================================================================
   ! radpp_run
   !============================================================================
+  ! This module calculates the p-p emission  
   
   subroutine radpp_run  
     use global
     Implicit none
     Real(dp) :: Q_Ef,Q_phi,dx_pp,x_pp,qpi
-    Real(dp) :: Ef_int,dEf,Ef(mE_f),sum_pp,sigma_pp,Epp,L1
+    Real(dp) :: Ef_int,dEf,sum_pp,sigma_pp,Epp,L1
     Real(dp) :: E_th= 1.22d9*eV, TeV = 1.d12*eV
     Real(dp) :: Epi_min,Epi_max,Epi_int,dE_pi,integral
     Integer :: mE_pi,in
@@ -32,7 +30,7 @@ contains
        end function F
     end interface
     
-    allocate( E_p(mE_p),N_p(mE_p),Lpp(mE_f) )
+    allocate( E_p(mE_p),N_p(mE_p), Ef(mE_f),Lpp(mE_f) )
     
     write(*,*) '\n Calculate the p-p emission in the SW'
     
@@ -132,7 +130,7 @@ contains
     close(19)
     write(*,80) 'L_pp=',sum_pp
 
-    deallocate( Lpp )
+    deallocate( Lpp, Ef )
     deallocate( E_p,N_p )
 
 

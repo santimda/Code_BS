@@ -21,8 +21,8 @@ contains
     real(dp) :: factor,nuc,nuc_max,nuc_min,sum,sum_sy
     real(dp) :: ne,nu_RT,x_sy
     real(dp) :: log_nu_int
-    allocate ( N_e(mE_e),E_e(mE_e) )
-    allocate ( nu(m_nu),Lsy(m_nu) )
+    allocate( N_e(mE_e),E_e(mE_e) )
+    allocate( nu(m_nu),Lsy(m_nu) )
 
 80  format(A14,X,Es10.2)
 

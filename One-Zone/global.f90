@@ -179,8 +179,8 @@ real(dp), dimension(:), allocatable :: nu, Lsy, Lsy_abs
 real(dp), dimension(:), allocatable :: Lbr
 
 ! IC
-real(dp) :: Lic(mE_f)
-!real(dp), dimension(:), allocatable :: Lic
+real(dp), dimension(:), allocatable :: L_ic, Ef 
+logical, parameter :: ani = .True., iso = .False. 
 
 ! p-p
 real(dp), dimension(:), allocatable :: Lpp

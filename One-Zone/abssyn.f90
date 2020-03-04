@@ -30,14 +30,14 @@ contains
     Real(dp) :: r_ff(mr_ff),dr_ff,R_aprox
     Real(dp) :: theta1,x1,y1,z1,r1,dr0,x1_0,y1_0,z1_0,x,y,z
     Real(dp) :: dr_x,dr_y,tginc,sinc,cinc
-    Real(dp) :: Ef(m_nu),log_nu_int,flux,flux1,flux2
+    Real(dp) :: log_nu_int,flux,flux1,flux2
     Real(dp) :: emision1,emision2,emision1_abs,emision2_abs,convert
     Real(dp) :: dE_nu,Eint_nu,sum
     Integer :: ir,inu_max,i_1G,i_5G,i_ff
     Logical :: integra
     
     allocate( tauff(m_nu) ) 
-    allocate( nu(m_nu),Lsy(m_nu),Lsy_abs(m_nu) )
+    allocate( Ef(m_nu),nu(m_nu),Lsy(m_nu),Lsy_abs(m_nu) )
     
     write(*,*) '\n Calculate the free-free synchrotron absorption'
 
@@ -186,8 +186,8 @@ contains
     close(33)
     write(*,89) 'L_syn(abs)=',sum
     
-    deallocate ( tauff ) 
-    deallocate ( nu,Lsy,Lsy_abs )
+    deallocate( tauff ) 
+    deallocate( Ef,nu,Lsy,Lsy_abs )
     
     
   END subroutine abssyn_run
