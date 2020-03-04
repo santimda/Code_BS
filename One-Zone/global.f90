@@ -176,7 +176,8 @@ integer, parameter :: m_nu = 600   ! frequency resolution
 real(dp), dimension(:), allocatable :: nu, Lsy, Lsy_abs
 
 ! br
-real(dp), dimension(:), allocatable :: Lbr
+real(dp), dimension(:), allocatable :: L_br
+logical, parameter :: scr = .True., unscr = .False.
 
 ! IC
 real(dp), dimension(:), allocatable :: L_ic, Ef 

@@ -24,7 +24,7 @@ contains
       real(dp) :: T_ad_ang
       allocate( N_e(mE_e),E_e(mE_e), Ef(mE_f),L_ic(mE_f) )
 
-      80  format(A10,X,Es10.2)
+      80  format(A11,X,Es10.2)
 
       write(*,*) '\n Calculate the (unabsorbed) IC-',target_field,' emission in the SW'
 
@@ -51,17 +51,18 @@ contains
       ! Calculate the IC spectra
 
       T_ad = k*T/mec2     ! adimensional temperature
+      T_ad_ang = T_ad     ! dummy definition so compiler doesn't warn possible uninitialization
       cte_Ndot = 2.d0*re**2*mec2**3*Kappa*T_ad**2/(pi*h_bar**3*c**2)
 
       if (aniso) T_ad_ang = T_ad*(1.-cos(inclination)) 
       
       sum_ic = 0.d0
-      do i = 1,mE_f
+      do i = 1,mE_f                 ! loop in high-energy photons energy
          dEps=Eps(i)*(Eps_int-1.d0)
          sum = 0.d0
-         do j = 1,mE_e
+         do j = 1,mE_e              ! loop in electron energy distribution (Ne(j),gamma(j))
             z = Eps(i)/gamma(j)
-            if (z < 1.d0) then 
+            if (z < 1.d0) then      ! Ef <= Ee from energy conservation
                if (aniso) then                !anisotropic IC
                   t_K = 4.*gamma(j)*T_ad_ang  
                   x0 = z/( (1.-z)*t_K )

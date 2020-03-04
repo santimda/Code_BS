@@ -46,15 +46,12 @@ contains
 
       L_inj_e = inj_e*L_inj 
       write(*,810) 'L_inje =',L_inj_e
-      !    write(*,810) 'U_IR [eV/cm3] =',(4.*sigma/c)*T_IR**4/eV
       write(*,810) 'U_IR [eV/cm3] =',L_IR/(pi*R0**2*c)/eV
       write(*,810) 'U_st [eV/cm3] =',L_st/(4.*pi*R0**2*c)/eV
-      write(*,810) 'U_IR/U_st =',( L_IR / L_st ) !* ( R0 / H0 ) **2.
-      !    write(*,810) 'U_IR/U_st =',16.*pi*R0**2.*T_IR**4./L_st
-      write(*,810) 'R_IR/R0 =',R_IR/R0
-      write(*,810) 'Kappa_IR =',Kappa_IR
-      !    write(*,810) 'Kappa_IR =',L_IR/(4.*sigma*T_IR**4.*R0**2. ) 
-
+      !write(*,810) 'U_IR/U_st =',16.*pi*R0**2*T_IR**4/L_st
+      !write(*,810) 'R_IR/R0 =',R_IR/R0
+      !write(*,810) 'Kappa_IR =',Kappa_IR
+      !write(*,810) 'Kappa_IR =',L_IR/(4.*sigma*T_IR**4*R0**2 ) 
 
       !=======================================================================
       ! Define some relevant constants and timescales

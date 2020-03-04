@@ -38,7 +38,7 @@ PROGRAM main
 
       if (radsyn_calc) call radsyn_run
 
-      if (radbr_calc) call radbr_run
+      if (radbr_calc) call radbr_run(unscr)
 
       if (radic_calc) then
          call radic_run(T_IR,Kappa_IR,iso,'IR')
