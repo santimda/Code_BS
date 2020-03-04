@@ -35,7 +35,7 @@ contains
       end interface
 
       allocate( N_p(mE_p),E_p(mE_p) )
-      810  format(A15,X,Es10.2)
+      810  format(A11,X,Es10.2)
 
       write(*,*) '\n Calculate the non-thermal proton distribution in the SW'
 
@@ -130,7 +130,7 @@ contains
          write(79,*) E_p(i)/eV,N_p(i) 
       end do
       close(79)
-      write(*,810) 'E_NT(p)=', E_NT
+      !write(*,810) 'E_NT(p)=', E_NT
 
       deallocate( N_p,E_p ) 
 

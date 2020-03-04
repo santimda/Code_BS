@@ -1,141 +1,128 @@
 module radpp
-  
-  private
-  public :: radpp_run
-  
+
+   private
+   public :: radpp_run
+
 contains
-  
-  !============================================================================
-  ! radpp_run
-  !============================================================================
-  ! This module calculates the p-p emission  
-  
-  subroutine radpp_run  
-    use global
-    Implicit none
-    Real(dp) :: Q_Ef,Q_phi,dx_pp,x_pp,qpi
-    Real(dp) :: Ef_int,dEf,sum_pp,sigma_pp,Epp,L1
-    Real(dp) :: E_th= 1.22d9*eV, TeV = 1.d12*eV
-    Real(dp) :: Epi_min,Epi_max,Epi_int,dE_pi,integral
-    Integer :: mE_pi,in
-    ! mE_p - protons, mE_f - photons, mE_pi(variable) - pions
-    Real(dp), dimension(:), allocatable :: Epi
-                      
-    interface
-       function F(a,b)
-         use iso_fortran_env, only: dp => real64
-         implicit none
-         real(dp) :: F
-         real(dp), intent(in) :: a,b
-       end function F
-    end interface
-    
-    allocate( E_p(mE_p),N_p(mE_p), Ef(mE_f),Lpp(mE_f) )
-    
-    write(*,*) '\n Calculate the p-p emission in the SW'
-    
-    Lpp = 0.d0
-80  format(A7,X,Es10.2)
 
-    ! Read proton energy distribution 
-    open (14,file='dist_p.dat')
-    do i=1,mE_p
-       read(14,*) E_p(i),N_p(i)
-       E_p(i) = E_p(i)*eV    !   eV to erg
-    end do
-    close(14) 
-    Eint_p = E_p(2)/E_p(1)
-    
-    
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    !                                                                       C
-    !                        CÁLCULOS                                       C
-    !                                                                       C
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    
-    ! Build logarithmic spaced photon energy vector, Ef(i), with Ef_min = 10 MeV
-    
-    call vector_log(10.d6*eV,E_p(mE_p),Ef_int,Ef)
+   !============================================================================
+   ! radpp_run
+   !============================================================================
+   ! This module calculates the p-p emission using Kelner+2006 formulae
+   !============================================================================
 
-    open (19,file='radpp.dat')    
-    sum_pp=0.d0  
-    mE_pi = mE_f    ! Initial value
-    do i = 1,mE_f           ! Ef(i) 
-       dEf = Ef(i)*(Ef_int-1.d0)
-       ! We use a different formalism in 2 energy ranges: 
+   subroutine radpp_run  
+      use global
+      Implicit none
+      real(dp) :: Q_Ef,Q_phi,dx_pp,x_pp,qpi
+      real(dp) :: Ef_int,dEf,sum_pp,Epp,L1
+      real(dp) :: E_th=1.22d9*eV, TeV=1.d12*eV
+      real(dp) :: Epi_min,Epi_max,Epi_int,dE_pi,integral
+      real(dp), parameter :: k_pp=0.17d0, n_pp=1.2d0 ! n_pp=1.1 corresponds to alfa=2 (Kelner2006)
+      integer :: mE_pi,i_p
+      interface
+         function F(a,b)
+            use iso_fortran_env, only: dp => real64
+            implicit none
+            real(dp) :: F
+            real(dp), intent(in) :: a,b
+         end function F
+      end interface
 
-       if (Ef(i) < 0.1d0*TeV) then   ! Ef < 100 GeV   
+      interface
+         function sigma_pp(L,Ep)
+            use iso_fortran_env, only: dp => real64
+            implicit none
+            real(dp) :: sigma_pp
+            real(dp), intent(in) :: L,Ep
+         end function sigma_pp
+      end interface
 
-          allocate(Epi(mE_pi))
-          Epi_min = Ef(i)+(m_pic2)**2/4.d0/Ef(i)
-          Epi_min = Epi_min*(1.d0+1.d0/mE_pi)
-          Epi_max = E_p(mE_p)
-          call vector_log(Epi_min,Epi_max,Epi_int,Epi)
-          integral = 0.d0
-          do j=1,mE_pi       ! E_pi
-             dE_pi = Epi(j)*(Epi_int-1.d0)
-             Epp = Epi(j)/0.17d0 + mpc2
-             in = int(log(Epp/Emin_p)/log(Eint_p))+1
-             if (in > mE_pi .or. Epp > E_p(mE_p)) then
-                goto 0979
-             endif
+      allocate( E_p(mE_p),N_p(mE_p), Ef(mE_f),Lpp(mE_f) )
 
-             if (Epp < E_th) then ! E_th= 1.22 GeV
-                sigma_PP = 0.d0
-             else            
-                L1 = log(Epp/TeV) ! L = ln(Ep/1TeV)
-                sigma_PP = (34.3d0 + 1.88d0*L1 + 0.25d0*L1**2.)*1.d-27 !cm²
-                ! Add factor for better fit at low energies 
-                sigma_PP = sigma_PP*(1.d0-(E_th/Epp)**4.)**2. 
-             endif
-             qpi = N_p(in)*sigma_pp/0.17d0 ! 1/erg/seg
-             integral = integral + qpi*dE_pi/sqrt(Epi(j)**2-(m_pic2)**2)
-!             write(*,*) i,qpi,integral,dE_pi
-          end do              ! E_pi
-0979      continue
+      80  format(A11,X,Es10.2)
 
-          Q_Ef = 2.3d0*c*n_a*integral/1.3d0! ñ=1.1 corresponds to alfa=2 (Kelner2006?)
-          ! SED = Ef * L_Ef =  Ef^2 * Q_Ef 
-          Lpp(i) = Ef(i)*Q_Ef
-          sum_PP = sum_PP + Lpp(i)*dEf
-          
-          deallocate(Epi)
-!          mE_pi = MAX(mE_pi-1,32) ! Lower down the # of points  
-          
-       elseif (Ef(i) >= 0.1d0*TeV) then  ! Ef > 100 GeV > Emin_p   
+      write(*,*) '\n Calculate the p-p emission in the SW'
 
-          integral=0.d0
-          do j=1,mE_p
-             if (Ef(i) < E_p(j)) then
-                dE_p = E_p(j)*(Eint_p-1.d0)
-                x_pp = Ef(i)/E_p(j)
-                dx_pp = Ef(i)*dE_p/(E_p(j)**2)
-                L1 = log(E_p(j)/TeV) ! L = ln(Ep/1TeV)
-                sigma_PP = (34.3d0 + 1.88d0*L1 + 0.25d0*L1**2)*1.d-27
-                ! Add factor for better fitting at low E:
-                sigma_PP = sigma_PP*(1.d0-(E_th/E_p(j))**4)**2
-                integral = integral + sigma_PP*N_p(j)*F(x_pp,L1)*dx_pp/x_pp
-             endif
-          end do
-          Q_phi = c*n_a*integral
-          Lpp(i) = Ef(i)*Q_phi
-          
-          sum_PP = sum_PP + Lpp(i)*dEf 
-       endif
-       
-       write(19,*) Ef(i)/eV,Ef(i)*Lpp(i)
-       
-    end do    ! i
+      !------------------------------------------------------------------------
+      !  Read information
 
-    close(19)
-    write(*,80) 'L_pp=',sum_pp
+      ! N_p(i) = number of p+ per unit energy between [E_p(i), E_p(i)+dE]; [N] = 1/erg
+      open (14,file='dist_p.dat')
+      do i=1,mE_p
+         read(14,*) E_p(i),N_p(i)
+         E_p(i) = E_p(i)*eV    !   eV to erg
+      end do
+      close(14) 
+      Eint_p = E_p(2)/E_p(1)
 
-    deallocate( Lpp, Ef )
-    deallocate( E_p,N_p )
+      !------------------------------------------------------------
+      ! Build logarithmic spaced photon energy vector, Ef(i), with Ef_min = 10 MeV
+      call vector_log(10.d6*eV,E_p(mE_p),Ef_int,Ef)
+
+      Lpp = 0.d0
+      sum_pp=0.d0  
+      mE_pi = mE_f    ! Initial value
+      do i = 1,mE_f           ! Ef(i) 
+         dEf = Ef(i)*(Ef_int-1.d0)
+
+         ! Different formalism according to energy range:
+         if (Ef(i) < 0.01d0*TeV) then   ! Ep < 100 GeV -> Ef < 0.01 TeV
+            allocate(Epi(mE_pi))
+            Epi_min = ( Ef(i)+(m_pic2)**2/4.d0/Ef(i) )*1.005 ! Factor to avoid numerical errors very close to Epi_min
+            Epi_max = E_p(mE_p)
+            call vector_log(Epi_min,Epi_max,Epi_int,Epi)
+            integral = 0.d0
+            do j=1,mE_pi         ! E_pi
+               dE_pi = Epi(j)*(Epi_int-1.d0)
+               Epp = Epi(j)/k_pp + mpc2
+               i_p = int(log(Epp/Emin_p)/log(Eint_p))+1
+               if (i_p <= mE_pi .and. Epp <= E_p(mE_p) .and. Epp > E_th) then 
+                  L1 = log(Epp/TeV)    
+                  qpi = N_p(i_p)*sigma_pp(L1,Epp)/k_pp ! 1/erg/s
+                  integral = integral + qpi*dE_pi/sqrt(Epi(j)**2-(m_pic2)**2)
+               endif
+            end do               ! E_pi
+            Q_Ef = 2.3d0*c*n_a*integral/n_pp
+            Lpp(i) = Ef(i)*Q_Ef  ! SED = Ef * L_Ef =  Ef^2 * Q_Ef 
+            deallocate(Epi)
+            mE_pi = MAX(mE_pi-1,32) ! Diminish the number of points 
+
+         else           ! Ep > 100 GeV -> Ef > 0.01 TeV
+            integral=0.d0
+            do j=1,mE_p
+               if (Ef(i) < E_p(j)) then
+                  dE_p = E_p(j)*(Eint_p-1.d0)
+                  x_pp = Ef(i)/E_p(j)
+                  dx_pp = Ef(i)*dE_p/(E_p(j)**2)
+                  L1 = log(E_p(j)/TeV) ! L = ln(Ep/1TeV)
+                  integral = integral + sigma_pp(L1,E_p(j))*N_p(j)*F(x_pp,L1)*dx_pp/x_pp
+               endif
+            end do
+            Q_phi = c*n_a*integral
+            Lpp(i) = Ef(i)*Q_phi
+
+         endif
+
+         sum_PP = sum_PP + Lpp(i)*dEf 
+      end do    ! i
+
+      write(*,80) 'L_pp =',sum_pp
+
+      !---------------------------------------------------------
+      ! Write the SED to a file
+
+      open (19,file='radpp.dat') 
+      do i=1, mE_f 
+         write(19,*) Ef(i)/eV,Ef(i)*Lpp(i)  
+      end do
+      close(19)
+
+      deallocate( E_p,N_p, Lpp, Ef )
 
 
-  END subroutine radpp_run
-  
+   END subroutine radpp_run
+
 
 END module radpp
 
@@ -143,19 +130,27 @@ END module radpp
 !========================================
 
 Function F(x,L)
-  integer, parameter :: dp = kind(1.d0)
-  real(dp), intent(in) :: x,L
-  real(dp) :: B,k,beta,F,L2
-
-  L2 = L**2
-
-  B = 1.30d0 + 0.14d0*L + 0.011d0*L2
-  beta = 1.d0/(1.79d0 + 0.11d0*L + 0.008d0*L2)
-  k = 1.d0/(0.801d0 + 0.049d0*L + 0.014d0*L2)
-  F = B*log(x)/x*((1.d0-x**beta)/(1.d0+k*x**beta*(1.d0-x**beta)))**4* &
-       (1.d0/log(x)-(4.d0*beta*x**beta)/(1.d0-x**beta)- &
-       (4.d0*k*beta*x**beta*(1.d0-2.d0*x**beta)/(1.d0+k*x**beta*(1.d0-x**beta))))
-
-  return
+   integer, parameter :: dp = kind(1.d0)
+   real(dp), intent(in) :: x,L
+   real(dp) :: B,k,beta,F,L2
+   L2 = L**2
+   B = 1.30d0 + 0.14d0*L + 0.011d0*L2
+   beta = 1.d0/(1.79d0 + 0.11d0*L + 0.008d0*L2)
+   k = 1.d0/(0.801d0 + 0.049d0*L + 0.014d0*L2)
+   F = B*log(x)/x*((1.d0-x**beta)/(1.d0+k*x**beta*(1.d0-x**beta)))**4 &
+   *(1.d0/log(x)-(4.d0*beta*x**beta)/(1.d0-x**beta) &
+      -(4.d0*k*beta*x**beta*(1.d0-2.d0*x**beta)/(1.d0+k*x**beta*(1.d0-x**beta))))
+   return
 end Function F
 
+!========================================
+
+Function sigma_pp(L1,Ep)
+   use global
+   real(dp), intent(in) :: L1,Ep
+   real(dp) :: E_th=1.22d9*eV
+   real(dp) :: sigma_pp
+   sigma_pp = (34.3d0 + 1.88d0*L1 + 0.25d0*L1**2)*1.d-27 !cm²
+   sigma_pp = sigma_pp*(1.d0-(E_th/Ep)**4)**2 ! Add factor for better fit at low energies 
+   return
+end Function sigma_pp

@@ -96,7 +96,7 @@ contains
          sum_sy = sum_sy + L_sy_RT(i)*dEps
       end do  ! Eps(i),nu(i)
 
-      write(*,80) 'L_syn(unabs)=',sum_sy
+      write(*,80) 'L_syn(unabs) =',sum_sy
 
       !---------------------------------------------------------
       ! Write the SED to a file

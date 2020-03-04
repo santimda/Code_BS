@@ -143,7 +143,7 @@ contains
          write(79,*) E_e(i)/eV,N_e(i)
          write(69,*) E_e(i)/eV,Ka*E_e(i)**(-alpha_sw)*exp(-E_e(i)/Emax_e)*t_esc(i)
       end do
-      write(*,810) 'E_NT =',E_NT
+      !write(*,810) 'E_NT =',E_NT
       close(79)
       close(69)
 
