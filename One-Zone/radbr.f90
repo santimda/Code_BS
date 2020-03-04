@@ -79,7 +79,6 @@ contains
          end do 
          L_br(i) = Ef(i)*sum         ! transform photon emissivity to specific luminosity [erg/s/erg]
          sum_br = sum_br + L_br(i)*dEf
-!         write(*,*) sum,Ef(i),L_br(i),dEf,sum_br
       end do 
 
       write(*,81) 'L_Br(tot)=',sum_br
