@@ -37,7 +37,7 @@ contains
     Logical :: integra
     
     allocate( tauff(m_nu) ) 
-    allocate( Ef(m_nu),nu(m_nu),Lsy(m_nu),Lsy_abs(m_nu) )
+    allocate( Ef(m_nu),nu(m_nu),L_sy(m_nu),L_sy_abs(m_nu) )
     
     write(*,*) '\n Calculate the free-free synchrotron absorption'
 
@@ -137,7 +137,7 @@ contains
     
     open (31,file='radsyn.dat')
     do i=1,m_nu
-       read(31,*) Ef(i),Lsy(i)  ! Lsy is E*L(E) [erg/s]; Ef(i) is in eV 
+       read(31,*) Ef(i),L_sy(i)  ! L_sy is E*L(E) [erg/s]; Ef(i) is in eV 
     end do
     close(31)
     
@@ -152,16 +152,16 @@ contains
     do i=1,m_nu
        
        if (i < inu_max) then !  The abs was calculated at these freqs  
-          Lsy_abs(i) = Lsy(i)*exp(-tauff(i))  
+          L_sy_abs(i) = L_sy(i)*exp(-tauff(i))  
        else
-          Lsy_abs(i) = Lsy(i)
+          L_sy_abs(i) = L_sy(i)
        endif
        
     end do
     
-    emision1 = Lsy(i_1G) * flux1 ! At 1.4 GHz
+    emision1 = L_sy(i_1G) * flux1 ! At 1.4 GHz
     emision1_abs = emision1 * exp(-tauff(i_1G))
-    emision2 = Lsy(i_5G) * flux2 ! At 4.8 GHz
+    emision2 = L_sy(i_5G) * flux2 ! At 4.8 GHz
     emision2_abs = emision2 * exp(-tauff(i_5G))
     
     write(*,*) 'Unabsorbed:'
@@ -180,14 +180,14 @@ contains
     open(33,file='radsyn_abs.dat')
     do i=1,m_nu
        dE_nu = (h*nu(i))*(Eint_nu - 1.d0)  
-       write(33,*) Ef(i),Lsy(i),Lsy_abs(i)
-       sum = sum + Lsy_abs(i)/(Ef(i)*eV)*dE_nu
+       write(33,*) Ef(i),L_sy(i),L_sy_abs(i)
+       sum = sum + L_sy_abs(i)/(Ef(i)*eV)*dE_nu
     end do
     close(33)
     write(*,89) 'L_syn(abs)=',sum
     
     deallocate( tauff ) 
-    deallocate( Ef,nu,Lsy,Lsy_abs )
+    deallocate( Ef,nu,L_sy,L_sy_abs )
     
     
   END subroutine abssyn_run

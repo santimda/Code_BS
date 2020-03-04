@@ -35,9 +35,6 @@ PROGRAM main
       write(*,*) '\n ELECTRONS:'
 
       if (diste_calc) call diste_run  
-
-      if (radsyn_calc) call radsyn_run
-
       if (radbr_calc) call radbr_run(unscr)
 
       if (radic_calc) then
@@ -45,8 +42,8 @@ PROGRAM main
          call radic_run(T_st,Kappa_st,ani,'st')
       endif
 
+      if (radsyn_calc) call radsyn_run
       if (opac_ff_calc) call opac_ff_run
-
       if (abssyn_calc) call abssyn_run
 
    ENDIF

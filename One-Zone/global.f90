@@ -173,7 +173,7 @@ real(dp) :: P_Eps, dP_Eps
 
 ! syn
 integer, parameter :: m_nu = 600   ! frequency resolution
-real(dp), dimension(:), allocatable :: nu, Lsy, Lsy_abs
+real(dp), dimension(:), allocatable :: nu,L_sy,L_sy_RT,L_sy_abs
 
 ! br
 real(dp), dimension(:), allocatable :: L_br

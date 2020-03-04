@@ -35,7 +35,7 @@ contains
 
       write(*,*) '\n Calculate the (unabsorbed) rel. brem. emission in the SW'
 
-      cte_sigma = 4.d0*alfa*re**2*z_br
+      cte_sigma = 4.d0*alfa*re**2*z_br  ! z_br > 1 if not pure H
 
       !------------------------------------------------------------------------
       !  Read information
@@ -48,12 +48,13 @@ contains
       end do
       close(14) 
       Eint_e = E_e(2)/E_e(1)
+      gamma = E_e/mec2  
 
 
       !------------------------------------------------------------
       ! Build Ef vector for the SED with Ef_min = 10 keV
       call vector_log(1.d4*eV,E_e(mE_e),Ef_int,Ef)
-      gamma = E_e/mec2  ! electron Lorentz factor
+
 
       !===========================================================
       ! Calculate the relativistic Bremsstrahlung spectra
@@ -82,6 +83,9 @@ contains
       end do 
 
       write(*,81) 'L_Br(tot)=',sum_br
+
+      !---------------------------------------------------------
+      ! Write the SED to a file
 
       open(16,file='radbr.dat')
       do i=1,mE_f
