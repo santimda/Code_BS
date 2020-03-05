@@ -22,6 +22,7 @@ contains
       integer :: mE2
       real(dp) :: gamm,const_ic,C_ic_st,C_ic_IR,C_ic_CMB
       real(dp) :: t_ic_st,t_ic_IR,t_ic_CMB,t_ic,t_sy,t_ac,t_adv,t_br,t_diff,t_adi
+      real(dp) :: log_coul,gdot_coul,t_coul
       real(dp) :: t_coole,t_esc(mE_e),t_loss
       real(dp) :: log10Emax,D_Bohm
       real(dp) :: E2_e,dE2_e,Emin2_e,Emax2_e,Eint2_e,integral,S,Q
@@ -55,6 +56,8 @@ contains
 
       !=======================================================================
       ! Define some relevant constants and timescales
+
+      log_coul = 29.7d0 + log( T_6/sqrt(n_a) ) 
 
       const_ic = pi*h_bar**3*c**2/(2.*re**2*mec2**3)
       C_ic_st = const_ic/(T_st_ad**2*Kappa_st)
@@ -110,8 +113,12 @@ contains
          t_ic_st = C_ic_st*gamm/F_iso(4.*gamm*T_st_ad)
          t_ic_IR = C_ic_IR*gamm/F_iso(4.*gamm*T_IR_ad)
          t_ic_CMB = C_ic_CMB*gamm/F_iso(4.*gamm*T_CMB_ad)       
-         t_ic = 1./(1.d0/t_ic_st + 1.d0/t_ic_IR + 1.d0/t_ic_CMB)       
-         t_coole = 1./(1.d0/t_sy + 1.d0/t_ic + 1.d0/t_br + 1.d0/t_adi) 
+         t_ic = 1./(1.d0/t_ic_st + 1.d0/t_ic_IR + 1.d0/t_ic_CMB)      
+       
+         gdot_coul = 3.d-14*n_a*log_coul/sqrt(gamm**2-1.d0) ! Pittard2006
+         t_coul = gamm/gdot_coul
+
+         t_coole = 1./(1.d0/t_sy + 1.d0/t_ic + 1.d0/t_br + 1.d0/t_adi + 1.d0/t_coul) 
 
          D_Bohm = E_e(i)*c/(3.*qe*B)
          t_diff = R_acel**2/(2.*D_Bohm) ! del Valle 2012
@@ -127,7 +134,7 @@ contains
          N_e(i) = Ka*S/E_punto
 
          ! Save the relevant timescales for plotting
-         write(70,*) E_e(i)/eV,t_ic,t_sy,t_br,t_adv,t_ac,t_coole,t_diff,t_ic_st,t_ic_IR,t_ic_CMB,t_esc(i),t_loss
+         write(70,*) E_e(i)/eV,t_ic,t_sy,t_br,t_adv,t_ac,t_coole,t_diff,t_ic_st,t_ic_IR,t_ic_CMB,t_esc(i),t_loss,t_coul
 
       end do
 
