@@ -11,14 +11,14 @@ module global
    ! It also has defined some subroutines that many modules call.
    !====================================================================
 
+   integer, parameter :: nth = 4   ! number of threads (parallelization)
+
    !===================================================
    ! simulation grid/vectors size
 
    integer, parameter :: mE_e = 300    ! energy resolution for electrons
    integer, parameter :: mE_f = 512    ! energy resolution for br and IC > mE_p
    integer, parameter :: mE_p = 300    ! energy resolution for electrons
-
-   integer, parameter :: nth = 4   ! number of threads (parallelization)
 
    !===================================================
 

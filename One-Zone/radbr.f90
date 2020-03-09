@@ -116,7 +116,7 @@ Function Phi_Br(u,g_e,screened)
    logical, intent(in) :: screened
 
    if (screened) then      ! screened nuclei
-      Phi_Br = ( 1. + (1.-u)**2 - (2./3.d0)*(1.-u))*log(191.d0/z_br**(1./3.d0)) + 1./9.d0*(1.-u)
+      Phi_Br = ( 1. + (1.-u)**2 - (2./3.d0)*(1.-u))*log(191.d0/z_br**(1./3.d0)) + (1.-u)/9.d0
    else                    ! un-screened nuclei 
       Phi_Br = ( 1. + (1.-u)**2 - (2./3.d0)*(1.-u))*( log(2.*g_e*(1./u-1.)) -0.5d0 )
    endif

@@ -27,7 +27,7 @@ contains
       real(dp) :: cte_P,cte_T,cte_rho
       real(dp) :: rho_w,Beq0
       real(dp) :: dOmega,dtheta,dR(m_theta)
-      real(dp) :: L_inj(m_theta),L_wind,L_wind_perp,L_inj_tot
+      real(dp) :: L_inj(m_theta),L_wind_perp,L_inj_tot
       allocate( theta(m_theta),r_norm(m_theta),H_norm(m_theta) )
       allocate( P(m_theta),rho(m_theta),T(m_theta),B(m_theta),v_t(m_theta),v_perp(m_theta) )
 
@@ -76,7 +76,6 @@ contains
       ! Injected power available for acceleration of NT particles
       ! (depends on the energy flux perpendicular to the shock)
 
-      L_wind = (Mdot*v_w**2.)/2.d0  
       L_inj_tot = 0.d0
 
       open(42,file='Linj_sw.dat')            ! stores L_inj in one quadrant

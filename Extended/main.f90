@@ -81,7 +81,7 @@ PROGRAM main
 
       if (opacff_calc) call opac_ff_run
 
-      if (radbr_sw_calc) call CD_radbr_run        ! Just one linear emitter  
+      if (radbr_sw_calc) call CD_radbr_run(unscr) ! Just one linear emitter  
 
       if (radic_ir_calc) then
          write(*,*) 'Calculate the IC(IR) emission'

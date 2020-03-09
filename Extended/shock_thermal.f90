@@ -104,7 +104,7 @@ contains
     real(dp) :: LX_sw(mE_ph), L_tot
     integer :: nl, i_ph
     integer, parameter :: nu_mu=146,nu_mga=81 ! # data in table gauntff.dat
-    real(dp) :: Ry,gamma2,dg,dmu,mu_ff,gff(nu_mu,nu_mga),gffinter
+    real(dp) :: gamma2,dg,dmu,mu_ff,gff(nu_mu,nu_mga),gffinter
     integer :: j_mu,j_g
     interface
        subroutine interpol2(dx,dy,fx1y1,fx2y1,fx1y2,finterpol)
@@ -121,9 +121,7 @@ contains
          real(dp), intent(in) :: dx,dy,fx1y1,fx2y1,fx1y2
          real(dp), intent(out) :: fextrapol
        end subroutine extrapol2
-    end interface
-    
-    Ry = 2.17987d-11          ! Rydberg unit = 2.18e-18 J    
+    end interface  
 
     allocate( theta(m_theta),r_norm(m_theta),R_theta(m_theta),H_norm(m_theta),H_theta(m_theta) )
     allocate( rho(m_theta),T(m_theta) )
