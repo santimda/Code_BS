@@ -54,7 +54,7 @@ contains
       T_ad_ang = T_ad     ! dummy definition so compiler doesn't warn possible uninitialization
       cte_Ndot = 2.d0*re**2*mec2**3*Kappa*T_ad**2/(pi*h_bar**3*c**2)
 
-      if (aniso) T_ad_ang = T_ad*(1.-cos(inclination)) 
+      if (aniso) T_ad_ang = T_ad*(1.-cos(incli)) 
       
       sum_ic = 0.d0
       do i = 1,mE_f                 ! loop in high-energy photons energy

@@ -86,7 +86,6 @@ PROGRAM main
       if (radic_ir_calc) then
          write(*,*) 'Calculate the IC(IR) emission'
          call CD_radic_ir_run !(phi)
-         write(*,*) ''
       endif
 
       ! IC-star emission, g-g and f-f absorption depend on the 3D position, so we make

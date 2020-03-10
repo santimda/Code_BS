@@ -39,7 +39,7 @@ PROGRAM main
 
       if (radic_calc) then
          call radic_run(T_IR,Kappa_IR,iso,'IR')
-         call radic_run(T_st,Kappa_st,ani,'st')
+         call radic_run(T_st,Kappa_st,iso,'st') ! The BS is extended, aniso in one-zone model makes no sense
       endif
 
       if (radsyn_calc) call radsyn_run

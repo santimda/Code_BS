@@ -90,14 +90,13 @@ contains
             dEf = Ef(i)*(Ef_int-1.d0)
             sum = 0.d0
             do j = 1,mE_e              ! N_e(j),gamma(j)
-            u_br = Eps(i)/gamma(j)     ! energy ratio
+               u_br = Eps(i)/gamma(j)     ! energy ratio
                if (u_br > 1.d0) then   ! Ef <= Ee from energy conservation
                   dsigma_Br = 0.d0  ![cm**2/m_e c2]
                else
                   dsigma_Br= cte_sigma*Phi_Br(u_br,gamma(j),screened) !/Ef(i), cancels later
-                  ! [P_eps] = 1/seg
                   if (dsigma_Br > 0.d0) then !Phi_Br can yield negative values in bad E ranges
-                     P_ef = n_a(l)*c*dsigma_Br ! *Ef(i), cancels in dsigma_Br
+                     P_ef = n_a(l)*c*dsigma_Br ! *Ef(i), cancels in dsigma_Br; [P_eps] = 1/seg
                      dE_e = E_e(j)*(Eint_e-1.d0)
                      dP_Ef = N_e(j)*P_ef*dE_e
                      sum = dP_Ef + sum ! P = int dP_Ef

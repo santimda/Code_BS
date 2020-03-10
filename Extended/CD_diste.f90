@@ -113,10 +113,10 @@ contains
       ! (and also de maximum energy)
 
       do l = 1, m_theta
-         t_cell(l) = dR(l)/v_t(l) ! Cell advection time
-         t_adv(l) = R_theta(l)/v_t(l) ! Characteristic advection time
+         t_cell(l) = dR(l)/v_t(l)      ! Cell advection time
+         t_adv(l) = R_theta(l)/v_t(l)  ! Characteristic advection time
          if (l < m_theta) then
-            t_adi(l) = 3.*dR(l)/(v_t(l)*log(rho(l)/rho(l+1))) ! Characteristic adiabatic losses time
+            t_adi(l) = 3.*dR(l)/(v_t(l)*(rho(l)-rho(l+1))*2./(rho(l)+rho(l+1))) ! Characteristic adiabatic losses time
          else 
             t_adi(l) = t_adi(l-1)
          end if

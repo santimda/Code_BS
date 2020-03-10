@@ -52,8 +52,8 @@ contains
 
 
       !------------------------------------------------------------
-      ! Build Ef vector for the SED with Ef_min = 10 keV
-      call vector_log(1.d4*eV,E_e(mE_e),Ef_int,Ef)
+      ! Build Ef vector for the SED with Ef_min = 2 keV
+      call vector_log(2.d3*eV,E_e(mE_e),Ef_int,Ef)
 
 
       !===========================================================

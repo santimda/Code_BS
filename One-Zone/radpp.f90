@@ -18,7 +18,7 @@ contains
       real(dp) :: Ef_int,dEf,sum_pp,Epp,L1
       real(dp) :: E_th=1.22d9*eV, TeV=1.d12*eV
       real(dp) :: Epi_min,Epi_max,Epi_int,dE_pi,integral
-      real(dp), parameter :: k_pp=0.17d0, n_pp=1.2d0 ! n_pp=1.1 corresponds to alfa=2 (Kelner2006)
+      real(dp), parameter :: k_pp=0.17d0, n_pp=1.1d0 ! n_pp=1.1 corresponds to alfa=2 (Kelner2006)
       integer :: mE_pi,i_p
       interface
          function F(a,b)
@@ -67,7 +67,9 @@ contains
          dEf = Ef(i)*(Ef_int-1.d0)
 
          ! Different formalism according to energy range:
-         if (Ef(i) < 0.01d0*TeV) then   ! Ep < 100 GeV -> Ef < 0.01 TeV
+
+         ! Eq.78 Kelner+2006 for Ep < 100 GeV -> Ef < 0.01 TeV
+         if (Ef(i) < 0.01d0*TeV) then   
             allocate(Epi(mE_pi))
             Epi_min = ( Ef(i)+(m_pic2)**2/4.d0/Ef(i) )*1.005 ! Factor to avoid numerical errors very close to Epi_min
             Epi_max = E_p(mE_p)
@@ -75,31 +77,32 @@ contains
             integral = 0.d0
             do j=1,mE_pi         ! E_pi
                dE_pi = Epi(j)*(Epi_int-1.d0)
-               Epp = Epi(j)/k_pp + mpc2
+               Epp = n_pp*Epi(j)/k_pp + mpc2       ! Eq.75 Kelner+2006
                i_p = int(log(Epp/Emin_p)/log(Eint_p))+1
                if (i_p <= mE_pi .and. Epp <= E_p(mE_p) .and. Epp > E_th) then 
                   L1 = log(Epp/TeV)    
-                  qpi = N_p(i_p)*sigma_pp(L1,Epp)/k_pp ! 1/erg/s
-                  integral = integral + qpi*dE_pi/sqrt(Epi(j)**2-(m_pic2)**2)
+                  qpi = n_pp**2*N_p(i_p)*sigma_pp(L1,Epp)/k_pp ! Eq.77 Kelner+2006 [1/erg/s]
+                  integral = integral + qpi*dE_pi/sqrt(Epi(j)**2-(m_pic2)**2) 
                endif
             end do               ! E_pi
-            Q_Ef = 2.3d0*c*n_a*integral/n_pp
+            Q_Ef = 2.d0*c*n_a*integral*z_pp   !Eq.78 Kelner+2006
             Lpp(i) = Ef(i)*Q_Ef  ! SED = Ef * L_Ef =  Ef^2 * Q_Ef 
             deallocate(Epi)
             mE_pi = MAX(mE_pi-1,32) ! Diminish the number of points 
 
-         else           ! Ep > 100 GeV -> Ef > 0.01 TeV
+         ! Eq.72 Kelner+2006 for Ep > 100 GeV -> Ef > 0.01 TeV
+         else 
             integral=0.d0
             do j=1,mE_p
                if (Ef(i) < E_p(j)) then
                   dE_p = E_p(j)*(Eint_p-1.d0)
                   x_pp = Ef(i)/E_p(j)
                   dx_pp = Ef(i)*dE_p/(E_p(j)**2)
-                  L1 = log(E_p(j)/TeV) ! L = ln(Ep/1TeV)
-                  integral = integral + sigma_pp(L1,E_p(j))*N_p(j)*F(x_pp,L1)*dx_pp/x_pp
+                  L1 = log(E_p(j)/TeV) 
+                  integral = integral + sigma_pp(L1,E_p(j))*N_p(j)*F(x_pp,L1)*dx_pp/x_pp 
                endif
             end do
-            Q_phi = c*n_a*integral
+            Q_phi = c*n_a*integral*z_pp
             Lpp(i) = Ef(i)*Q_phi
 
          endif

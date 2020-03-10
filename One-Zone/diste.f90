@@ -22,7 +22,7 @@ contains
       integer :: mE2
       real(dp) :: gamm,const_ic,C_ic_st,C_ic_IR,C_ic_CMB
       real(dp) :: t_ic_st,t_ic_IR,t_ic_CMB,t_ic,t_sy,t_ac,t_adv,t_br,t_diff,t_adi
-      real(dp) :: log_coul,gdot_coul,t_coul
+      real(dp) :: log_coul,gdot_coul,t_coul,cte_sy
       real(dp) :: t_coole,t_esc(mE_e),t_loss
       real(dp) :: log10Emax,D_Bohm
       real(dp) :: E2_e,dE2_e,Emin2_e,Emax2_e,Eint2_e,integral,S,Q
@@ -57,6 +57,7 @@ contains
       !=======================================================================
       ! Define some relevant constants and timescales
 
+      cte_sy = 6.*pi*mec2**2/(c*sigma_T*B**2)   ! Valid for isotropic e- distribution
       log_coul = 29.7d0 + log( T_6/sqrt(n_a) ) 
 
       const_ic = pi*h_bar**3*c**2/(2.*re**2*mec2**3)
@@ -64,10 +65,10 @@ contains
       C_ic_IR = const_ic/(T_IR_ad**2*Kappa_IR)
       C_ic_CMB = const_ic/(T_CMB_ad**2*Kappa_CMB)
 
-      c_s = v_w/sqrt(8.d0)  ! sound speed ~ sqrt(g_ad*P_sw/rho_sw), P_sw ~ 3/4 rho_w*v_w^2
+      c_s = v_w/sqrt(8.d0)    ! sound speed ~ sqrt(g_ad*P_sw/rho_sw), P_sw ~ 3/4 rho_w*v_w^2
       t_adv = R0/c_s 
-      t_adi = R0/c_s*1.d2   ! adiabatic losses: dE/dt = 1/3 * d(log(rho))/dl * E*v
-      t_br = 1.d15/n_a/z_br ! added z_be according to Padovani+2018
+      t_adi = 3.d0*R0/c_s*5.d0! adiabatic losses: dE/dt = 1/3*d(log(rho))/dl *E*v, delta_rho/rho ~ 0.2 
+      t_br = 1.d15/n_a/z_br   ! added z_be according to Padovani+2018
 
       ! Search for maximum electron energy
       call Biseccion(log10Emax,C_ic_st,C_ic_IR,C_ic_CMB,t_br,t_adv)
@@ -107,7 +108,7 @@ contains
          end do
          mE2 = MAX(mE2-1,32) ! make it faster (less steps when E2 closer to Emax_e)
 
-         t_sy = 1.d0/1.6d-3/B_par**2/E_e(i) 
+         t_sy = cte_sy/E_e(i)
 
          gamm = E_e(i)/mec2
          t_ic_st = C_ic_st*gamm/F_iso(4.*gamm*T_st_ad)

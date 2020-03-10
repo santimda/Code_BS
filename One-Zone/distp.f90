@@ -22,7 +22,7 @@ contains
       real(dp) :: Q,S,t_adv,t_pp,t_diff,t_ac,t_loss,t_esc,t_adi,t_cool_p
       real(dp) :: b_pp,sigma_pp,L1,E_punto,c_s,E_NT,D_Bohm
       real(dp) :: dE2_p,E2_p,Eint2_p,Emax2_p,Emin2_p
-      real(dp), parameter :: E_th=1.22d9*eV, TeV=1.d12*eV
+      real(dp), parameter :: E_th=1.22d9*eV, TeV=1.d12*eV, kappa_pp=0.5d0
       integer :: mE2
 
       interface
@@ -47,7 +47,7 @@ contains
 
       c_s = v_w/sqrt(8.d0)    ! sound speed ~ sqrt(g_ad*P_sw/rho_sw), P_sw ~ 3/4 rho_w*v_w^2
       t_adv = R0/c_s 
-      t_adi = R0/c_s*1.d2   ! adiabatic losses: dE/dt = 1/3 * d(log(rho))/dl * E*v
+      t_adi = 3.d0*R0/c_s*5.d0! adiabatic losses: dE/dt = 1/3*d(log(rho))/dl *E*v, delta_rho/rho ~ 0.2 
       t_pp = 1.d15/n_a/z_pp   ! approx expression for p-p losses, used only to calculate Emax_p
 
       ! Search for maximum proton energy
@@ -97,22 +97,21 @@ contains
             L1 = log(E_p(i)/TeV)    ! L = ln(Ep/1TeV)
             sigma_pp = (34.3d0 + 1.88d0*L1 + 0.25d0*L1**2)*1.d-27 
             sigma_pp = sigma_pp*(1.d0-(E_th/E_p(i))**4)**2  ! Factor to improve at low energies
-            b_pp = c*0.5*n_a*sigma_pp*E_p(i)
+            b_pp = c*kappa_pp*n_a*sigma_pp*E_p(i)
          endif
          t_pp = E_p(i)/b_pp/z_pp 
          t_cool_p = 1./(1./t_pp + 1./t_adi)
 
          D_Bohm = E_p(i)*c/(3.d0*qe*B)
-         t_diff = R_acel**2/(2.*D_Bohm) ! del Valle 2012
+         t_diff = R_acel**2/(2.*D_Bohm)   ! del Valle 2012
          t_esc = 1./( 1./t_adv + 1.d0/t_diff ) ! escape
 
-         t_loss = min(t_cool_p,t_esc) ! general losses
+         t_loss = min(t_cool_p,t_esc)     ! general losses
 
          t_ac = efi_ac_sw*E_p(i)/(B_par*c*qe)
 
          E_punto = abs(E_p(i)/t_loss) 
-         ! N(E)=1/|dE/dt|*S, with |dE/dt|= E/t_loss
-         N_p(i) = Ka_p*S/E_punto
+         N_p(i) = Ka_p*S/E_punto          ! N(E)=1/|dE/dt|*S, with |dE/dt|= E/t_loss
 
          ! Save the relevant timescales for plotting
          write(70,*) E_p(i)/eV,t_ac,t_pp,t_adv,t_diff,t_cool_p,t_esc,t_loss,t_adi
@@ -144,7 +143,7 @@ END module distp
 
 !///////////////////////////////////////////////////////////////////////////
 !                                                                         //
-!                            SUBRUTINAS                                   //
+!                            SUBROUTINES                                  //
 !                                                                         //
 !///////////////////////////////////////////////////////////////////////////
 

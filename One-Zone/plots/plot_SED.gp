@@ -15,7 +15,7 @@ h = 6.6260755e-27
 eV = 1.602176e-12
 a = 4.0*pi*dist**2.
 
-plot './data_radio2010.dat' u (log10(($1)*10**9*h/eV)):(log10(($1)*10**9*a*($2)*10**(-26))):(log10(1+($3)/($1))):(log10(1.+($4)/($2))) w xyerrorbars pt 7 t 'VLA', \
+plot './data_radio2010.dat' u 1:2:3:4:5:6 w xyerrorbars pt 7 lc 7 t 'VLA',\
      '../radsyn_abs.dat' u (log10($1)):(log10($3)) t 'sync' w l lw 2 lc 1,\
      '../radsyn_abs.dat' u (log10($1)):(log10($2)) t '' w l lw 2 dt 2 lc 1,\
      '../radic_IR.dat' u (log10($1)):(log10($2)) t 'IC-dust' w l lw 2,\
