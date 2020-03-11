@@ -1,8 +1,5 @@
 module CD
 
-   use global
-
-   implicit none
    private
    public :: CD_run
 
@@ -14,7 +11,7 @@ contains
    ! This module calulates the 2D curve that represents the position of the shock  
    ! according to Christie+2016. Only the "upper" half is calculated, as there is 
    ! azimuthal symmetry. The "rotated" positions are later calculated by CDrot.f90
-   !____________________________________________________________________________
+   !============================================================================
 
    subroutine CD_run
       use global
@@ -35,14 +32,14 @@ contains
 
       write(*,*) 'Calculate the CD position'
 
-      !----------------------------------------------------------------------------
+      !-----------------------------------------------------------------------------
       !  Scheme: We calculate the (theta,r(theta)) positions of the CD. We build  
-      !  vectors theta(n),r(theta(n)), such that the star is located at r=0, 
-      !  theta(0)=0, and r(0)=R0/R0=1 is the stagnation point obtained from pressure balance.
+      !  arrays theta(n),r(theta(n)), such that the star is located at r=0 
+      !  and r(0)=R0/R0=1 (theta(0)=0) is the stagnation point obtained from pressure balance.
       !  We assume that the stellar wind has reached its terminal velocity.
       !  The outputs are: a table with theta, r_norm, dR (CD.dat for the Christie+ solution, 
       !  CD_aprox.dat for the W96 sol), and a table with cartesian coords x, y (CD_xy.dat)
-      !
+      !-----------------------------------------------------------------------------
 
       80  format(A12,X,F5.2)
       90  format(A8,X,Es10.2)
@@ -152,8 +149,6 @@ Function g(theta_i,r_i)
    num = r_i*st*num
 
    den = (1.-lambda*r_i**2) * (theta_i - st*ct)*ct - st**3*(1.-r_i**2)
-
-   !  write(*,*) r_i,theta_i, num, den
 
    g = num/den ! dr/dtheta
    return

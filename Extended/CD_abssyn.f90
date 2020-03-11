@@ -1,8 +1,5 @@
 module CD_abssyn
-  !This module calculates the f-f absorption of radio emission from the shock
-  use global
-  
- implicit none
+
   private
   public :: CD_abssyn_run
 
@@ -11,17 +8,18 @@ module CD_abssyn
     !========================================================================
     !        abssyn_run        
     !========================================================================
-  
-    subroutine CD_abssyn_run
-      use global
-
-      !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-      ! This program calculates the total radio opacity for a radio photon 
+  	!This module calculates the f-f absorption of radio emission from the shock.
+    ! This program calculates the total radio opacity for a radio photon 
       ! emitted from a position (x(l),y(l)) in the CD. The output is the file
       ! radsyn.dat which contains E(i), L_sy(E(i), L_sy_abs(E(i)).
       ! The program uses the results of f-f opacity (tauffw); we have an estimate 
       ! if the wind alpha(r,nu_i), with "r" tabulated in r.dat is the distance to 
       ! the star. The f-f absorption in the shock is negligible given the large T
+    !========================================================================
+  
+    subroutine CD_abssyn_run
+      use global
+
       !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
       !$ use omp_lib
@@ -39,10 +37,10 @@ module CD_abssyn
       integer, parameter :: m_l = 2*m_theta  ! CD position, both sides
       Logical :: integra
  
-      allocate ( tauff(m_l,m_nu) ) 
-      allocate ( x(m_l),y(m_l),z(m_l) )
-      allocate ( theta(m_theta),r_norm(m_theta) )
-      allocate ( nu(m_nu),Lsy(m_l,m_nu),Lsy_tot(m_nu),Lsy_tot_abs(m_nu) )
+      allocate( tauff(m_l,m_nu) ) 
+      allocate( x(m_l),y(m_l),z(m_l) )
+      allocate( theta(m_theta),r_norm(m_theta) )
+      allocate( nu(m_nu),Lsy(m_l,m_nu),Lsy_tot(m_nu),Lsy_tot_abs(m_nu) )
   
 !100  format(A15,X,Es10.2)
 
@@ -67,14 +65,14 @@ module CD_abssyn
       open(10,file='CD.dat')
       do l=1,m_theta
          read(10,*) theta(l),r_norm(l),dummy
-      enddo
+      end do
       close(10)
       dtheta = theta(2)-theta(1)  ! Equiesp.
 
       open(11,file='CDrot.dat')
       do l=1,m_l     ! "up" and "down"
          read(11,*) x(l),y(l),z(l)
-      enddo
+      end do
       close(11)
       x = R0*x
       y = R0*y
@@ -83,21 +81,21 @@ module CD_abssyn
       open(12,file='nu.dat')
       do i=1,m_nu
          read(12,*) nu(i)
-      enddo
+      end do
       close(12)
       log_nu_int = log(nu(2)/nu(1))
 
       open(15,file='r_ff.dat')
       do i_ff=1,mr_ff
          read(15,*) r_ff(i_ff)
-      enddo
+      end do
       close(15)
       dr_ff = r_ff(2)-r_ff(1)          ! equiespaciated
 
       open(18,file='windalphaff.dat')
       do j=1,mr_ff
          read(18,*) (alphaffw(j,i), i=1,m_nu)
-      enddo
+      end do
       close(18)
 
       !/////////////////////////////////////////////////////////////////////
@@ -151,18 +149,18 @@ module CD_abssyn
                x1 = x1 + dr_x ! CHECK
                y1 = y1 + dr_y
                
-            enddo
-         enddo
+            end do
+         end do
          ! !$omp end parallel do
 
-      enddo
+      end do
 
       open (25,file='CD_tauff.dat')
       do l=1,m_l
          do i=1,m_nu
             write(25,*) l,nu(i),tauff(l,i) 
-         enddo
-      enddo
+         end do
+      end do
       close(25)
 
       !/////////////////////////////////////////////////////////////////////
@@ -172,8 +170,8 @@ module CD_abssyn
          do i=1,m_nu
             read(31,*) nl,Ef(i),Lsy(l,i)  ! Lsy is already multiplied by Ef(i)
             Lsy(l+m_theta,i) = Lsy(l,i)   ! symmetry 
-        enddo
-      enddo
+        end do
+      end do
       close(31)
 
       i_1G = int(log(1.42d9/nu(1))/log_nu_int) + 1        ! 1.4 GHz
@@ -203,7 +201,7 @@ module CD_abssyn
             else
                Lsy_tot_abs(i) = Lsy_tot_abs(i) + Lsy(l,i)
             endif         
-         enddo
+         end do
          
          emision1 = Lsy(l,i_1G) * flux1 ! At 1.4 GHz
          emision1_abs = emision1 * exp(-tauff(l,i_1G))
@@ -213,18 +211,18 @@ module CD_abssyn
          write(70,*) u_proj,v_proj,emision1,emision1_abs
          write(71,*) u_proj,v_proj,emision2,emision2_abs
 
-      enddo
+      end do
       close(70)
       close(71)
 
       open(33,file='radsyn_abs.dat')
       do i=1,m_nu
          write(33,*) Ef(i),Lsy_tot(i),Lsy_tot_abs(i)
-      enddo
+      end do
      close(33)
 
-      deallocate ( tauff ) 
-      deallocate ( x,y,z,nu,Lsy,Lsy_tot,Lsy_tot_abs )
+      deallocate( tauff ) 
+      deallocate( x,y,z,nu,Lsy,Lsy_tot,Lsy_tot_abs )
       deallocate( theta,r_norm )
    
 

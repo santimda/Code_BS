@@ -1,8 +1,5 @@
 module CD_diste
 
-   use global
-
-   implicit none
    private
    public :: CD_diste_run 
 
@@ -25,7 +22,8 @@ contains
       integer :: l_min,l2
       real(dp) :: t_cell(m_theta),t_adv(m_theta),t_coole(m_theta,mE_e),t_loss(m_theta,mE_e)
       real(dp) :: t_ic_st,t_ic_IR,t_ic,t_sy,t_ac,t_br,D_diff,t_diff,t_esc,t_adi(m_theta)
-      real(dp) :: gamm, cte_IC, C_ic_st,kC_ic_st, C_ic_IR(m_theta),kC_ic_IR
+      real(dp) :: cte_sy, gamm, cte_IC, C_ic_st,kC_ic_st, C_ic_IR(m_theta),kC_ic_IR
+      real(dp) :: log_coul,gdot_coul,cte_coul,t_coul
       real(dp) :: log10Emaxl,R_acel,Q,integral
       real(dp) :: E_dot(m_theta,mE_e),Emax_e0(m_theta),Ka,E_NT
       real(dp) :: N_e0(mE_e),n_a(m_theta),L_inj(m_theta),dR(m_theta)
@@ -35,10 +33,10 @@ contains
       logical :: new_count
 
       interface
-         subroutine Biseccion(Be,logEmax,c1,c2,T1,tbr,tad,xi)
+         subroutine Biseccion(c_sy,Bl,logEmax,c1,c2,T1,tbr,tad,xi)
             use iso_fortran_env, only: dp => real64
             implicit none
-            real(dp), intent(in) :: Be,c1,c2,T1,tbr,tad,xi
+            real(dp), intent(in) :: c_sy,Bl,c1,c2,T1,tbr,tad,xi
             real(dp), intent(out) :: logEmax
          end subroutine Biseccion
       end interface
@@ -126,32 +124,40 @@ contains
          Kappa_st = ( R_st/(2.*R_theta(l)) )**2
          kC_ic_st = C_ic_st/Kappa_st
          kC_ic_IR = C_ic_IR(l)/Kappa_IR(l)
-         R_acel = H_theta(l)         ! Accelerator size  ????????????
-         t_br = 1.d15/n_a(l)          ! It does not depend on the electron energy
+         R_acel = H_theta(l)           ! Accelerator size  ????????????
+         t_br = 1.d15/n_a(l)/z_br      ! added z_be according to Padovani+2018
+         cte_sy = 6.*pi*mec2**2/(c*sigma_T*B(l)**2)   ! Valid for isotropic e- distribution
 
-         call Biseccion(B(l),log10Emaxl,kC_ic_st,kC_ic_IR,T_IR_ad(l),t_br,t_adv(l),efi_ac_sw(l))
+         call Biseccion(cte_sy,B(l),log10Emaxl,kC_ic_st,kC_ic_IR,T_IR_ad(l),t_br,t_adv(l),efi_ac_sw(l))
          Emax_e0(l) = MIN(10.d0**log10Emaxl,qe*B(l)*R_acel*sqrt(1.5d0/efi_ac_sw(l))) 
          if (Emax_e0(l) >= 0.5*Emax_e) write(*,*) 'Emax_e in global.f90 is too small!'
          !       write(*,70) 'Emax=',Emax_e0(l)/eV
 
+         log_coul = 29.7d0 + log( (T(l)/1.d6)/sqrt(n_a(l)) ) 
+         cte_coul = 3.d-14*n_a(l)*log_coul
+
          do i=1,mE_e
 
             D_diff = E_e(i)*c/(3.d0*qe*B(l)) ! Bohm
-            t_diff = H_theta(l)**2./(2.d0*D_diff) ! Diffusion losses
+            t_diff = H_theta(l)**2/(2.d0*D_diff) ! Diffusion losses
             t_esc = 1./( 1./t_adv(l) + 1.d0/t_diff ) ! escape
 
-            t_sy = 1.d0/1.6d-3/B_par(l)**2./E_e(i) 
+            t_sy = cte_sy/E_e(i) 
             gamm = E_e(i)/mec2
             t_ic_st = kC_ic_st*gamm/F_iso(4.*gamm*T_st_ad)
             t_ic_IR = kC_ic_IR*gamm/F_iso(4.*gamm*T_IR_ad(l))
             t_ic = 1./(1./t_ic_st + 1./t_ic_IR)
-            t_coole(l,i) = 1./(1./t_sy + 1./t_ic + 1./t_br + 1./t_adi(l))
+
+            gdot_coul = cte_coul/sqrt(gamm**2-1.d0) ! Pittard2006
+            t_coul = gamm/gdot_coul
+
+            t_coole(l,i) = 1./(1./t_sy + 1./t_ic + 1./t_br + 1./t_adi(l) + 1./t_coul)
 
             t_loss(l,i) = min(t_coole(l,i),t_esc) ! general losses
 
             t_ac = efi_ac_sw(l)*E_e(i)/(B(l)*c*qe)
 
-            write(70,*) l,E_e(i)/eV,t_ic,t_sy,t_br,t_diff,t_ac,t_coole(l,i),t_adv(l),t_cell(l),t_ic_st,t_ic_IR,t_esc,t_loss(l,i),t_adi(l)
+            write(70,*) l,E_e(i)/eV,t_ic,t_sy,t_br,t_diff,t_ac,t_coole(l,i),t_adv(l),t_cell(l),t_ic_st,t_ic_IR,t_esc,t_loss(l,i),t_adi(l),t_coul
 
             E_dot(l,i) = E_e(i)/t_coole(l,i)
 
@@ -237,7 +243,7 @@ contains
                      new_count = .false.
                   end if
                   count = count + 1
-                  !                write(*,*) 'hola2',i,l,int(1./(Eint_e*dE_aprox)),steps
+                  
                   if (count >= steps) then
                      count = 0
                      index1 = index1 - 1
@@ -266,6 +272,7 @@ contains
 
       end do                    ! End loop in starting position (l_min = # linear-emitters)
 
+      !----------------------------------------------------------------------
       ! Save the electron distribution at each position 
       open(79,file='diste_sw.dat')
       do l=1,m_theta
@@ -292,7 +299,7 @@ contains
       !177  format(A10,X,Es10.2)
       !write(*,177) 'E_tot_e=', sum ! Total NT energy in the BS
 
-
+      !------------------------------------------------------------
       ! Group in bins according to position angle
       call Ne_bin(E_e,N_etot,theta)
 
@@ -361,37 +368,35 @@ end subroutine Ne_bin
 !=========================================================================
 
 
-Subroutine Biseccion(Be,x3,c1,c2,T1,t_br,t_adv,xi)
-
+Subroutine Biseccion(csy,Bl,x3,c1,c2,T1,t_br,t_adv,xi)
    use global
    implicit none
-   integer t_err
+   integer, parameter :: t_err = 3
    real(dp) :: a_,b_,c_,err
-   real(dp), intent(in) :: Be,c1,c2,T1,t_br,t_adv,xi
+   real(dp), intent(in) :: csy,Bl,c1,c2,T1,t_br,t_adv,xi
    real(dp), intent(out) :: x3
    interface
-      function resta(a,B,ic1,ic2,T1,t_br,t_adv,efi)
+      function resta(a,csy,Bl,ic1,ic2,T1,t_br,t_adv,efi)
          use iso_fortran_env, only: dp => real64
          implicit none
          real(dp) :: resta
-         real(dp), intent(in) :: a,B,ic1,ic2,T1,t_br,t_adv,efi
+         real(dp), intent(in) :: a,csy,Bl,ic1,ic2,T1,t_br,t_adv,efi
       end function resta
    end interface
 
-   !     El error en el n-esimo será menor a |a-b|/2**n
-   a_ = log10(5.d10*eV) ! log10(Emin [CGS]) ~ 50 GeV
-   b_ = log10(Emax_e)   !
-   t_err = 2
-   err = 10.d0**(-t_err) ! error < 10**-t
+   ! Error in nth step < |a-b|/2**n
+   a_ = log10(2.d10*eV)    ! log10(Emin [CGS]) ~ 20 GeV
+   b_ = log10(Emax_e)   
+   err = 10.d0**(-t_err)   ! error in Emax < 10**-t
    i = 0
    do while ( abs(b_ - a_) > err )
       i = i+1
       c_ = (a_+b_)/2.
-      if (resta(c_,Be,c1,c2,T1,t_br,t_adv,xi)==0) then 
+      if (resta(c_,csy,Bl,c1,c2,T1,t_br,t_adv,xi) <= 1.d-8 ) then 
          b_ = c_
-      elseif (resta(a_,Be,c1,c2,T1,t_br,t_adv,xi)*resta(c_,Be,c1,c2,T1,t_br,t_adv,xi) < 0) then 
+      elseif (resta(a_,csy,Bl,c1,c2,T1,t_br,t_adv,xi)*resta(c_,csy,Bl,c1,c2,T1,t_br,t_adv,xi) < 0) then 
          b_ = c_
-      elseif (resta(a_,Be,c1,c2,T1,t_br,t_adv,xi)*resta(c_,Be,c1,c2,T1,t_br,t_adv,xi) > 0) then 
+      elseif (resta(a_,csy,Bl,c1,c2,T1,t_br,t_adv,xi)*resta(c_,csy,Bl,c1,c2,T1,t_br,t_adv,xi) > 0) then 
          a_ = c_          
       end if
    end do
@@ -402,29 +407,29 @@ end Subroutine Biseccion
 
 !=========================================================================
 
-Function resta(log10E,B_l,c1,c2,T1,t_br,t_adv,xi)
+Function resta(log10E,csy,Bl,c1,c2,T1,t_br,t_adv,xi)
    use global
    implicit none
-   real(dp), intent(in) :: log10E,B_l,c1,c2,T1,t_br,t_adv,xi
+   real(dp), intent(in) :: log10E,csy,Bl,c1,c2,T1,t_br,t_adv,xi
    real(dp) :: resta
    real(dp) :: E_l,gamm,t_sy,t_ic_st,t_ic_IR,t_ac,t_coole
    real(dp) :: D_diff,t_diff,t_loss,t_esc
 
    E_l = 10.d0**log10E
 
-   D_diff = E_l*c/(3.d0*qe*B_l) ! Bohm
-   t_diff = (0.2*R0)**2/(2.d0*D_diff) ! Diffusion losses APPROX
+   D_diff = E_l*c/(3.d0*qe*Bl)         ! Bohm
+   t_diff = (0.2*R0)**2/(2.d0*D_diff)  ! Diffusion losses APPROX
    t_esc = 1./(1./t_adv + 1.d0/t_diff) ! escape
 
    gamm = E_l/mec2
-   t_sy = 1.d0/1.6d-3/(B_l*par)**2.d0/E_l   
+   t_sy = csy/E_l
    t_ic_st = c1*gamm/F_iso(4.*gamm*T_st_ad)
    t_ic_IR = c2*gamm/F_iso(4.*gamm*T1)  
    t_coole = 1./(1.d0/t_sy + 1.d0/t_ic_st + 1.d0/t_ic_IR + 1.d0/t_br) ! radiative cooling
 
    t_loss = min(t_coole,t_esc) ! general losses
 
-   t_ac = xi*E_l/(B_l*c*qe)  !      t_ac = (efiac*B_l*c*qe/E_l)**(-1)
+   t_ac = xi*E_l/(Bl*c*qe)  !      t_ac = (efiac*B_l*c*qe/E_l)**(-1)
    resta = t_loss - t_ac
 
    return

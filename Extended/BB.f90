@@ -11,6 +11,8 @@ contains
   !============================================================================
   ! BB_run
   !============================================================================
+  ! This module calculates the BB thermal emission from the star.
+  !============================================================================
   
   subroutine BB_run  
     use global
@@ -21,13 +23,13 @@ contains
 
     write(*,*) 'Calculate the BB thermal emission from the star'
     
-    Eph_0 = 3.d0*k*T_st
-    Eph_min = Eph_0/2.d6
+    Eph_0 = 2.7d0*k*T_st
+    Eph_min = 10.d9*h    ! 10 GHz ~ Eph_0/1.d6
     Eph_max = Eph_0*5.d1
     
     call vector_log(Eph_min,Eph_max,Eph_int,Eph)
 
-    Rst2 = R_st**2.
+    Rst2 = R_st**2
     open(20,file='LBB.dat')
     do i=1,mE_ph
        L_BB = Rst2*nBB(Eph(i),T_st)

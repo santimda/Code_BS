@@ -173,7 +173,7 @@ END module diste
 Subroutine Biseccion(x3,c1,c2,c3,t_br,t_adv)
    use global
    implicit none
-   integer t_err
+   integer, parameter :: t_err = 4
    real(dp) :: a_,b_,c_,err
    real(dp), intent(in) :: c1,c2,c3,t_br,t_adv
    real(dp), intent(out) :: x3
@@ -186,21 +186,19 @@ Subroutine Biseccion(x3,c1,c2,c3,t_br,t_adv)
       end function resta
    end interface
 
-
-   !     El error en el n-esimo será menor a |a-b|/2**n
-   a_ = log10(1.d9*eV) ! log10(Emin [CGS]) ~ 1 GeV
-   b_ = log10(1.d13*eV) ! log10(Emax [CGS]) ~ 10 TeV
-   t_err = 4
-   err = 10.d0**(-t_err) ! error menor que 10**-t
+   ! Error in nth step < |a-b|/2**n
+   a_ = log10(1.d9*eV)     ! log10(Emin [CGS]) ~ 1 GeV
+   b_ = log10(1.d13*eV)    ! log10(Emax [CGS]) ~ 10 TeV
+   err = 10.d0**(-t_err)   ! error in Emax < 10**-t
    i = 0
    do while ( abs(b_ - a_) > err )
       i = i+1
       c_ = (a_+b_)/2.
       if ( abs(resta(c_,c1,c2,c3,t_br,t_adv)) <= 1.d-8 ) then
          b_ = c_
-         else if (resta(a_,c1,c2,c3,t_br,t_adv)*resta(c_,c1,c2,c3,t_br,t_adv) < 0) then
+         elseif (resta(a_,c1,c2,c3,t_br,t_adv)*resta(c_,c1,c2,c3,t_br,t_adv) < 0) then
          b_ = c_
-         else if (resta(a_,c1,c2,c3,t_br,t_adv)*resta(c_,c1,c2,c3,t_br,t_adv) > 0) then
+         elseif (resta(a_,c1,c2,c3,t_br,t_adv)*resta(c_,c1,c2,c3,t_br,t_adv) > 0) then
          a_ = c_
       endif
    end do
@@ -228,7 +226,7 @@ Function resta(log10E,c1,c2,c3,t_br,t_adv)
    t_ic_st = c1*gamm/F_iso(4.*gamm*T_st_ad)
    t_ic_IR = c2*gamm/F_iso(4.*gamm*T_IR_ad)    
    t_ic_CMB = c3*gamm/F_iso(4.*gamm*T_CMB_ad)
-   t_sy = 1.d0/1.6d-3/B_par**2/E_l 
+   t_sy = 1.d0/1.6d-3/B**2/E_l 
 
    t_coole = 1./(1.d0/t_sy + 1.d0/t_ic_st + 1.d0/t_ic_IR + 1./t_br + 1.d0/t_ic_CMB)
 
