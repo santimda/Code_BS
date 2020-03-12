@@ -1,7 +1,7 @@
 set encoding iso_8859_1
 set key top right
 set xrange [-6:14]
-set yrange [25:34]
+set yrange [25:33]
 set xtics 3; set mxtics 3
 set ytics 2; set mytics 2  
 set xlabel 'log_{10} ({/Symbol e} [eV])'

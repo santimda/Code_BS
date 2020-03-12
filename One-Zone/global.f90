@@ -45,7 +45,8 @@ module global
 
    ! br
    real(dp), dimension(:), allocatable :: L_br, Ef 
-   logical, parameter :: scr = .True., unscr = .False.
+   !logical, parameter :: screened = .True.   ! screened nuclei
+   logical, parameter :: screened = .False. ! unscreened nuclei
 
    ! IC
    real(dp), dimension(:), allocatable :: L_ic

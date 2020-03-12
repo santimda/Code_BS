@@ -35,7 +35,7 @@ PROGRAM main
       write(*,*) '\n ELECTRONS:'
 
       if (diste_calc) call diste_run  
-      if (radbr_calc) call radbr_run(unscr)
+      if (radbr_calc) call radbr_run
 
       if (radic_calc) then
          call radic_run(T_IR,Kappa_IR,iso,'IR')

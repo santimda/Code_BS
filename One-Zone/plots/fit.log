@@ -3976,3 +3976,201 @@ d4              0.591 -0.131 -0.953 -0.055  1.000
 d5              0.404  0.571 -0.633 -0.808  0.602  1.000 
 d6             -0.496  0.198  0.877 -0.047 -0.978 -0.517  1.000 
 d7             -0.483 -0.059  0.859  0.263 -0.943 -0.762  0.942  1.000 
+
+
+*******************************************************************************
+Wed Mar 11 18:48:37 2020
+
+
+FIT:    data read from "< awk '($1 >1.e3 && $1<5.e13) { print $1, $2, $3 }' ../radic_IR.dat" u (log10($1)):(log10($2))
+        format = x:z
+        x range restricted to [-6.00000 : 14.0000]
+        #datapoints = 340
+        residuals are weighted equally (unit weight)
+
+function used for fitting: f(x)
+	f(x)=a0+a1*(x-x0)+a2*(x-x0)**2+a3*(x-x0)**3+a4*(x-x0)**4+a5*(x-x0)**5+a6*(x-x0)**6+a7*(x-x0)**7+a8*(x-x0)**8
+fitted parameters initialized with current variable values
+
+iter      chisq       delta/lim  lambda   a0            a1            a2            a3            a4            a5            a6            a7            a8           
+   0 3.2267681534e+14   0.00e+00  3.78e+05    1.000000e+00   1.000000e+00   1.000000e+00   1.000000e+00   1.000000e+00   1.000000e+00   1.000000e+00   1.000000e+00   1.000000e+00
+   9 1.1188278700e-01  -1.70e-05  3.78e-04    2.379054e+01   3.218547e-01  -6.100905e-02  -2.638554e-02  -6.374994e-03  -1.360963e-03  -3.170478e-04  -4.534975e-05  -2.458932e-06
+
+After 9 iterations the fit converged.
+final sum of squares of residuals : 0.111883
+rel. change during last iteration : -1.70109e-10
+
+degrees of freedom    (FIT_NDF)                        : 331
+rms of residuals      (FIT_STDFIT) = sqrt(WSSR/ndf)    : 0.0183852
+variance of residuals (reduced chisquare) = WSSR/ndf   : 0.000338014
+
+Final set of parameters            Asymptotic Standard Error
+=======================            ==========================
+a0              = 23.7905          +/- 0.002506     (0.01053%)
+a1              = 0.321855         +/- 0.002332     (0.7246%)
+a2              = -0.0610091       +/- 0.001851     (3.034%)
+a3              = -0.0263855       +/- 0.0007345    (2.784%)
+a4              = -0.00637499      +/- 0.0003076    (4.826%)
+a5              = -0.00136096      +/- 8.921e-05    (6.555%)
+a6              = -0.000317048     +/- 1.203e-05    (3.793%)
+a7              = -4.53498e-05     +/- 4.159e-06    (9.17%)
+a8              = -2.45893e-06     +/- 3.094e-07    (12.58%)
+
+correlation matrix of the fit parameters:
+                a0     a1     a2     a3     a4     a5     a6     a7     a8     
+a0              1.000 
+a1              0.099  1.000 
+a2             -0.745 -0.087  1.000 
+a3             -0.286 -0.866  0.404  1.000 
+a4              0.594 -0.023 -0.952 -0.298  1.000 
+a5              0.442  0.565 -0.727 -0.865  0.703  1.000 
+a6             -0.457  0.277  0.805 -0.029 -0.928 -0.433  1.000 
+a7             -0.466 -0.285  0.827  0.618 -0.884 -0.923  0.726  1.000 
+a8             -0.409 -0.394  0.738  0.721 -0.779 -0.962  0.579  0.980  1.000 
+
+
+*******************************************************************************
+Wed Mar 11 18:48:37 2020
+
+
+FIT:    data read from "< awk '($1 >9.e-7 && $1<2.e4) { print $1, $2, $3 }' ../radsyn.dat" u (log10($1)):(log10($2))
+        format = x:z
+        x range restricted to [-6.00000 : 14.0000]
+        #datapoints = 502
+        residuals are weighted equally (unit weight)
+
+function used for fitting: g(x)
+	g(x)=b0+b1*(x-x1)+b2*(x-x1)**2+b3*(x-x1)**3+b4*(x-x1)**4+b5*(x-x1)**5+b6*(x-x1)**6+b7*(x-x1)**7
+fitted parameters initialized with current variable values
+
+iter      chisq       delta/lim  lambda   b0            b1            b2            b3            b4            b5            b6            b7           
+   0 4.4248819680e+11   0.00e+00  9.37e+03    1.000000e+00   1.000000e+00   1.000000e+00   1.000000e+00   1.000000e+00   1.000000e+00   1.000000e+00   1.000000e+00
+   7 8.3786149632e-02  -1.67e-02  9.37e-04    3.055779e+01   3.428384e-01  -6.429015e-02  -2.745490e-02  -1.259022e-03   8.483526e-04  -1.963588e-05  -2.202993e-05
+
+After 7 iterations the fit converged.
+final sum of squares of residuals : 0.0837861
+rel. change during last iteration : -1.67186e-07
+
+degrees of freedom    (FIT_NDF)                        : 494
+rms of residuals      (FIT_STDFIT) = sqrt(WSSR/ndf)    : 0.0130233
+variance of residuals (reduced chisquare) = WSSR/ndf   : 0.000169608
+
+Final set of parameters            Asymptotic Standard Error
+=======================            ==========================
+b0              = 30.5578          +/- 0.001276     (0.004177%)
+b1              = 0.342838         +/- 0.001273     (0.3713%)
+b2              = -0.0642902       +/- 0.0005924    (0.9214%)
+b3              = -0.0274549       +/- 0.0003441    (1.253%)
+b4              = -0.00125902      +/- 6.258e-05    (4.971%)
+b5              = 0.000848353      +/- 2.698e-05    (3.18%)
+b6              = -1.96359e-05     +/- 1.754e-06    (8.931%)
+b7              = -2.20299e-05     +/- 6.282e-07    (2.852%)
+
+correlation matrix of the fit parameters:
+                b0     b1     b2     b3     b4     b5     b6     b7     
+b0              1.000 
+b1             -0.050  1.000 
+b2             -0.744  0.109  1.000 
+b3              0.077 -0.915 -0.168  1.000 
+b4              0.597 -0.142 -0.957  0.220  1.000 
+b5             -0.097  0.815  0.212 -0.973 -0.278  1.000 
+b6             -0.509  0.165  0.891 -0.257 -0.982  0.325  1.000 
+b7              0.113 -0.734 -0.248  0.925  0.325 -0.986 -0.381  1.000 
+
+
+*******************************************************************************
+Wed Mar 11 18:48:37 2020
+
+
+FIT:    data read from "< awk '($1 >1.e3 && $1<9.e12) { print $1, $2, $3 }' ../radic_st.dat" u (log10($1)):(log10($2))
+        format = x:z
+        x range restricted to [-6.00000 : 14.0000]
+        #datapoints = 378
+        residuals are weighted equally (unit weight)
+
+function used for fitting: j(x)
+	j(x)=c0+c1*(x-x2)+c2*(x-x2)**2+c3*(x-x2)**3+c4*(x-x2)**4+c5*(x-x2)**5+c6*(x-x2)**6+c7*(x-x2)**7
+fitted parameters initialized with current variable values
+
+iter      chisq       delta/lim  lambda   c0            c1            c2            c3            c4            c5            c6            c7           
+   0 2.4608744241e+11   0.00e+00  1.07e+04    1.000000e+00   1.000000e+00   1.000000e+00   1.000000e+00   1.000000e+00   1.000000e+00   1.000000e+00   1.000000e+00
+   7 4.4025401977e-01  -5.17e-02  1.07e-03    3.003868e+01   2.609749e-01  -8.526121e-02  -1.629497e-02   2.481538e-03   4.297088e-04  -1.938882e-04  -2.965594e-05
+
+After 7 iterations the fit converged.
+final sum of squares of residuals : 0.440254
+rel. change during last iteration : -5.17046e-07
+
+degrees of freedom    (FIT_NDF)                        : 370
+rms of residuals      (FIT_STDFIT) = sqrt(WSSR/ndf)    : 0.0344946
+variance of residuals (reduced chisquare) = WSSR/ndf   : 0.00118988
+
+Final set of parameters            Asymptotic Standard Error
+=======================            ==========================
+c0              = 30.0387          +/- 0.004031     (0.01342%)
+c1              = 0.260975         +/- 0.003726     (1.428%)
+c2              = -0.0852612       +/- 0.002318     (2.719%)
+c3              = -0.016295        +/- 0.001018     (6.245%)
+c4              = 0.00248154       +/- 0.0003057    (12.32%)
+c5              = 0.000429709      +/- 8.73e-05     (20.32%)
+c6              = -0.000193888     +/- 1.071e-05    (5.525%)
+c7              = -2.96559e-05     +/- 2.438e-06    (8.223%)
+
+correlation matrix of the fit parameters:
+                c0     c1     c2     c3     c4     c5     c6     c7     
+c0              1.000 
+c1              0.120  1.000 
+c2             -0.743 -0.218  1.000 
+c3             -0.218 -0.899  0.405  1.000 
+c4              0.594  0.236 -0.957 -0.452  1.000 
+c5              0.300  0.744 -0.569 -0.948  0.649  1.000 
+c6             -0.508 -0.231  0.893  0.455 -0.983 -0.668  1.000 
+c7             -0.350 -0.584  0.677  0.829 -0.786 -0.961  0.823  1.000 
+
+
+*******************************************************************************
+Wed Mar 11 18:48:37 2020
+
+
+FIT:    data read from "< awk '($1 >1.e8 && $1<1.e13) { print $1, $2, $3 }' ../radpp.dat" u (log10($1)):(log10($2))
+        format = x:z
+        x range restricted to [-6.00000 : 14.0000]
+        #datapoints = 330
+        residuals are weighted equally (unit weight)
+
+function used for fitting: k(x)
+	k(x)=d0+d1*(x-x3)+d2*(x-x3)**2+d3*(x-x3)**3+d4*(x-x3)**4+d5*(x-x3)**5+d6*(x-x3)**6+d7*(x-x3)**7
+fitted parameters initialized with current variable values
+
+iter      chisq       delta/lim  lambda   d0            d1            d2            d3            d4            d5            d6            d7           
+   0 3.8210250780e+07   0.00e+00  1.68e+02    1.000000e+00   1.000000e+00   1.000000e+00   1.000000e+00   1.000000e+00   1.000000e+00   1.000000e+00   1.000000e+00
+   6 1.4744768204e-02  -9.04e-06  1.68e-04    2.767945e+01  -2.638233e-01  -4.047190e-02  -4.081345e-02  -2.100323e-02  -8.444872e-04   6.802668e-04   2.743336e-04
+
+After 6 iterations the fit converged.
+final sum of squares of residuals : 0.0147448
+rel. change during last iteration : -9.03616e-11
+
+degrees of freedom    (FIT_NDF)                        : 322
+rms of residuals      (FIT_STDFIT) = sqrt(WSSR/ndf)    : 0.00676692
+variance of residuals (reduced chisquare) = WSSR/ndf   : 4.57912e-05
+
+Final set of parameters            Asymptotic Standard Error
+=======================            ==========================
+d0              = 27.6795          +/- 0.0008767    (0.003167%)
+d1              = -0.263823        +/- 0.001441     (0.5463%)
+d2              = -0.0404719       +/- 0.002288     (5.654%)
+d3              = -0.0408135       +/- 0.001315     (3.223%)
+d4              = -0.0210032       +/- 0.001398     (6.658%)
+d5              = -0.000844487     +/- 0.0003972    (47.04%)
+d6              = 0.000680267      +/- 0.0002345    (34.47%)
+d7              = 0.000274334      +/- 6.278e-05    (22.89%)
+
+correlation matrix of the fit parameters:
+                d0     d1     d2     d3     d4     d5     d6     d7     
+d0              1.000 
+d1              0.015  1.000 
+d2             -0.744  0.048  1.000 
+d3             -0.147 -0.897  0.154  1.000 
+d4              0.591 -0.131 -0.953 -0.055  1.000 
+d5              0.404  0.571 -0.633 -0.808  0.602  1.000 
+d6             -0.496  0.198  0.877 -0.047 -0.978 -0.517  1.000 
+d7             -0.483 -0.059  0.859  0.263 -0.943 -0.762  0.942  1.000 

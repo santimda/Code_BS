@@ -93,7 +93,7 @@ module system_parameters
    ! Non-thermal particles
    real(dp), parameter :: efi_ac_sw = 2.d0*pi*(c/v_w)**2   ! particle accel. efficiency at the sw 
    real(dp), parameter :: frac_sw = sqrt(0.1_dp)       ! fraction UB_sw/UB_equipartition_sw
-   real(dp), parameter :: alpha_sw = 2.0_dp            ! injection spectral index in the sw 
+   real(dp), parameter :: alpha_sw = 2.01d0            ! injection spectral index in the sw 
 
    real(dp), parameter :: frac_NT = 0.1_dp             ! Fraction of L_inj_perp converted to L_NT
    real(dp), parameter :: inj_e = frac_NT*0.05d0       ! Fraction L_NT_e/L_NT

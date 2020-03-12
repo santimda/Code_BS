@@ -9,23 +9,23 @@ contains
    ! radbr_run
    !============================================================================
    ! This module calculates the intrinsic bremsstrahlung emission. 
-   ! If screened = .True. it is screend, if =.False. it is unscreend 
+   ! If screened = .True. it is screened nuclei, if =.False. it is unscreened.
    ! The program reads as an input the electron energy distribution. 
    !============================================================================
 
-   subroutine radbr_run(screened) 
+   subroutine radbr_run!(screened) 
       use global
       implicit none
-      logical, intent(in) :: screened
+      !logical, intent(in) :: screened
       real(dp) :: Ef_int,dEf,sum,sum_br,dsigma_Br,u_br
       real(dp) :: gamma(mE_e),cte_sigma,dq_Ef,q_Ef
       interface
-         function Phi_Br(u_br,gamma_e,screened)
+         function Phi_Br(u_br,gamma_e)!,screened)
             use iso_fortran_env, only: dp => real64
             implicit none
             real(dp) :: Phi_Br
             real(dp), intent(in) :: u_br,gamma_e
-            logical, intent(in) :: screened
+            !logical, intent(in) :: screened
          end function Phi_Br
       end interface
 
@@ -69,7 +69,7 @@ contains
             if (u_br > 1.d0) then   ! Ef <= Ee from energy conservation
                dsigma_Br = 0.d0     ![cm**2/m_e c2]
             else
-               dsigma_Br = cte_sigma/Ef(i)*Phi_Br(u_br,gamma(j),screened) 
+               dsigma_Br = cte_sigma/Ef(i)*Phi_Br(u_br,gamma(j))!,screened) 
                if (dsigma_Br > 0.d0) then ! Phi_Br can yield negative values in bad E ranges
                   q_Ef = n_a*c*dsigma_Br
                   dE_e = E_e(j)*(Eint_e-1.d0)
@@ -106,14 +106,14 @@ END module radbr
 
 !========================================
 
-Function Phi_Br(u,g_e,screened)
+Function Phi_Br(u,g_e)!,screened)
    ! Calculates Phi function in rel.Br. cross-section assuming a factor z_br given in global
    ! It can give negative values for un-screened nuclei in certain E ranges.
    use global  
    implicit none
    real(dp) :: Phi_Br
    real(dp), intent(in) :: u,g_e
-   logical, intent(in) :: screened
+   !logical, intent(in) :: screened
 
    if (screened) then      ! screened nuclei
       Phi_Br = ( 1. + (1.-u)**2 - (2./3.d0)*(1.-u))*log(191.d0/z_br**(1./3.d0)) + (1.-u)/9.d0
