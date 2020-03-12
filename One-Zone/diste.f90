@@ -123,7 +123,7 @@ contains
          t_ic = 1./(1.d0/t_ic_st + 1.d0/t_ic_IR + 1.d0/t_ic_CMB)      
        
          gdot_coul = 3.d-14*n_a*log_coul/sqrt(gamm**2-1.d0) ! Pittard2006
-         t_coul = gamm/gdot_coul
+         t_coul = gamm/gdot_coul*z_ion    ! Not sure, Coulomb losses = ionization losses ?
 
          t_coole = 1./(1.d0/t_sy + 1.d0/t_ic + 1.d0/t_br + 1.d0/t_adi + 1.d0/t_coul) 
 
