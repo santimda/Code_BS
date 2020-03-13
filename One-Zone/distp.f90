@@ -49,7 +49,12 @@ contains
       t_adv = R0/c_s 
       t_adi = 3.d0*R0/c_s*5.d0! adiabatic losses: dE/dt = 1/3*d(log(rho))/dl *E*v, delta_rho/rho ~ 0.2 
       t_pp = 1.d15/n_a/z_pp   ! approx expression for p-p losses, used only to calculate Emax_p
-   	b_ion = z_ion*1.82d-7*n_a*eV 	!Schlickeiser 2002 (Eq. 5.3.51), valid for ~2 GeV << E_p < 1 TeV
+
+      if (screen) then	! interactions with neutral matter
+      	b_ion = z_ion*1.82d-7*n_a*eV 	!Schlickeiser 2002 (Eq. 5.3.51), valid for ~2 GeV << E_p < 1 TeV
+      	else		      ! interactions with fully ionized plasma
+      	b_ion = z_ion*3.1d-7*n_a*eV 	!Schlickeiser 2002 (Eq. 5.3.40)
+      endif
 
       ! Search for maximum proton energy
       call Biseccion_p(log10Emax,t_pp,t_adv)
