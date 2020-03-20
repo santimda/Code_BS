@@ -8,6 +8,7 @@
 *.pdf
 *.sc
 *fixbb*
+*.log
 
 # Prerequisites
 *.d

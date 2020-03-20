@@ -76,6 +76,7 @@ contains
       ! Calculate the proton steady-state energy distribution
 
       open(70,file='tcoolp.dat')
+      write(70,*) '#E_p  t_ac  t_pp  t_adv  t_diff  t_cool_p  t_esc  t_loss  t_adi  t_ion'
 
       ! E_p is the energy of the particle energy distribution and E2_e is an integration variable
       mE2 = mE_p                 ! Initial number of steps in E2

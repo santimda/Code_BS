@@ -15,6 +15,7 @@ plot '../tcoole.dat' u (log10($1)):(log10($2)) t 'IC' w l lw 2,\
       '../tcoole.dat' u (log10($1)):(log10($6)) t 'ac' w l lw 2,\
       '../tcoole.dat' u (log10($1)):(log10($8)) t 'dif' w l lw 2,\
       '../tcoole.dat' u (log10($1)):(log10($14)) t 'coul' w l lw 2 lc rgb "grey50",\
+      '../tcoole.dat' u (log10($1)):(log10($15)) t 'adi' w l lw 2 lc rgb "pink",\
       '../tcoole.dat' u (log10($1)):(log10($7)) t 'cool' w l lw 3
 
 

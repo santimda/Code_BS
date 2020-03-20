@@ -1,5 +1,5 @@
 set encoding iso_8859_1
-set key top right
+set key bottom left
 set xrange [-6:14]
 set yrange [25:33]
 set xtics 3; set mxtics 3
@@ -20,6 +20,7 @@ plot './data_radio2010.dat' u 1:2:3:4:5:6 w xyerrorbars pt 7 lc 7 t 'VLA',\
      '../radsyn_abs.dat' u (log10($1)):(log10($2)) t '' w l lw 2 dt 2 lc 1,\
      '../radic_IR.dat' u (log10($1)):(log10($2)) t 'IC-dust' w l lw 2,\
      '../radic_st.dat' u (log10($1)):(log10($2)) t 'IC-star' w l lw 2 smooth bezier,\
+     '../radic_CMB.dat' u (log10($1)):(log10($2)) t 'IC-CMB' w l lw 2 smooth bezier,\
      '../radbr.dat' u (log10($1)):(log10($2)) t 'rel. br.' w l lw 2 smooth bezier,\
      '../radpp.dat' u (log10($1)):(log10($2)) t 'p-p' w l lw 2 #smooth bezier
 

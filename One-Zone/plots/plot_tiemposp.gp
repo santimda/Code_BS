@@ -14,8 +14,11 @@ plot '../tcoolp.dat' u (log10($1)):(log10($2)) t 'ac' w l lw 3,\
       '../tcoolp.dat' u (log10($1)):(log10($10)) t 'ion' w l lw 2,\
       '../tcoolp.dat' u (log10($1)):(log10($6)) t 'cool' w l lw 3
 
+#'../tcoolp.dat' u (log10($1)):(log10($6)) t 'loss' w l lw 3
+
 set terminal postscript color solid enhanced dl 2.5 lw 1.7 "Helvetica" 20
 set output 'tiemposp.ps'
 replot
 !./fixbb tiemposp.ps
 
+ #E_p  t_ac  t_pp  t_adv  t_diff  t_cool_p  t_esc  t_loss  t_adi  t_ion

@@ -16,9 +16,9 @@ module global
    !===================================================
    ! simulation grid/vectors size
 
-   integer, parameter :: mE_e = 300    ! energy resolution for electrons
+   integer, parameter :: mE_e = 400    ! energy resolution for electrons
    integer, parameter :: mE_f = 512    ! energy resolution for br and IC > mE_p
-   integer, parameter :: mE_p = 300    ! energy resolution for electrons
+   integer, parameter :: mE_p = 400    ! energy resolution for electrons
 
    !===================================================
 

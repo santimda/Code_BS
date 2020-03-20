@@ -93,6 +93,7 @@ contains
       ! Calculate the electron steady-state energy distribution
 
       open(70,file='tcoole.dat')
+      write(70,*) '#E_e  t_ic  t_sy  t_br  t_adv  t_ac  t_coole  t_diff  t_ic_st  t_ic_IR  t_ic_CMB  t_esc  t_loss  t_coul  t_adi'
 
       ! E_e is the energy of the particle energy distribution and E2_e is an integration variable
       mE2 = mE_e                 ! Initial number of steps in E2
@@ -141,7 +142,7 @@ contains
          N_e(i) = Ka*S/E_punto
 
          ! Save the relevant timescales for plotting
-         write(70,*) E_e(i)/eV,t_ic,t_sy,t_br,t_adv,t_ac,t_coole,t_diff,t_ic_st,t_ic_IR,t_ic_CMB,t_esc(i),t_loss,t_coul
+         write(70,*) E_e(i)/eV,t_ic,t_sy,t_br,t_adv,t_ac,t_coole,t_diff,t_ic_st,t_ic_IR,t_ic_CMB,t_esc(i),t_loss,t_coul,t_adi
 
       end do
 
@@ -149,8 +150,8 @@ contains
       !   Save the distribution 
 
       E_NT = 0.d0
-      open(79,file='dist_e.dat')
-      open(69,file='inj_e.dat')
+      open(79,file='dist_e.dat') ! Electron energy distribution
+      open(69,file='inj_e.dat')  ! Approx. electron E-distribution neglecting radiative losses
       do i=1,mE_e
          dE_e = E_e(i)*(Eint_e - 1.d0)  
          E_NT = E_NT + E_e(i)*N_e(i)*dE_e  ! Control

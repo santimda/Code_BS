@@ -42,22 +42,19 @@ module system_parameters
 
    !--------------------------------------------------------------------------------------
    ! ISM
-   real(dp), parameter :: v_ISM = v_st           ! 
-   !real(dp), parameter :: n_ISM = 1.d0           ! del Valle 2012 
-   !real(dp), parameter :: n_ISM = 3.5d0           ! Peri 2015
+   real(dp), parameter :: v_ISM = v_st           ! ISM speed in the star's ref. frame
    real(dp), parameter :: n_ISM = 2.d0           ! ?????
    real(dp), parameter :: T_ISM = 40.d0          ! ?????
    real(dp), parameter :: T_ISM_ad = k*T_ISM/mec2! Adimensional ISM temperature 
    !real(dp), parameter :: U_ISM = 4.d0*sigma*T_ISM**4/c ! average energy density
    real(dp), parameter :: alpha_ISM = 1.d-2      ! P_thermal_ISM = alpha*P_kin_ISM
-   real(dp), parameter :: lambda = alpha_ISM/(alpha_ISM + 1.d0)
 
-   real(dp), parameter :: mu_ISM = 1.3_dp         ! ? 
-   real(dp), parameter :: Zq_ISM = 1.0_dp         ! Z = rms ionic charge
-   real(dp), parameter :: gamma_ISM = 1.0_dp      ! ?
+   real(dp), parameter :: mu_ISM = 1.3_dp         ! mean atomic weight ???
+   real(dp), parameter :: Zq_ISM = 1.0_dp         ! Z = rms ionic charge ???
+   real(dp), parameter :: gamma_ISM = 1.0_dp      ! abundance parameter ???
 
    real(dp), parameter :: rho_ISM = n_ISM*mp*mu_ISM ! CHECK
-   real(dp), parameter :: R0 = sqrt( (Mdot*v_w)/(4.*pi*(1.+alpha_ISM)*rho_ISM*v_ISM**2.) ) 
+   real(dp), parameter :: R0 = sqrt( (Mdot*v_w)/(4.*pi*(1.+alpha_ISM)*rho_ISM*v_ISM**2) ) 
    real(dp), parameter :: H0 = R0*0.3             ! shock width
 
    !--------------------------------------------------------------------------------------
@@ -82,7 +79,7 @@ module system_parameters
    real(dp), parameter :: T_IR_ad = k*T_IR/mec2  ! Adimensional dust temperature
    !real(dp), parameter :: L_IR = 4.d0*pi*H0**2.*sigma*T_IR**4. ! Dust luminosity ?????
    !real(dp), parameter :: L_IR = 5.7d36 ! Dust luminosity, observed ?????
-   real(dp), parameter :: L_IR = 1.d-6*L_st/350.d0     ! Dust luminosity, K2017
+   real(dp), parameter :: L_IR = L_st/350.d0     ! Dust luminosity, K2017
    real(dp), parameter :: R_IR = sqrt( L_IR/(4.*pi*sigma*T_IR**4) ) ! cavity -> 1/4*pi, not 16*pi
 
    ! For IC (both diste.f90 and radic.f90)
@@ -98,7 +95,7 @@ module system_parameters
 
    real(dp), parameter :: frac_NT = 0.1_dp             ! Fraction of L_inj_perp converted to L_NT
    real(dp), parameter :: inj_e = frac_NT*0.05d0       ! Fraction L_NT_e/L_NT
-   real(dp), parameter :: inj_p = frac_NT*0.5d0        ! Fraction L_NT_p/L_NT 
+   real(dp), parameter :: inj_p = frac_NT*0.95d0       ! Fraction L_NT_p/L_NT 
 
    !real(dp), parameter :: B = frac_sw*sqrt(4.d0*pi*rho_w*4.*v_w**2) 
    ! If U_mag = frac*U_th -> B^2/4pi = frac*(g_ad/(g_ad - 1))*P 

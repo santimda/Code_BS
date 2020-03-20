@@ -8,8 +8,9 @@ contains
    !============================================================================
    ! radic_run
    !============================================================================
-   ! This module calculates the intrinsic IC emission. It calculates anisotropic
-   ! IC-star if aniso=.True., else isotropic. 
+   ! This module calculates the intrinsic IC emission using Khangulyan+2014
+   ! formulae for black-body-like photon fields. 
+   ! It calculates anisotropic IC-star if aniso=.True., else isotropic. 
    ! The program reads as an input the electron energy distribution. 
    !============================================================================
 
