@@ -10,7 +10,8 @@ PROGRAM main
    use radpp, only: radpp_run
    use opac_ff, only: opac_ff_run
    use abssyn, only: abssyn_run
-
+   use radadi, only: radadi_run
+   
    implicit none  
 
    write(*,*) '\n ============================'
@@ -31,7 +32,13 @@ PROGRAM main
    !write(*,810) 'L_inj =',L_inj
 
    ! ADD HERE A CHECK OF SHOCK NATURE (ADIABATIC OR RADIATIVE)
-   !--->
+   !--------------------------------------------------------------
+
+   Write(*,*) '\n NATURE OF THE SHOCK:'
+   
+   call radadi_run
+
+   !--------------------------------------------------------------
 
    IF (electrons) then
       write(*,*) '\n ELECTRONS:'
