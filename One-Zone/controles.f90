@@ -9,8 +9,10 @@ public
 logical, parameter :: no = .FALSE.
 logical, parameter :: yes = .TRUE.
 
-logical, parameter :: electrons = yes
-logical, parameter :: protons = yes
+logical, parameter :: check_shocks = yes
+
+logical, parameter :: electrons = no!yes
+logical, parameter :: protons = no!yes
 
 logical, parameter :: diste_calc = yes
 logical, parameter :: distp_calc = yes

@@ -22,4 +22,6 @@ opac_ff.o: opac_ff.f90 global.o
 
 abssyn.o: abssyn.f90 global.o
 
-main.o: main.f90 global.o controles.o diste.o distp.o radsyn.o radbr.o radic.o radpp.o opac_ff.o abssyn.o
+radadi.o: radadi.f90 global.o
+
+main.o: main.f90 global.o controles.o diste.o distp.o radsyn.o radbr.o radic.o radpp.o opac_ff.o abssyn.o radadi.o

@@ -33,10 +33,8 @@ PROGRAM main
 
    ! ADD HERE A CHECK OF SHOCK NATURE (ADIABATIC OR RADIATIVE)
    !--------------------------------------------------------------
-
-   Write(*,*) '\n NATURE OF THE SHOCK:'
    
-   call radadi_run
+   if (check_shocks) call radadi_run
 
    !--------------------------------------------------------------
 
