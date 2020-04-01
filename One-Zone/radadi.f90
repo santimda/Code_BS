@@ -17,7 +17,6 @@ contains
   use system_parameters
   implicit none
 
-  real(dp) :: t_cool, t_adv
   real(dp) :: c_s   !sound speed
   real(dp) :: n_sh  !n_sh=4*n_pre_sh  number density of the wind at the shock
   real(dp) :: n_sh_f  !number density (forward shock)
@@ -91,13 +90,10 @@ Subroutine quotient(n_sh, tsw, c_s, quot)   ! Relation between t_cool and t_adv
    end interface
 
    lambda = lambda_t(tsw)
- !  write(*,*) "lambda=", lambda
     
     t_cool = k*tsw/(4.*n_sh*lambda) !radiative losses
- !   write(*,*) "k=", k, "tsw=", tsw, "n_sh=", n_sh
- !   write(*,*) "t_cool=", t_cool
+
     t_adv = R0*pc/c_s
-  !  write(*,*) "t_adv=", t_adv
 
     quot = t_cool/t_adv  !comparison between time scales
 
