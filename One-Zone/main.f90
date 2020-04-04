@@ -25,7 +25,8 @@ PROGRAM main
    !write(*,88) 'R0_pr[s]=',(R0/AU)/(distance/pc)*abs(cos(incli))
    write(*,88) 'R0[pc]=',R0/pc
    write(*,88) 'B[G]=',B
-   write(*,88) 'n_a[cm-3]=',n_a
+   write(*,88) 'alpha_ISM=',alpha_ISM
+   !write(*,88) 'T_IR[K]=',T_IR
    !write(*,88) 'T_IR[K]=',T_IR
    !write(*,88) 'T_IR[K]=',16.4* ( (L_st/(4.*pi*R0**2.))/0.0217 )**(1./6.) ! Kobulnicky 2016
    !write(*,88) 'T_IR[K]=',T_st*(R_st/(2*R0))**(1./3.) ! Meyer 2016

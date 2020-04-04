@@ -8,7 +8,7 @@ module system_parameters
    ! This module contains the parameters of the specific system modelled
    !====================================================================
 
-   real(dp), parameter :: distance = 1.32d0*kpc       	! source distance K2017
+   real(dp), parameter :: distance = 1.32d0*kpc          ! source distance K2017
    real(dp), parameter :: inclination = 30.d0*pi/180.d0! angle between v_star and the LOS [rad]
    ! i = 0° is face-on, i = 90° corresponds to BS in front of the star, i = -90° is BS behind the star
    real(dp), parameter :: incli = pi/2.d0 - inclination   ! angle that I use
@@ -19,41 +19,40 @@ module system_parameters
 
    !--------------------------------------------------------------------------------------
    ! Star
-   real(dp), parameter :: v_st = 70.d5       		! Peri 2014 
-   real(dp), parameter :: T_st = 4.07d4           	! K2017  
-   real(dp), parameter :: T_st_ad = k*T_st/mec2   	! Adimensional stellar temperature
-   !real(dp), parameter :: L_st = 7.d5*L_sun       	! del Valle 2012
+   real(dp), parameter :: v_st = 70.d5             ! Peri 2014 
+   real(dp), parameter :: T_st = 4.07d4            ! K2017  
+   real(dp), parameter :: T_st_ad = k*T_st/mec2    ! Adimensional stellar temperature
+   !real(dp), parameter :: L_st = 7.d5*L_sun          ! del Valle 2012
    !real(dp), parameter :: R_st = sqrt( L_st/(4.*pi*sigma*T_st**4.) ) 
-   real(dp), parameter :: R_st = 19.*R_sun         	! K2017  
+   real(dp), parameter :: R_st = 19.*R_sun            ! K2017  
    real(dp), parameter :: L_st = 4.d0*pi*R_st**2*sigma*T_st**4 ! Stellar luminosity 
-   real(dp), parameter :: Mdot = 6.5d-6*M_sun_yr  	! Peri 2014
-   !real(dp), parameter :: Mdot = 5.5d-6*M_sun_yr  	! Brookes 2016
-   !real(dp), parameter :: v_w =  2200.d5         	! del Valle 2012
-   real(dp), parameter :: v_w =  2325.d5          	! Peri 2014
-   real(dp), parameter :: frac_BS = 0.5d0        	! Fraction of wind kinetic power injeted in the BS
+   real(dp), parameter :: Mdot = 6.5d-6*M_sun_yr   ! Peri 2014
+   !real(dp), parameter :: Mdot = 5.5d-6*M_sun_yr     ! Brookes 2016
+   !real(dp), parameter :: v_w =  2200.d5          ! del Valle 2012
+   real(dp), parameter :: v_w =  2325.d5           ! Peri 2014
+   real(dp), parameter :: frac_BS = 0.5d0          ! Fraction of wind kinetic power injeted in the BS
    real(dp), parameter :: L_wind = 0.5d0*(Mdot*v_w**2) ! Wind kinetic power
-   real(dp), parameter :: L_inj = frac_BS*L_wind 	! Wind kinetic power injeted in the BS
-   real(dp), parameter :: v_st_rot = 0.1d0*v_w   	! Rule-of-thumb
-   real(dp), parameter :: mu_w = 1.3_dp          	! Leitherer 1995 
-   real(dp), parameter :: Zq_w = 1.0_dp          	! Z = rms ionic charge
-   real(dp), parameter :: gamma_w = 1.0_dp       	! Leitherer 1995
+   real(dp), parameter :: L_inj = frac_BS*L_wind   ! Wind kinetic power injeted in the BS
+   real(dp), parameter :: v_st_rot = 0.1d0*v_w     ! Rule-of-thumb
+   real(dp), parameter :: mu_w = 1.3_dp            ! Leitherer 1995 
+   real(dp), parameter :: Zq_w = 1.0_dp            ! Z = rms ionic charge
+   real(dp), parameter :: gamma_w = 1.0_dp         ! Leitherer 1995
    !real(dp), parameter :: ab_X=0.705d0, ab_Y=0.275d0, ab_Z=0.02 ! stellar abundances 
-   real(dp), parameter :: filling = 1.d-1        	! ..... 10% ?
+   real(dp), parameter :: filling = 1.d-1          ! ..... 10% ?
 
    !--------------------------------------------------------------------------------------
    ! ISM
-   real(dp), parameter :: v_ISM = v_st           ! ISM speed in the star's ref. frame
-   real(dp), parameter :: n_ISM = 2.d0           ! ?????
-   real(dp), parameter :: T_ISM = 40.d0          ! ?????
-   real(dp), parameter :: T_ISM_ad = k*T_ISM/mec2! Adimensional ISM temperature 
+   real(dp), parameter :: v_ISM = v_st             ! ISM speed in the star's ref. frame
+   real(dp), parameter :: n_ISM = 1.d0             ! 
+   real(dp), parameter :: T_ISM = 1.d4             ! 10000 K = warm ISM
+   real(dp), parameter :: T_ISM_ad = k*T_ISM/mec2  ! Adimensional ISM temperature 
    !real(dp), parameter :: U_ISM = 4.d0*sigma*T_ISM**4/c ! average energy density
-   real(dp), parameter :: alpha_ISM = 1.d-2      ! P_thermal_ISM = alpha*P_kin_ISM
 
-   real(dp), parameter :: mu_ISM = 1.3_dp         ! mean atomic weight ???
-   real(dp), parameter :: Zq_ISM = 1.0_dp         ! Z = rms ionic charge ???
-   real(dp), parameter :: gamma_ISM = 1.0_dp      ! abundance parameter ???
+   real(dp), parameter :: mu_ISM = 1.28_dp         ! mean atomic weight for an atomic cloud
+   real(dp), parameter :: gamma_ISM = 1.0_dp       ! abundance parameter ???
 
-   real(dp), parameter :: rho_ISM = n_ISM*mp*mu_ISM ! CHECK
+   real(dp), parameter :: rho_ISM = n_ISM*mp*mu_ISM
+   real(dp), parameter :: alpha_ISM = k*T_ISM/(v_ISM**2*mp*mu_ISM)! = P_thermal_ISM/P_kin_ISM
    real(dp), parameter :: R0 = sqrt( (Mdot*v_w)/(4.*pi*(1.+alpha_ISM)*rho_ISM*v_ISM**2) ) 
    real(dp), parameter :: H0 = R0*0.3             ! shock width
 

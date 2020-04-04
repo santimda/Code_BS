@@ -50,10 +50,10 @@ contains
       t_adi = 3.d0*R0/c_s*5.d0! adiabatic losses: dE/dt = 1/3*d(log(rho))/dl *E*v, delta_rho/rho ~ 0.2 
       t_pp = 1.d15/n_a/z_pp   ! approx expression for p-p losses, used only to calculate Emax_p
 
-      if (screened) then	! interactions with neutral matter
-      	b_ion = z_ion*1.82d-7*n_a*eV 	!Schlickeiser 2002 (Eq. 5.3.51), valid for ~2 GeV << E_p < 1 TeV
-      	else		      ! interactions with fully ionized plasma
-      	b_ion = z_ion*3.1d-7*n_a*eV 	!Schlickeiser 2002 (Eq. 5.3.40)
+      if (screened) then   ! interactions with neutral matter
+         b_ion = z_ion*1.82d-7*n_a*eV  !Schlickeiser 2002 (Eq. 5.3.51), valid for ~2 GeV << E_p < 1 TeV
+         else              ! interactions with fully ionized plasma
+         b_ion = z_ion*3.1d-7*n_a*eV   !Schlickeiser 2002 (Eq. 5.3.40)
       endif
 
       ! Search for maximum proton energy
@@ -104,7 +104,7 @@ contains
             L1 = log(E_p(i)/TeV)    ! L = ln(Ep/1TeV)
             sigma_pp = (34.3d0 + 1.88d0*L1 + 0.25d0*L1**2)*1.d-27 
             sigma_pp = sigma_pp*(1.d0-(E_th/E_p(i))**4)**2  ! Factor to improve at low energies
-            b_pp = c*kappa_pp*n_a*sigma_pp*E_p(i)*z_pp 		! z_pp from Padovani+2018
+            b_pp = c*kappa_pp*n_a*sigma_pp*E_p(i)*z_pp      ! z_pp from Padovani+2018
          endif
          t_pp = E_p(i)/b_pp
          t_ion = E_p(i)/b_ion
