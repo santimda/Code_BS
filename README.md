@@ -1,5 +1,5 @@
 # Code_BS
-Non-thermal emission model for bow shocks. Two versions of the model are available: i) a one-zone model which is more approximated and runs faster, and ii) an extended model, which is more detailed and time-consuming. The details of the model is detailed in del Palacio, S., et al. 2018, A&A, 617, A13 (arxiv link: https://arxiv.org/pdf/1806.10863.pdf). The code is written as modules of Fortran90, articulated by a *Main* program, compiled using *Make* (`make`), and run as `run.x`.
+Non-thermal emission model for bow shocks. Two versions of the model are available: i) a one-zone model which is more approximated and runs faster, and ii) an extended model, which is more detailed and time-consuming. The details of the model is detailed in del Palacio, S., et al. 2018, A&A, 617, A13 (arxiv link: https://arxiv.org/pdf/1806.10863.pdf). The code is written as modules of Fortran90, articulated by a *Main* program, compiled using *Make* (simply run `make` in the terminal), and run as `./run.x`. The compilation with make by default makes use of the *blas* and *lapack* libraries.
 Some further details of each code are given below.
 
 ## One-Zone
