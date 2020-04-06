@@ -43,7 +43,7 @@ contains
 
     call quotient(n_sh_f, T_sh_f, c_s_f, quot, shock_type)
     write(*,800) "Forward shock is:",shock_type,'(t_cool/t_adv = ',quot,')'
-    write(*,*) v_st
+   
     !====================================================================
     ! Reverse shock:
 
