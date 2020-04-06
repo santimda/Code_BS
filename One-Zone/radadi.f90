@@ -43,13 +43,13 @@ contains
 
     call quotient(n_sh_f, T_sh_f, c_s_f, quot, shock_type)
     write(*,800) "Forward shock is:",shock_type,'(t_cool/t_adv = ',quot,')'
-
+    write(*,*) v_st
     !====================================================================
     ! Reverse shock:
 
     call quotient(n_sh_r, T_sh_r, c_s_r, quot, shock_type)
     write(*,800) "Reverse shock is:",shock_type,'(t_cool/t_adv = ',quot,')'
-
+    
   !====================================================================
 
   END subroutine radadi_run
