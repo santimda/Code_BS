@@ -5,12 +5,12 @@ module radadi
 
 contains
 
-  !=====================================================================
+  !=======================================================================
   ! radadi_run
-  !=====================================================================
+  !=======================================================================
   ! This module determines if the shock is either adiabatic or radiative
   ! based on Stevens et al. 1991.
-  !=====================================================================
+  !=======================================================================
 
   subroutine radadi_run
     use global
@@ -54,7 +54,7 @@ contains
 
   END subroutine radadi_run
 
-!====================================================================
+!======================================================================
 
 END module radadi
 
@@ -68,14 +68,14 @@ END module radadi
 Subroutine quotient(n_sh, T_sh, v_sh, quot, shock_type)   
   use global
   real(dp), intent(in) :: n_sh, T_sh, v_sh
-  real(dp), intent(out) :: quot ! Ratio between t_cool and t_adv
+  real(dp), intent(out) :: quot 
   character*3, intent(out) :: shock_type
   real(dp) :: t_cool, t_adv
   interface
     function lambda_T(T)
       use iso_fortran_env, only: dp => real64
       implicit none
-      real(dp) :: lambda_t
+      real(dp) :: lambda_T
       real(dp), intent(in) :: T
     end function lambda_T
   end interface
@@ -84,7 +84,7 @@ Subroutine quotient(n_sh, T_sh, v_sh, quot, shock_type)
 
   t_adv = R0/v_sh
 
-  quot = t_cool/t_adv  !comparison between time scales
+  quot = t_cool/t_adv   !comparison between time scales
 
   if (quot > 1.d0) then
     shock_type = 'adi'
