@@ -18,8 +18,8 @@ contains
 
     real(dp), parameter :: n_sh_f = 4.*n_ISM             !number density (forward shock)
     real(dp), parameter :: n_sh_r = 4.*rho_w/(mp*mu_sw)  !number density (reverse shock)
-    real(dp), parameter :: c_s_f = v_ISM                 ! velocity of the shocked fluid (FS)
-    real(dp), parameter :: c_s_r = v_w/sqrt(8.)          ! velocity of the shocked fluid (RS)
+    real(dp), parameter :: c_s_f = v_ISM*cte_cs          ! velocity of the shocked fluid (FS)
+    real(dp), parameter :: c_s_r = v_w*cte_cs            ! velocity of the shocked fluid (RS)
     real(dp), parameter :: T_sh_f = 1.36d7*(v_ISM/1.d8)**2
     real(dp), parameter :: T_sh_r = 1.36d7*(v_w/1.d8)**2
     real(dp) :: quot

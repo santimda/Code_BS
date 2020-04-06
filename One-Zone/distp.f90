@@ -45,7 +45,7 @@ contains
       L_inj_p = inj_p*L_inj  
       write(*,810) 'L_injp =',L_inj_p
 
-      c_s = v_w/sqrt(8.d0)    ! sound speed ~ sqrt(g_ad*P_sw/rho_sw), P_sw ~ 3/4 rho_w*v_w^2
+      c_s = v_w*cte_cs        ! sound speed ~ sqrt(g_ad*P_sw/rho_sw), P_sw ~ 3/4 rho_w*v_w^2
       t_adv = R0/c_s 
       t_adi = 3.d0*R0/c_s*5.d0! adiabatic losses: dE/dt = 1/3*d(log(rho))/dl *E*v, delta_rho/rho ~ 0.2 
       t_pp = 1.d15/n_a/z_pp   ! approx expression for p-p losses, used only to calculate Emax_p

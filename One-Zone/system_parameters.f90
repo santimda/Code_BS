@@ -8,12 +8,12 @@ module system_parameters
    ! This module contains the parameters of the specific system modelled
    !====================================================================
 
-   real(dp), parameter :: distance = 1.32d0*kpc          ! source distance K2017
-   real(dp), parameter :: inclination = 30.d0*pi/180.d0! angle between v_star and the LOS [rad]
+   real(dp), parameter :: distance = 1.32d0*kpc         ! source distance K2017
+   real(dp), parameter :: inclination = 30.d0*pi/180.d0 ! angle between v_star and the LOS [rad]
    ! i = 0° is face-on, i = 90° corresponds to BS in front of the star, i = -90° is BS behind the star
-   real(dp), parameter :: incli = pi/2.d0 - inclination   ! angle that I use
+   real(dp), parameter :: incli = pi/2.d0 - inclination ! angle that I use
    ! incli = 90° is BS in front of the star, incli = 0° is edge-on,  incli = -90° is BS behind the star real(dp), parameter :: theta_max = (110.d0/180.d0)*pi ! ~ extension of the BS modelled ~ pi/2
-   real(dp), parameter :: cte_cs = sqrt(g_ad*3./16.d0)  ! c_s = cte_cs*v
+   real(dp), parameter :: cte_cs = sqrt(g_ad*3./16.d0)  ! c_s ~ sqrt(g_ad*P/rho_sh) = cte_cs*v (P~3/4*rho*v^2, rho_sh=4*rho)
 
    !--------------------------------------------------------------------------------------
    ! Star
