@@ -70,7 +70,7 @@ module system_parameters
    real(dp), parameter :: T_IR = 98.d0           ! K2017   
    !real(dp), parameter :: T_IR = 27.*(0.2)**(-1./6.)*(L_st/1.d38)**(1./6.)*(R0/pc)**(-1./3.) ! Eq.10 del Valle 2012
    real(dp), parameter :: T_IR_ad = k*T_IR/mec2  ! Adimensional dust temperature
-   real(dp), parameter :: L_IR = L_st/350.d0     ! Dust luminosity, K2017
+   real(dp), parameter :: L_IR = L_st/350.d0     ! Dust luminosity (K2017, Struck 2020)
    real(dp), parameter :: R_IR = sqrt( L_IR/(4.*pi*sigma*T_IR**4) ) ! cavity -> 1/4*pi, not 16*pi
 
    ! For IC (both diste.f90 and radic.f90)
