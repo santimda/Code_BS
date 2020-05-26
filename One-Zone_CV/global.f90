@@ -19,6 +19,7 @@ real(dp), parameter :: qe = 4.8032068d-10 ! electron charge
 real(dp), parameter :: mec2 = 0.511d6*eV  ! electron rest energy
 real(dp), parameter :: re = 2.8d-13       ! electron classical radius
 real(dp), parameter :: sigma = 5.6705d-5  ! stephan-boltzmann's constant
+real(dp), parameter :: sigma_T = 6.652459d-24  ! Thomson cross-section for e-
 real(dp), parameter :: h = 6.6260755d-27  ! planck's constant
 real(dp), parameter :: h_bar = h/(2.*pi)  ! 
 real(dp), parameter :: alfa = 7.29735308d-3 ! fine structure constant
@@ -42,17 +43,17 @@ real(dp), parameter :: Ry = 2.17987d-11  ! Rydberg unit = 2.18e-18 J
 ! System Parameters:
 
 real(dp), parameter :: distance = 0.155d0*kpc   ! source distance 
+real(dp), parameter :: cte_cs = sqrt(g_ad*3./16.d0)  ! c_s ~ sqrt(g_ad*P/rho_sh) = cte_cs*v (P~3/4*rho*v^2, rho_sh=4*rho)
+
 
 ! Star:
-
 real(dp), parameter :: v_st = 72.d5           ! System spatial velocity 
 real(dp), parameter :: T_st = 26.5d4          ! WD temp
 real(dp), parameter :: T_st_ad = k*T_st/mec2  ! Adimensional stellar temperature
 real(dp), parameter :: R_st = 0.011d0*R_sun   ! WD radius
-real(dp), parameter :: L_st = 4.d0*pi*R_st**2*sigma*T_st**4. ! Stellar luminosity
+real(dp), parameter :: L_st = 4.d0*pi*R_st**2*sigma*T_st**4 ! Stellar luminosity
 
 !Wind:
-
 real(dp), parameter :: Mdot = 1.0d-10*M_sun_yr  !
 real(dp), parameter :: v_w = 1800.d5         	! 
 real(dp), parameter :: L_wind = 0.5*Mdot*v_w**2 ! Wind kinetic power
@@ -66,7 +67,6 @@ real(dp), parameter :: H0 = R0*0.3            ! shock width
 real(dp), parameter :: Vol = R0**3 ! Bow shock volume
 
 ! Shocked stellar-wind (sw):
-! **************************
 real(dp), parameter :: mu_sw = 0.615_dp    ! mean atomic weight = 4/(6x+y+2) for complete ionization, CHECK
 real(dp), parameter :: mu_e_sw = 1.173_dp  ! mu_e = 2/(1+x), CHECK
 real(dp), parameter :: mu_i_sw = 1.d0/(1/mu_sw-1/mu_e_sw)  
@@ -85,21 +85,21 @@ real(dp), parameter :: Kappa_CMB = 1.d0
 
 real(dp), parameter :: R_acel = H0  
 real(dp), parameter :: efi_ac_sw = 2.d0*pi*(c/v_w)**2 ! particle accel. efficiency at the sw 
-real(dp), parameter :: alpha_sw = 2.01_dp    ! injection spectral index in the sw 
+real(dp), parameter :: alpha_sw = 2.001_dp  ! injection spectral index in the sw 
 
 real(dp), parameter :: Kep = 1.d-2          ! Kep = U_e/U_p ~ 0.01 - 1
 real(dp), parameter :: eta_e = Kep/(1.+Kep) ! U_e = eta_e*U_NT
 real(dp), parameter :: eta_p = 1.d0-eta_e   ! U_p = eta_p*U_NT
 real(dp), parameter :: eta_mag = 0.75d0     ! U_NT = eta_mag*U_mag
 
-real(dp), parameter :: S_obs = 0.03d-26 	! MeerKAT upper-limit in mJy
+real(dp), parameter :: S_obs = 0.03d-26 	  ! MeerKAT upper-limit (30uJy) in mJy
 real(dp), parameter :: nu_obs = 1.284d9     ! Observing frequency
 
-real(dp), parameter :: a = 0.103d0           ! a(p=2)=0.103,a(2.2)=0.0933,a(2.5)=0.085,a(3.0)=0.074
+real(dp), parameter :: a = 0.103d0          ! a(p=2)=0.103,a(2.2)=0.0933,a(2.5)=0.085,a(3.0)=0.074
 real(dp), parameter :: div = (a*qe**3/h/mec2)*(3.*qe*c/(4.*pi*mec2**3*nu_obs))**((alpha_sw-1)/2.)
 real(dp), parameter :: Emin_e = 2.d0*mec2   
-real(dp), parameter :: Ecooled_e = 0.5d12*eV 
-real(dp), parameter :: Emax_e_aprox = 1.d12*eV
+real(dp), parameter :: Ecooled_e = 3.5d11*eV 
+real(dp), parameter :: Emax_e_aprox = 0.95d12*eV
 real(dp), parameter :: alpha2 = alpha_sw - 2.d0
 real(dp), parameter :: int_aprox1 = ( Emin_e**(-alpha2)-Ecooled_e**(-alpha2) )/alpha2
 real(dp), parameter :: int_aprox2 = ( Ecooled_e**(-alpha2-1.)-Emax_e_aprox**(-alpha2-1.) )/(alpha2-1.)

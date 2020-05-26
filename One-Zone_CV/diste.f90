@@ -16,17 +16,17 @@ contains
     use global
     implicit none
 
-    real(dp) :: gamm, C_ic_st,kC_ic_st, C_ic_CMB,kC_ic_CMB
+    real(dp) :: gamm, C_ic_st,kC_ic_st, C_ic_CMB,kC_ic_CMB,cte_sy
     real(dp) :: t_ic_st,t_ic_CMB,t_ic,t_sy,t_ac,t_br,t_diff,t_adv
     real(dp) :: t_coole,t_esc(mE_e),t_loss,log_coul,gdot_coul,t_coul
     real(dp) :: log10Emax,D_Bohm,integral
     real(dp) :: Emax_e,K_e,E_NT,c_s
 
     interface
-       subroutine Biseccion(logEmax,c1,c2,t_br,t_adi)
+       subroutine Biseccion(logEmax,c1,c2,t_br,t_adv)
          use iso_fortran_env, only: dp => real64
          implicit none
-         real(dp), intent(in) :: c1,c2,t_br,t_adi
+         real(dp), intent(in) :: c1,c2,t_br,t_adv
          real(dp), intent(out) :: logEmax
        end subroutine Biseccion
     end interface
@@ -48,17 +48,16 @@ contains
     kC_ic_st = C_ic_st/Kappa_st
     kC_ic_CMB = C_ic_CMB/Kappa_CMB
     
-    c_s = v_w/sqrt(8.d0)  ! sound speed ~ sqrt(g_ad*P_sw/rho_sw), P_sw ~ 3/4 rho_w*v_w^2
+    cte_sy = 6.*pi*mec2**2/(c*sigma_T*B**2)   ! Valid for isotropic e- distribution
+
+    c_s = v_w*cte_cs    ! sound speed ~ sqrt(g_ad*P_sw/rho_sw), P_sw ~ 3/4 rho_w*v_w^2
     t_adv = R0/c_s       
     t_br = 1.d15/n_a  
 
     call Biseccion(log10Emax,kC_ic_st,kC_ic_CMB,t_br,t_adv)
-    if (10.d0**log10Emax > qe*B_par*R_acel) then
-      write(*,*) 'Hillas dominates Emax!'
-      Emax_e = qe*B_par*R_acel! Hillas criterion
-    endif
+    Emax_e = MIN(10.d0**log10Emax,qe*B_par*R_acel)! Hillas criterion
     write(*,80) 'Emax(e)[eV] =',Emax_e/eV
-    write(*,80) 'Ecool_e[eV] =',1.d0/(1.6d-3*B_par**2*t_adv*eV)
+    !write(*,80) 'Ecool_e[eV] =',1.d0/(1.6d-3*B_par**2*t_adv*eV)
     write(*,80) 'Ebreak[eV] =',H0**2*3*qe*B/(2.d0*c*2*t_adv*eV)
 
     ! Build a logarithmic-spaced energy vector
@@ -69,16 +68,16 @@ contains
     
     integral=0.d0
     do i=1,mE_e
-    	if (E_e(i) <= Ecooled_e) then
-       		N_e(i) = E_e(i)**(-alpha_sw)
-       	else
-       		! E_corr = Ecooled_e**(alpha2-alpha)=Ecooled_e, alpha2=alpha+1
-       		N_e(i) = E_e(i)**(-alpha_sw-0.99)*exp(-E_e(i)/Emax_e)*Ecooled_e**0.99
-       	endif
+      if (E_e(i) <= Ecooled_e) then
+          N_e(i) = E_e(i)**(-alpha_sw)
+        else
+          ! E_corr = Ecooled_e**(alpha2-alpha)=Ecooled_e, alpha2=alpha+1
+          N_e(i) = E_e(i)**(-alpha_sw-0.99)*exp(-E_e(i)/Emax_e)*Ecooled_e**0.99
+        endif
        dE_e = E_e(i)*(Eint_e-1.d0)
        integral = integral + E_e(i)*N_e(i)*dE_e!E_e(i)**(-alpha_sw+1.d0)*exp(-E_e(i)/Emax_e)*dE_e
     enddo
-    K_e = (B**2./(8.*pi)/integral)*eta_mag*eta_e
+    K_e = (B**2/(8.*pi)/integral)*eta_mag*eta_e
 !    write(*,80) 'Ke =',K_e
     N_e = K_e*N_e*Vol
 !    write(*,80) 'U_NT =',K_e*integral/eta_e
@@ -95,7 +94,8 @@ contains
 
     do i =1,mE_e 
 
-       t_sy = 1.d0/1.6d-3/B_par**2/E_e(i) 
+       !t_sy = cte_sy/E_e(i)       
+       t_sy = 1.d0/1.6d-3/B**2/E_e(i)
 
        gamm = E_e(i)/mec2
        t_ic_st = kC_ic_st*gamm/F_iso(4.*gamm*T_st_ad)
@@ -151,7 +151,7 @@ END module diste
     Subroutine Biseccion(x3,c1,c2,t_br,t_adv)
       use global
       implicit none
-      integer t_err
+      integer, parameter :: t_err = 5
       real(dp) :: a_,b_,c_,err
       real(dp), intent(in) :: c1,c2,t_br,t_adv
       real(dp), intent(out) :: x3
@@ -165,15 +165,14 @@ END module diste
       end interface
             
       !     El error en el n-esimo será menor a |a-b|/2**n
-      a_ = log10(1.d10*eV) ! log10(Emin [CGS]) ~ 1 GeV
-      b_ = log10(1.d14*eV) ! log10(Emax [CGS]) ~ 100 TeV
-      t_err = 4
+      a_ = log10(1.d8*eV) ! log10(Emin [CGS]) ~ 1 GeV
+      b_ = log10(1.d13*eV) ! log10(Emax [CGS]) ~ 100 TeV
       err = 10.d0**(-t_err) ! error menor que 10**-t
       i = 0
       do while ( abs(b_ - a_) > err )
          i = i+1
          c_ = (a_+b_)/2.
-         if (resta(c_,c1,c2,t_br,t_adv)==0) then
+         if ( abs(resta(c_,c1,c2,t_br,t_adv)) <= 1.d-10 ) then
             b_ = c_
          else if (resta(a_,c1,c2,t_br,t_adv)*resta(c_,c1,c2,t_br,t_adv) < 0) then
             b_ = c_
@@ -198,13 +197,13 @@ END module diste
       E_l = 10.d0**log10E
 
       D_Bohm = E_l*c/(3.d0*qe*B)
-      t_diff = H0**2./(2.*D_Bohm) ! del Valle 2012
+      t_diff = H0**2/(2.*D_Bohm) ! del Valle 2012
       t_esc = 1./(1./t_adv + 1.d0/t_diff) ! escape
 
       gamm = E_l/mec2
       t_ic_st = c1*gamm/F_iso(4.*gamm*T_st_ad)
       t_ic_CMB = c2*gamm/F_iso(4.*gamm*T_CMB_ad)
-      t_sy = 1.d0/1.6d-3/B_par**2.d0/E_l 
+      t_sy = 1.d0/1.6d-3/B**2/E_l 
 
       t_coole = 1./(1.d0/t_sy + 1.d0/t_ic_st + 1.d0/t_ic_CMB + 1./t_br)
 
@@ -212,7 +211,7 @@ END module diste
 
       t_ac = efi_ac_sw*E_l/(B_par*c*qe)
       resta = t_loss - t_ac
-
+      
       return
 
     end Function resta

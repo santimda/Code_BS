@@ -17,15 +17,15 @@ contains
     implicit none
 
     real(dp) :: integral,K_p,Emax_p,log10Emax
-    real(dp) :: t_adi,t_pp,t_diff,t_ac,t_loss,t_esc,E_NT,D_Bohm
-    real(dp) :: b_pp,sigma_pp,L1,t_cool_p !, c_s
+    real(dp) :: t_adv,t_pp,t_diff,t_ac,t_loss,t_esc,E_NT,D_Bohm
+    real(dp) :: b_pp,sigma_pp,L1,t_cool_p, c_s
     real(dp), parameter :: E_th=1.22d9*eV, TeV=1.d12*eV
     
     interface
-       subroutine Biseccion_p(logEmax,t_pp,t_adi)
+       subroutine Biseccion_p(logEmax,t_pp,t_adv)
          use iso_fortran_env, only: dp => real64
          implicit none
-         real(dp), intent(in) :: t_pp,t_adi
+         real(dp), intent(in) :: t_pp,t_adv
          real(dp), intent(out) :: logEmax
        end subroutine Biseccion_p
     end interface
@@ -41,11 +41,11 @@ contains
     !                                                                    C
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       
-    !c_s = v_w/sqrt(8.d0)  ! sound speed ~ sqrt(g_ad*P_sw/rho_sw), P_sw ~ 3/4 rho_w*v_w^2
-    t_adi = R0/v_w !c_s  --> No escape losses
+    c_s = v_w*cte_cs    ! sound speed ~ sqrt(g_ad*P_sw/rho_sw), P_sw ~ 3/4 rho_w*v_w^2
+    t_adv = R0/c_s  
     t_pp = 1.d15/n_a       ! approx expression for p-p losses 
 
-    call Biseccion_p(log10Emax,t_pp,t_adi)
+    call Biseccion_p(log10Emax,t_pp,t_adv)
     Emax_p = MIN(10.d0**log10Emax,qe*B_par*R_acel)! Hillas criterion
     write(*,80) 'Emax(p)[eV]=',Emax_p/eV
 
@@ -82,7 +82,7 @@ contains
           b_pp = c*0.5*n_a*sigma_pp*E_p(i)
        endif
        t_pp = E_p(i)/b_pp
-       t_cool_p = 1.d0/(1.d0/t_pp + 1.d0/t_adi)
+       t_cool_p = 1.d0/(1.d0/t_pp + 1.d0/t_adv)
 
        D_Bohm = E_p(i)*c/(3.d0*qe*B)
        t_diff = H0**2/(2.*D_Bohm) ! del Valle 2012
@@ -92,7 +92,7 @@ contains
        
        t_ac = efi_ac_sw*E_p(i)/(B_par*c*qe)
 
-       write(70,*) E_p(i)/eV,t_ac,t_pp,t_adi,t_diff,t_cool_p,t_esc,t_loss
+       write(70,*) E_p(i)/eV,t_ac,t_pp,t_adv,t_diff,t_cool_p,t_esc,t_loss
 
     enddo
 
@@ -125,11 +125,11 @@ END module distp
     !                                                                         //
     !///////////////////////////////////////////////////////////////////////////
 
-    Subroutine Biseccion_p(x3,t_pp,t_adi)
+    Subroutine Biseccion_p(x3,t_pp,t_adv)
       use global
       implicit none
       integer t_err
-      real(dp), intent(in) :: t_pp,t_adi
+      real(dp), intent(in) :: t_pp,t_adv
       real(dp), intent(out) :: x3
       real(dp) :: a_,b_,c_,err
 
@@ -151,11 +151,11 @@ END module distp
       do while ( abs(b_ - a_) > err )
          i = i+1
          c_ = (a_+b_)/2.
-         if (resta_p(c_,t_pp,t_adi)==0) then
+         if (resta_p(c_,t_pp,t_adv)==0) then
             b_ = c_
-         else if (resta_p(a_,t_pp,t_adi)*resta_p(c_,t_pp,t_adi) < 0) then
+         else if (resta_p(a_,t_pp,t_adv)*resta_p(c_,t_pp,t_adv) < 0) then
             b_ = c_
-         else if (resta_p(a_,t_pp,t_adi)*resta_p(c_,t_pp,t_adi) > 0) then
+         else if (resta_p(a_,t_pp,t_adv)*resta_p(c_,t_pp,t_adv) > 0) then
             a_ = c_
          endif
       enddo
@@ -165,10 +165,10 @@ END module distp
     
     !/////////////////////////////////////////////////////////////////////////
     
-    Function resta_p(log10E,t_pp,t_adi)
+    Function resta_p(log10E,t_pp,t_adv)
       use global
       implicit none
-      real(dp), intent(in) :: log10E,t_pp,t_adi
+      real(dp), intent(in) :: log10E,t_pp,t_adv
       real(dp) :: resta_p,E_l,t_diff,t_ac,t_coolp
       real(dp) :: D_Bohm,t_loss,t_esc
 
@@ -178,7 +178,7 @@ END module distp
       t_diff = H0**2/(2.*D_Bohm) ! del Valle 2012
       t_esc = t_diff !1./(1./t_adv + 1.d0/t_diff) ! escape
 
-      t_coolp = 1./(1.d0/t_pp + 1.d0/t_adi)
+      t_coolp = 1./(1.d0/t_pp + 1.d0/t_adv)
       
       t_loss = min(t_coolp,t_esc) ! general losses
 
