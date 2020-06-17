@@ -5,6 +5,12 @@ PROGRAM main
    use radadi, only: radadi_run
    
    implicit none  
+   interface
+      subroutine calculate(shock) 
+         character(LEN=*), intent(in) :: shock
+      end subroutine calculate
+   end interface
+
 
    write(*,*) '\n ======================================'
    write(*,*) '         START'
@@ -16,7 +22,8 @@ PROGRAM main
    !write(*,88) 'L_st[Lo]=',L_st/L_sun
    !write(*,88) 'R0_pr[s]=',(R0/AU)/(distance/pc)*abs(cos(incli))
    write(*,88) 'R0[pc]=',R0/pc
-   write(*,88) 'B[G]=',B
+   write(*,88) 'B_RS[G]=',B_RS
+   write(*,88) 'B_FS[G]=',B_FS
    write(*,88) 'alpha_ISM=',alpha_ISM
    !write(*,88) 'T_IR[K]=',T_IR
    !write(*,88) 'T_IR[K]=',16.4* ( (L_st/(4.*pi*R0**2.))/0.0217 )**(1./6.) ! Kobulnicky 2016

@@ -86,9 +86,9 @@ module system_parameters
 
    !--------------------------------------------------------------------------------------
    ! Non-thermal particles
-   real(dp), parameter :: efi_ac_RS = 2.d0*pi*(c/v_w)**2   ! particle accel. efficiency at the sw
-   real(dp), parameter :: efi_ac_FS = 2.d0*pi*(c/v_ISM)**2   ! particle accel. efficiency at the FS
-   real(dp), parameter :: alpha_NT = 2.01d0            ! injection spectral index
+   real(dp), parameter :: efi_ac_RS = 2.d0*pi*(c/v_w)**2    ! Particle accel. efficiency at the RS
+   real(dp), parameter :: efi_ac_FS = 2.d0*pi*(c/v_ISM)**2  ! Particle accel. efficiency at the FS
+   real(dp), parameter :: alpha_NT = 2.01d0            ! Injection spectral index
    real(dp), parameter :: R_acel = R0  !
 
    real(dp), parameter :: frac_NT = 0.1_dp             ! Fraction of L_inj_perp converted to L_NT
@@ -98,10 +98,9 @@ module system_parameters
    !real(dp), parameter :: B = frac_B*sqrt(4.d0*pi*rho_w*4.*v_w**2) 
    ! If U_mag = frac*U_th -> B^2/4pi = frac*(g_ad/(g_ad - 1))*P 
    ! If P_mag = frac*P_th -> B^2/8pi = frac*P 
-   real(dp), parameter :: frac_B = sqrt(0.1_dp)       ! fraction UB_sw/UB_equipartition_sw
-   real(dp), parameter :: B = frac_B*sqrt(Mdot*v_w/R0**2) ! del Valle 2012
-   real(dp), parameter :: B_par = B*par
-   ! AGREGAR B_FS!!!!
+   real(dp), parameter :: frac_B = sqrt(0.1_dp)        ! Fraction B/B_equipartition
+   real(dp), parameter :: B_RS = frac_B*sqrt(Mdot*v_w/R0**2) ! del Valle 2012
+   real(dp), parameter :: B_FS = frac_B*sqrt(6.d0*pi*rho_ISM*v_ISM**2) ! P ~ 3/4*rho*v^2
 
 
    !============================================================================

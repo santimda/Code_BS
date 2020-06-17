@@ -23,7 +23,7 @@ contains
       real(dp) :: Eps(m_nu),dEps,Eps_int, gamma(mE_e)
       real(dp) :: factor,nuc,nuc_max,nuc_min,sum,sum_sy
       real(dp) :: n_a,ne,nu_RT,x_sy,cte_Psy
-      real(dp) :: log_nu_int
+      real(dp) :: log_nu_int,B,B_par
       allocate( N_e(mE_e),E_e(mE_e), nu(m_nu),L_sy(m_nu),L_sy_RT(m_nu) )
 
       80  format(A14,X,Es10.2)
@@ -38,9 +38,12 @@ contains
 
       if (shock=='RS') then        
          n_a = n_sh_RS
+         B = B_RS
          else if (shock=='FS') then     
          n_a = n_sh_FS
+         B = B_FS
       end if
+      B_par = B*par 
 
       ! N_e(i) = number of e- per unit energy between [E_e(i), E_e(i)+dE]; [N] = 1/erg
       open (14,file='dist_e_'//shock//'.dat')
