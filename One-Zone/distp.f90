@@ -158,7 +158,7 @@ END module distp
 Subroutine Biseccion_p(x3,t_pp,t_adv)
    use global
    implicit none
-   integer t_err
+   integer, parameter :: t_err = 4
    real(dp), intent(in) :: t_pp,t_adv
    real(dp), intent(out) :: x3
    real(dp) :: a_,b_,c_,err
@@ -175,7 +175,6 @@ Subroutine Biseccion_p(x3,t_pp,t_adv)
    !     El error en el n-esimo será menor a |a-b|/2**n
    a_ = log10(1.d10*eV) ! log10(Emin [CGS]) ~ 10 GeV
    b_ = log10(1.d14*eV) ! log10(Emax [CGS]) ~ 100 TeV
-   t_err = 4
    err = 10.d0**(-t_err) ! error menor que 10**-t
    i = 0
    do while ( abs(b_ - a_) > err )
