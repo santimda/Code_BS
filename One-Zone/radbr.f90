@@ -13,12 +13,13 @@ contains
    ! The program reads as an input the electron energy distribution. 
    !============================================================================
 
-   subroutine radbr_run!(screened) 
+   subroutine radbr_run(shock) !(screened) 
       use global
       implicit none
       !logical, intent(in) :: screened
+      character(LEN=*), intent(in) :: shock
       real(dp) :: Ef_int,dEf,sum,sum_br,dsigma_Br,u_br
-      real(dp) :: gamma(mE_e),cte_sigma,dq_Ef,q_Ef
+      real(dp) :: gamma(mE_e),cte_sigma,dq_Ef,q_Ef,n_a 
       interface
          function Phi_Br(u_br,gamma_e)!,screened)
             use iso_fortran_env, only: dp => real64
@@ -37,11 +38,17 @@ contains
 
       cte_sigma = 4.d0*alfa*re**2*z_br  ! z_br > 1 if not pure H
 
+      if (shock=='RS') then        
+         n_a = n_sh_RS
+         else if (shock=='FS') then     
+         n_a = n_sh_FS
+      end if
+
       !------------------------------------------------------------------------
       !  Read information
 
       ! N_e(i) = number of e- per unit energy between [E_e(i), E_e(i)+dE]; [N] = 1/erg
-      open (14,file='dist_e.dat')
+      open (14,file='dist_e_'//shock//'.dat')
       do i=1,mE_e
          read(14,*) E_e(i),N_e(i)
          E_e(i) = E_e(i)*eV    !   Pasamos la energía a ergios
@@ -87,7 +94,7 @@ contains
       !---------------------------------------------------------
       ! Write the SED to a file
 
-      open(16,file='radbr.dat')
+      open(16,file='radbr_'//shock//'.dat')
       do i=1,mE_f
          write(16,*) Ef(i)/eV,Ef(i)*L_br(i)
       end do

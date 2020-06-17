@@ -7,7 +7,6 @@ contains
    !========================================================================
    !        abssyn_run        
    !========================================================================
-   !This module calculates the f-f absorption of radio emission from the shock
    ! This program calculates the total radio opacity for a radio photon 
    ! emitted from a position (x(l),y(l)) in the CD. The output is the file
    ! radsyn.dat which contains E(i), L_sy(E(i), L_sy_abs(E(i)).
@@ -16,11 +15,12 @@ contains
    ! the star. The f-f absorption in the shock is negligible given the large T
    !========================================================================
 
-   subroutine abssyn_run
+   subroutine abssyn_run(shock) 
       use global
       !$ use omp_lib
       Implicit none
-      real(dp) :: alphaffw(mr_ff,mE_ff)
+      Character(LEN=*), intent(in) :: shock
+      Real(dp) :: alphaffw(mr_ff,mE_ff)
       Real(dp) :: r_ff(mr_ff),dr_ff,R_aprox
       Real(dp) :: theta1,x1,y1,z1,r1,dr0,x1_0,y1_0,z1_0,x,y,z
       Real(dp) :: dr_x,dr_y,sinc,cinc
@@ -120,7 +120,7 @@ contains
       !=====================================================================
       ! Correct synchrotron emission by the absorption
 
-      open (31,file='radsyn.dat')
+      open (31,file='radsyn_'//shock//'.dat')
       do i=1,m_nu
          read(31,*) Ef(i),L_sy(i)  ! L_sy is E*L(E) [erg/s]; Ef(i) is in eV 
       end do
@@ -158,7 +158,7 @@ contains
 
       sum = 0.d0
       Eint_nu = nu(2)/nu(1)
-      open(33,file='radsyn_abs.dat')
+      open(33,file='radsyn_abs_'//shock//'.dat')
       do i=1,m_nu
          dE_nu = (h*nu(i))*(Eint_nu - 1.d0)  
          write(33,*) Ef(i),L_sy(i),L_sy_abs(i)

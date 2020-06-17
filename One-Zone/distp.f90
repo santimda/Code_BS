@@ -14,14 +14,16 @@ contains
    ! so that t_loss = min(t_rad,t_esc)
    !============================================================================
 
-   subroutine distp_run  
+   subroutine distp_run(shock)   
       use global
       implicit none
 
+      character(LEN=*), intent(in) :: shock
       real(dp) :: L_inj_p,integral,Ka_p,Emax_p,log10Emax
       real(dp) :: Q,S,t_adv,t_pp,t_diff,t_ac,t_loss,t_esc,t_adi,t_cool_p
       real(dp) :: b_pp,sigma_pp,L1,E_punto,c_s,E_NT,D_Bohm,b_ion,t_ion
       real(dp) :: dE2_p,E2_p,Eint2_p,Emax2_p,Emin2_p
+      real(dp) :: n_a, L_inj
       real(dp), parameter :: E_th=1.22d9*eV, TeV=1.d12*eV, kappa_pp=0.5d0
       integer :: mE2
 
@@ -39,13 +41,25 @@ contains
 
       write(*,*) '\n Calculate the non-thermal proton distribution in the SW'
 
-      !-----------------------------------------------------------------------
+      !=======================================================================
       ! Define and check some values first
+
+      if (shock=='RS') then        
+         n_a = n_sh_RS
+         L_inj = L_inj_RS
+         c_s = c_s_RS
+         else if (shock=='FS') then     
+         n_a = n_sh_FS
+         L_inj = L_inj_FS
+         c_s = c_s_FS
+      end if
 
       L_inj_p = inj_p*L_inj  
       write(*,810) 'L_injp =',L_inj_p
 
-      c_s = v_w*cte_cs        ! sound speed ~ sqrt(g_ad*P_sw/rho_sw), P_sw ~ 3/4 rho_w*v_w^2
+      !=======================================================================
+      ! Define some relevant constants and timescales
+
       t_adv = R0/c_s 
       t_adi = 3.d0*R0/c_s*5.d0! adiabatic losses: dE/dt = 1/3*d(log(rho))/dl *E*v, delta_rho/rho ~ 0.2 
       t_pp = 1.d15/n_a/z_pp   ! approx expression for p-p losses, used only to calculate Emax_p
@@ -68,14 +82,14 @@ contains
       integral=0.d0
       do i=1,mE_p
          dE_p = E_p(i)*(Eint_p-1.d0)
-         integral = integral + E_p(i)**(-alpha_sw+1.d0)*exp(-E_p(i)/Emax_p)*dE_p
+         integral = integral + E_p(i)**(-alpha_NT+1.d0)*exp(-E_p(i)/Emax_p)*dE_p
       end do
       Ka_p = L_inj_p/integral
 
       !=======================================================================
       ! Calculate the proton steady-state energy distribution
 
-      open(70,file='tcoolp.dat')
+      open(70,file='tcoolp_'//shock//'.dat')
       write(70,*) '#E_p  t_ac  t_pp  t_adv  t_diff  t_cool_p  t_esc  t_loss  t_adi  t_ion'
 
       ! E_p is the energy of the particle energy distribution and E2_e is an integration variable
@@ -90,7 +104,7 @@ contains
          Eint2_p = (10.d0*Emax2_p/Emin2_p)**(1.d0/dfloat(mE2-1))
          do j=1,mE2
             dE2_p = E2_p * (Eint2_p - 1.d0)
-            Q = E2_p**(-alpha_sw)*exp(-E2_p/Emax_p) !normalize later
+            Q = E2_p**(-alpha_NT)*exp(-E2_p/Emax_p) !normalize later
             S = S + Q*dE2_p
             E2_p = E2_p*Eint2_p
          end do
@@ -130,7 +144,7 @@ contains
       !   Save the distribution 
 
       E_NT = 0.d0
-      open(79,file='dist_p.dat')
+      open(79,file='dist_p_'//shock//'.dat')
       do i=1,mE_p
          dE_p = E_p(i)*(Eint_p-1.d0)
          E_NT = E_NT + E_p(i)*N_p(i)*dE_p

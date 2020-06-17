@@ -11,11 +11,12 @@ contains
    ! This module calculates the p-p emission using Kelner+2006 formulae
    !============================================================================
 
-   subroutine radpp_run  
+   subroutine radpp_run(shock)   
       use global
       Implicit none
+      character(LEN=*), intent(in) :: shock
       real(dp) :: Q_Ef,Q_phi,dx_pp,x_pp,qpi
-      real(dp) :: Ef_int,dEf,sum_pp,Epp,L1
+      real(dp) :: Ef_int,dEf,sum_pp,Epp,L1,n_a 
       real(dp) :: E_th=1.22d9*eV, TeV=1.d12*eV
       real(dp) :: Epi_min,Epi_max,Epi_int,dE_pi,integral
       real(dp), parameter :: k_pp=0.17d0, n_pp=1.1d0 ! n_pp=1.1 corresponds to alfa=2 (Kelner2006)
@@ -47,8 +48,14 @@ contains
       !------------------------------------------------------------------------
       !  Read information
 
+      if (shock=='RS') then        
+         n_a = n_sh_RS
+         else if (shock=='FS') then     
+         n_a = n_sh_FS
+      end if
+
       ! N_p(i) = number of p+ per unit energy between [E_p(i), E_p(i)+dE]; [N] = 1/erg
-      open (14,file='dist_p.dat')
+      open (14,file='dist_p_'//shock//'.dat')
       do i=1,mE_p
          read(14,*) E_p(i),N_p(i)
          E_p(i) = E_p(i)*eV    !   eV to erg
@@ -115,7 +122,7 @@ contains
       !---------------------------------------------------------
       ! Write the SED to a file
 
-      open (19,file='radpp.dat') 
+      open (19,file='radpp_'//shock//'.dat') 
       do i=1, mE_f 
          write(19,*) Ef(i)/eV,Ef(i)*Lpp(i)  
       end do

@@ -14,9 +14,10 @@ contains
    ! The program reads as an input the electron energy distribution. 
    !============================================================================
 
-   subroutine radic_run(T,Kappa,aniso,target_field) 
+   subroutine radic_run(T,Kappa,aniso,target_field,shock) 
       use global
       implicit none
+      character(LEN=*), intent(in) :: shock
       real(dp), intent(in) :: T,Kappa
       logical, intent(in) :: aniso 
       character(LEN=*), intent(in) :: target_field
@@ -33,7 +34,7 @@ contains
       !  Read information
 
       ! N_e(i) = number of e- per unit energy between [E_e(i), E_e(i)+dE]; [N] = 1/erg
-      open (14,file='dist_e.dat')
+      open (14,file='dist_e_'//shock//'.dat')
       do i=1,mE_e
          read(14,*) E_e(i),N_e(i)
          E_e(i) = E_e(i)*eV    !   [erg]
@@ -90,7 +91,7 @@ contains
       !---------------------------------------------------------
       ! Write the SED to a file
 
-      open(18,file='radic_'//target_field//'.dat')
+      open(18,file='radic_'//target_field//'_'//shock//'.dat')
       do i = 1,mE_f
          write(18,*) Ef(i)/eV,Ef(i)*L_ic(i)
       end do

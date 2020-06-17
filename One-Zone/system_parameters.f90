@@ -14,6 +14,7 @@ module system_parameters
    real(dp), parameter :: incli = pi/2.d0 - inclination ! angle that I use
    ! incli = 90° is BS in front of the star, incli = 0° is edge-on,  incli = -90° is BS behind the star real(dp), parameter :: theta_max = (110.d0/180.d0)*pi ! ~ extension of the BS modelled ~ pi/2
    real(dp), parameter :: cte_cs = sqrt(g_ad*3./16.d0)  ! c_s ~ sqrt(g_ad*P/rho_sh) = cte_cs*v (P~3/4*rho*v^2, rho_sh=4*rho)
+   real(dp), parameter :: frac_BS = 0.5d0   ! Fraction of kinetic power injeted in the BS (geometric factor)
 
    !--------------------------------------------------------------------------------------
    ! Star
@@ -26,9 +27,8 @@ module system_parameters
    real(dp), parameter :: L_st = 4.d0*pi*R_st**2*sigma*T_st**4 ! Stellar luminosity 
    real(dp), parameter :: Mdot = 1.d-8*M_sun_yr     ! 
    real(dp), parameter :: v_w =  1500.d5            ! Peri 2014
-   real(dp), parameter :: frac_BS = 0.5d0           ! Fraction of wind kinetic power injeted in the BS
    real(dp), parameter :: L_wind = 0.5d0*(Mdot*v_w**2) ! Wind kinetic power
-   real(dp), parameter :: L_inj = frac_BS*L_wind    ! Wind kinetic power injeted in the BS
+   real(dp), parameter :: L_inj_RS = frac_BS*L_wind    ! Wind kinetic power injeted in the RS
    real(dp), parameter :: v_st_rot = 0.1d0*v_w      ! Rule-of-thumb
    real(dp), parameter :: mu_w = 1.3_dp             ! Leitherer 1995 
    real(dp), parameter :: Zq_w = 1.0_dp             ! Z = rms ionic charge
@@ -41,29 +41,35 @@ module system_parameters
    real(dp), parameter :: n_ISM = 10.d0            ! 
    real(dp), parameter :: T_ISM = 1.d2             ! 10000 K = warm ISM
    real(dp), parameter :: T_ISM_ad = k*T_ISM/mec2  ! Adimensional ISM temperature 
-
    real(dp), parameter :: mu_ISM = 1.28_dp         ! mean atomic weight for an atomic cloud
    real(dp), parameter :: gamma_ISM = 1.0_dp       ! abundance parameter ???
-
    real(dp), parameter :: rho_ISM = n_ISM*mp*mu_ISM
    real(dp), parameter :: alpha_ISM = k*T_ISM/(v_ISM**2*mp*mu_ISM)! = P_thermal_ISM/P_kin_ISM
    real(dp), parameter :: R0 = sqrt( (Mdot*v_w)/(4.*pi*(1.+alpha_ISM)*rho_ISM*v_ISM**2) ) 
    real(dp), parameter :: H0 = R0*0.3             ! shock width
+   real(dp), parameter :: L_ISM = 0.5*pi*rho_ISM*R0**2*v_ISM**3 ! Kinetic power injected in the ISM shock
+   real(dp), parameter :: L_inj_FS = frac_BS*L_ISM          ! Wind kinetic power injeted in the BS
 
    !--------------------------------------------------------------------------------------
-   ! Shocked stellar-wind (sw)
+   ! Shocked stellar-wind (Reverse Shock)
    real(dp), parameter :: mu_sw = 0.615_dp      ! mean atomic weight = 4/(6x+y+2) for complete ionization 
    real(dp), parameter :: mu_e_sw = 1.173_dp    ! mu_e = 2/(1+x)
    real(dp), parameter :: mu_i_sw = 1.d0/(1/mu_sw-1/mu_e_sw)  
    real(dp), parameter :: Zq_sw = 1.23_dp        
    real(dp), parameter :: gamma_sw = 1.34_dp
-   real(dp), parameter :: T_6 = 1.d0            ! temperature in MK, should scale with v_w?
-
-   real(dp), parameter :: rho_w = Mdot/(4.d0*pi*R0**2*v_w)
-   real(dp), parameter :: n_a = 4.*rho_w/(mp*mu_sw) ! ambient nuclei number density
+   real(dp), parameter :: rho_w = Mdot/(4.d0*pi*R0**2*v_w)    
+   real(dp), parameter :: n_sh_RS = 4.*rho_w/(mp*mu_sw)  ! number density (reverse shock)
+   real(dp), parameter :: T_sh_RS = 1.36d7*(v_w/1.d8)**2  ! temperature (RS)
+   real(dp), parameter :: c_s_RS = v_w*cte_cs            ! velocity of the shocked fluid (RS)
    real(dp), parameter :: z_br = 2.24               ! Padovani+2018 for Wilms+2000 abundances
    real(dp), parameter :: z_pp = 2.17               ! Padovani+2018 for Wilms+2000 abundances
    real(dp), parameter :: z_ion = 2.01              ! Padovani+2018 for Wilms+2000 abundances
+
+   !--------------------------------------------------------------------------------------
+   ! Shocked ISM (Forward Shock)
+   real(dp), parameter :: n_sh_FS = 4.*n_ISM                ! number density (forward shock)
+   real(dp), parameter :: T_sh_FS = 1.36d7*(v_ISM/1.d8)**2  ! temperature (FS)
+   real(dp), parameter :: c_s_FS = v_ISM*cte_cs             ! velocity of the shocked fluid (FS)
 
    !--------------------------------------------------------------------------------------
    ! Heated dust (IR)   
@@ -80,20 +86,22 @@ module system_parameters
 
    !--------------------------------------------------------------------------------------
    ! Non-thermal particles
-   real(dp), parameter :: efi_ac_sw = 2.d0*pi*(c/v_w)**2   ! particle accel. efficiency at the sw 
-   real(dp), parameter :: frac_sw = sqrt(0.1_dp)       ! fraction UB_sw/UB_equipartition_sw
-   real(dp), parameter :: alpha_sw = 2.01d0            ! injection spectral index in the sw 
+   real(dp), parameter :: efi_ac_sw = 2.d0*pi*(c/v_w)**2   ! particle accel. efficiency at the sw
+   real(dp), parameter :: efi_ac_FS = 2.d0*pi*(c/v_ISM)**2   ! particle accel. efficiency at the FS
+   real(dp), parameter :: alpha_NT = 2.01d0            ! injection spectral index
+   real(dp), parameter :: R_acel = R0  !
 
    real(dp), parameter :: frac_NT = 0.1_dp             ! Fraction of L_inj_perp converted to L_NT
    real(dp), parameter :: inj_e = frac_NT*0.05d0       ! Fraction L_NT_e/L_NT
    real(dp), parameter :: inj_p = frac_NT*0.95d0       ! Fraction L_NT_p/L_NT 
 
-   !real(dp), parameter :: B = frac_sw*sqrt(4.d0*pi*rho_w*4.*v_w**2) 
+   !real(dp), parameter :: B = frac_B*sqrt(4.d0*pi*rho_w*4.*v_w**2) 
    ! If U_mag = frac*U_th -> B^2/4pi = frac*(g_ad/(g_ad - 1))*P 
    ! If P_mag = frac*P_th -> B^2/8pi = frac*P 
-   real(dp), parameter :: B = frac_sw*sqrt(Mdot*v_w/R0**2) ! del Valle 2012
+   real(dp), parameter :: frac_B = sqrt(0.1_dp)       ! fraction UB_sw/UB_equipartition_sw
+   real(dp), parameter :: B = frac_B*sqrt(Mdot*v_w/R0**2) ! del Valle 2012
    real(dp), parameter :: B_par = B*par
-   real(dp), parameter :: R_acel = R0  !
+   ! AGREGAR B_FS!!!!
 
 
    !============================================================================

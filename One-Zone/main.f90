@@ -42,18 +42,18 @@ PROGRAM main
    IF (electrons) then
       write(*,*) '\n ELECTRONS:'
 
-      if (diste_calc) call diste_run  
-      if (radbr_calc) call radbr_run
+      if (diste_calc) call diste_run('RS')
+      if (radbr_calc) call radbr_run('RS')
 
       if (radic_calc) then
-         call radic_run(T_IR,Kappa_IR,iso,'IR') ! IC with photons from the dust
-         call radic_run(T_st,Kappa_st,iso,'st') ! IC with stellar photons (the BS is extended, aniso in one-zone model makes no sense)
-         call radic_run(T_CMB,Kappa_CMB,iso,'CMB') ! IC with CMB photons, if relevant
+         call radic_run(T_IR,Kappa_IR,iso,'IR','RS') ! IC with photons from the dust
+         call radic_run(T_st,Kappa_st,iso,'st','RS') ! IC with stellar photons (the BS is extended, aniso in one-zone model makes no sense)
+         call radic_run(T_CMB,Kappa_CMB,iso,'CMB','RS') ! IC with CMB photons, if relevant
       endif
 
-      if (radsyn_calc) call radsyn_run
+      if (radsyn_calc) call radsyn_run('RS')
       if (opac_ff_calc) call opac_ff_run
-      if (abssyn_calc) call abssyn_run
+      if (abssyn_calc) call abssyn_run('RS')
 
    ENDIF
 
@@ -62,9 +62,9 @@ PROGRAM main
    IF (protons) then
       write(*,*) '\n PROTONS:'
 
-      if (distp_calc) call distp_run      
+      if (distp_calc) call distp_run('RS')      
 
-      if (radpp_calc) call radpp_run
+      if (radpp_calc) call radpp_run('RS')
 
    ENDIF
 

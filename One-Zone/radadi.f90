@@ -16,12 +16,6 @@ contains
     use global
     implicit none
 
-    real(dp), parameter :: n_sh_f = 4.*n_ISM             !number density (forward shock)
-    real(dp), parameter :: n_sh_r = 4.*rho_w/(mp*mu_sw)  !number density (reverse shock)
-    real(dp), parameter :: c_s_f = v_ISM*cte_cs          ! velocity of the shocked fluid (FS)
-    real(dp), parameter :: c_s_r = v_w*cte_cs            ! velocity of the shocked fluid (RS)
-    real(dp), parameter :: T_sh_f = 1.36d7*(v_ISM/1.d8)**2
-    real(dp), parameter :: T_sh_r = 1.36d7*(v_w/1.d8)**2
     real(dp) :: quot
     character*3 :: shock_type
     interface
@@ -41,13 +35,13 @@ contains
     !=====================================================================
     ! Forward shock
 
-    call quotient(n_sh_f, T_sh_f, c_s_f, quot, shock_type)
+    call quotient(n_sh_FS, T_sh_FS, c_s_FS, quot, shock_type)
     write(*,800) "Forward shock is:",shock_type,'(t_cool/t_adv = ',quot,')'
    
     !====================================================================
     ! Reverse shock:
 
-    call quotient(n_sh_r, T_sh_r, c_s_r, quot, shock_type)
+    call quotient(n_sh_RS, T_sh_RS, c_s_RS, quot, shock_type)
     write(*,800) "Reverse shock is:",shock_type,'(t_cool/t_adv = ',quot,')'
     
   !====================================================================

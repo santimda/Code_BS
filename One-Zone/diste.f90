@@ -15,9 +15,10 @@ contains
    !============================================================================
 
 
-   subroutine diste_run  
+   subroutine diste_run(shock)   
       use global
       implicit none
+      character(LEN=*), intent(in) :: shock
 
       integer :: mE2
       real(dp) :: gamm,const_ic,C_ic_st,C_ic_IR,C_ic_CMB
@@ -27,6 +28,7 @@ contains
       real(dp) :: log10Emax,D_Bohm
       real(dp) :: E2_e,dE2_e,Emin2_e,Emax2_e,Eint2_e,integral,S,Q
       real(dp) :: E_punto,Emax_e,Ka,E_NT,L_inj_e,c_s
+      real(dp) :: T_6,n_a,L_inj
 
       interface
          subroutine Biseccion(logEmax,c1,c2,c3,t_br,t_adv)
@@ -42,8 +44,20 @@ contains
 
       write(*,*) '\n Calculate the non-thermal electron distribution in the SW'
 
-      !-----------------------------------------------------------------------
-      ! Define and check some values first
+      !=======================================================================
+      ! Define and check some values first variables
+
+      if (shock=='RS') then        
+         n_a = n_sh_RS
+         T_6 = T_sh_RS/1.d6
+         L_inj = L_inj_RS
+         c_s = c_s_RS
+         else if (shock=='FS') then     
+         n_a = n_sh_FS
+         T_6 = T_sh_FS/1.d6
+         L_inj = L_inj_FS
+         c_s = c_s_FS
+      end if
 
       L_inj_e = inj_e*L_inj 
       write(*,810) 'L_inje =',L_inj_e
@@ -65,7 +79,6 @@ contains
       C_ic_IR = const_ic/(T_IR_ad**2*Kappa_IR)
       C_ic_CMB = const_ic/(T_CMB_ad**2*Kappa_CMB)
 
-      c_s = v_w*cte_cs    ! sound speed ~ sqrt(g_ad*P_sw/rho_sw), P_sw ~ 3/4 rho_w*v_w^2
       t_adv = R0/c_s 
       t_adi = 3.d0*R0/c_s*5.d0! adiabatic losses: dE/dt = 1/3*d(log(rho))/dl *E*v, delta_rho/rho ~ 0.2 
 
@@ -85,14 +98,14 @@ contains
       integral=0.d0
       do i=1,mE_e
          dE_e = E_e(i)*(Eint_e-1.d0)
-         integral = integral + E_e(i)**(-alpha_sw+1.d0)*exp(-E_e(i)/Emax_e)*dE_e
+         integral = integral + E_e(i)**(-alpha_NT+1.d0)*exp(-E_e(i)/Emax_e)*dE_e
       end do
       Ka = L_inj_e/integral
 
       !=======================================================================
       ! Calculate the electron steady-state energy distribution
 
-      open(70,file='tcoole.dat')
+      open(70,file='tcoole_'//shock//'.dat')
       write(70,*) '#E_e  t_ic  t_sy  t_br  t_adv  t_ac  t_coole  t_diff  t_ic_st  t_ic_IR  t_ic_CMB  t_esc  t_loss  t_coul  t_adi'
 
       ! E_e is the energy of the particle energy distribution and E2_e is an integration variable
@@ -106,7 +119,7 @@ contains
          Eint2_e = (10.d0*Emax2_e/Emin2_e)**(1.d0/dfloat(mE2))
          do j=1,mE2
             dE2_e = E2_e * (Eint2_e - 1.d0)
-            Q = E2_e**(-alpha_sw)*exp(-E2_e/Emax_e) !normalize later
+            Q = E2_e**(-alpha_NT)*exp(-E2_e/Emax_e) !normalize later
             S = S + Q*dE2_e
             E2_e = E2_e*Eint2_e
          end do
@@ -150,13 +163,13 @@ contains
       !   Save the distribution 
 
       E_NT = 0.d0
-      open(79,file='dist_e.dat') ! Electron energy distribution
-      open(69,file='inj_e.dat')  ! Approx. electron E-distribution neglecting radiative losses
+      open(79,file='dist_e_'//shock//'.dat') ! Electron energy distribution
+      open(69,file='inj_e_'//shock//'.dat')  ! Approx. electron E-distribution neglecting radiative losses
       do i=1,mE_e
          dE_e = E_e(i)*(Eint_e - 1.d0)  
          E_NT = E_NT + E_e(i)*N_e(i)*dE_e  ! Control
          write(79,*) E_e(i)/eV,N_e(i)
-         write(69,*) E_e(i)/eV,Ka*E_e(i)**(-alpha_sw)*exp(-E_e(i)/Emax_e)*t_esc(i)
+         write(69,*) E_e(i)/eV,Ka*E_e(i)**(-alpha_NT)*exp(-E_e(i)/Emax_e)*t_esc(i)
       end do
       !write(*,810) 'E_NT =',E_NT
       close(79)

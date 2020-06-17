@@ -15,13 +15,14 @@ contains
    ! Stores the SED in radsyn.dat: nu, E*L_sy(with R-T), E*L_sy(without R-T)
    !============================================================================
 
-   subroutine radsyn_run  
+   subroutine radsyn_run(shock)  
       use global
       !$ use omp_lib
       implicit none
+      character(LEN=*), intent(in) :: shock
       real(dp) :: Eps(m_nu),dEps,Eps_int, gamma(mE_e)
       real(dp) :: factor,nuc,nuc_max,nuc_min,sum,sum_sy
-      real(dp) :: ne,nu_RT,x_sy,cte_Psy
+      real(dp) :: n_a,ne,nu_RT,x_sy,cte_Psy
       real(dp) :: log_nu_int
       allocate( N_e(mE_e),E_e(mE_e), nu(m_nu),L_sy(m_nu),L_sy_RT(m_nu) )
 
@@ -35,8 +36,14 @@ contains
       !------------------------------------------------------------------------
       !  Read information and define variables
 
+      if (shock=='RS') then        
+         n_a = n_sh_RS
+         else if (shock=='FS') then     
+         n_a = n_sh_FS
+      end if
+
       ! N_e(i) = number of e- per unit energy between [E_e(i), E_e(i)+dE]; [N] = 1/erg
-      open (14,file='dist_e.dat')
+      open (14,file='dist_e_'//shock//'.dat')
       do i=1,mE_e
          read(14,*) E_e(i),N_e(i)
          E_e(i) = E_e(i)*eV   !   energy from eV to erg
@@ -101,7 +108,7 @@ contains
       !---------------------------------------------------------
       ! Write the SED to a file
 
-      open(17,file='radsyn.dat')
+      open(17,file='radsyn_'//shock//'.dat')
       do i=1,m_nu
          write(17,*) Eps(i)*mec2/eV,Eps(i)*L_sy_RT(i),Eps(i)*L_sy(i)
       end do
