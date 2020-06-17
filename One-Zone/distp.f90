@@ -22,16 +22,16 @@ contains
       real(dp) :: L_inj_p,integral,Ka_p,Emax_p,log10Emax
       real(dp) :: Q,S,t_adv,t_pp,t_diff,t_ac,t_loss,t_esc,t_adi,t_cool_p
       real(dp) :: b_pp,sigma_pp,L1,E_punto,c_s,E_NT,D_Bohm,b_ion,t_ion
-      real(dp) :: dE2_p,E2_p,Eint2_p,Emax2_p,Emin2_p
+      real(dp) :: dE2_p,E2_p,Eint2_p,Emax2_p,Emin2_p,efi_ac,cte_ac
       real(dp) :: n_a, L_inj
       real(dp), parameter :: E_th=1.22d9*eV, TeV=1.d12*eV, kappa_pp=0.5d0
       integer :: mE2
 
       interface
-         subroutine Biseccion_p(logEmax,t_pp,t_adv)
+         subroutine Biseccion_p(logEmax,t_pp,t_adv,cte_ac)
             use iso_fortran_env, only: dp => real64
             implicit none
-            real(dp), intent(in) :: t_pp,t_adv
+            real(dp), intent(in) :: t_pp,t_adv,cte_ac
             real(dp), intent(out) :: logEmax
          end subroutine Biseccion_p
       end interface
@@ -48,10 +48,12 @@ contains
          n_a = n_sh_RS
          L_inj = L_inj_RS
          c_s = c_s_RS
+         efi_ac = efi_ac_RS
          else if (shock=='FS') then     
          n_a = n_sh_FS
          L_inj = L_inj_FS
          c_s = c_s_FS
+         efi_ac = efi_ac_FS
       end if
 
       L_inj_p = inj_p*L_inj  
@@ -59,6 +61,8 @@ contains
 
       !=======================================================================
       ! Define some relevant constants and timescales
+      
+      cte_ac = efi_ac/(B_par*c*qe)
 
       t_adv = R0/c_s 
       t_adi = 3.d0*R0/c_s*5.d0! adiabatic losses: dE/dt = 1/3*d(log(rho))/dl *E*v, delta_rho/rho ~ 0.2 
@@ -71,7 +75,7 @@ contains
       endif
 
       ! Search for maximum proton energy
-      call Biseccion_p(log10Emax,t_pp,t_adv)
+      call Biseccion_p(log10Emax,t_pp,t_adv,cte_ac)
       Emax_p = MIN(10.d0**log10Emax,qe*B_par*R_acel)! Hillas criterion
 
       ! Build a logarithmic-spaced energy vector
@@ -130,7 +134,7 @@ contains
 
          t_loss = min(t_cool_p,t_esc)     ! general losses
 
-         t_ac = efi_ac_sw*E_p(i)/(B_par*c*qe)
+         t_ac = cte_ac*E_p(i)
 
          E_punto = abs(E_p(i)/t_loss) 
          N_p(i) = Ka_p*S/E_punto          ! N(E)=1/|dE/dt|*S, with |dE/dt|= E/t_loss
@@ -169,20 +173,20 @@ END module distp
 !                                                                         //
 !///////////////////////////////////////////////////////////////////////////
 
-Subroutine Biseccion_p(x3,t_pp,t_adv)
+Subroutine Biseccion_p(x3,t_pp,t_adv,c_ac)
    use global
    implicit none
    integer, parameter :: t_err = 4
-   real(dp), intent(in) :: t_pp,t_adv
+   real(dp), intent(in) :: t_pp,t_adv,c_ac
    real(dp), intent(out) :: x3
    real(dp) :: a_,b_,c_,err
 
    interface
-      function resta_p(a,t1,t2)
+      function resta_p(a,t1,t2,c_ac)
          use iso_fortran_env, only: dp => real64
          implicit none
          real(dp) :: resta_p
-         real(dp), intent(in) :: a,t1,t2
+         real(dp), intent(in) :: a,t1,t2,c_ac
       end function resta_p
    end interface
 
@@ -194,11 +198,11 @@ Subroutine Biseccion_p(x3,t_pp,t_adv)
    do while ( abs(b_ - a_) > err )
       i = i+1
       c_ = (a_+b_)/2.
-      if ( abs(resta_p(c_,t_pp,t_adv)) <= 1.d-8 ) then
+      if ( abs(resta_p(c_,t_pp,t_adv,c_ac)) <= 1.d-8 ) then
          b_ = c_
-         else if (resta_p(a_,t_pp,t_adv)*resta_p(c_,t_pp,t_adv) < 0) then
+         else if (resta_p(a_,t_pp,t_adv,c_ac)*resta_p(c_,t_pp,t_adv,c_ac) < 0) then
          b_ = c_
-         else if (resta_p(a_,t_pp,t_adv)*resta_p(c_,t_pp,t_adv) > 0) then
+         else if (resta_p(a_,t_pp,t_adv,c_ac)*resta_p(c_,t_pp,t_adv,c_ac) > 0) then
          a_ = c_
       endif
    end do
@@ -208,10 +212,10 @@ end Subroutine Biseccion_p
 
 !/////////////////////////////////////////////////////////////////////////
 
-Function resta_p(log10E,t_pp,t_adv)
+Function resta_p(log10E,t_pp,t_adv,c_ac)
    use global
    implicit none
-   real(dp), intent(in) :: log10E,t_pp,t_adv
+   real(dp), intent(in) :: log10E,t_pp,t_adv,c_ac
    real(dp) :: resta_p,E_l,t_diff,t_ac,t_coolp
    real(dp) :: D_Bohm,t_loss,t_esc
 
@@ -225,7 +229,7 @@ Function resta_p(log10E,t_pp,t_adv)
 
    t_loss = min(t_coolp,t_esc) ! general losses
 
-   t_ac = efi_ac_sw*E_l/(B_par*c*qe)
+   t_ac = c_ac*E_l
    resta_p = t_loss - t_ac
 
    return

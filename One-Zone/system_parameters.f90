@@ -86,7 +86,7 @@ module system_parameters
 
    !--------------------------------------------------------------------------------------
    ! Non-thermal particles
-   real(dp), parameter :: efi_ac_sw = 2.d0*pi*(c/v_w)**2   ! particle accel. efficiency at the sw
+   real(dp), parameter :: efi_ac_RS = 2.d0*pi*(c/v_w)**2   ! particle accel. efficiency at the sw
    real(dp), parameter :: efi_ac_FS = 2.d0*pi*(c/v_ISM)**2   ! particle accel. efficiency at the FS
    real(dp), parameter :: alpha_NT = 2.01d0            ! injection spectral index
    real(dp), parameter :: R_acel = R0  !

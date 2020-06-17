@@ -27,14 +27,14 @@ contains
       real(dp) :: t_coole,t_esc(mE_e),t_loss
       real(dp) :: log10Emax,D_Bohm
       real(dp) :: E2_e,dE2_e,Emin2_e,Emax2_e,Eint2_e,integral,S,Q
-      real(dp) :: E_punto,Emax_e,Ka,E_NT,L_inj_e,c_s
+      real(dp) :: E_punto,Emax_e,Ka,E_NT,L_inj_e,c_s,efi_ac,cte_ac
       real(dp) :: T_6,n_a,L_inj
 
       interface
-         subroutine Biseccion(logEmax,c1,c2,c3,t_br,t_adv)
+         subroutine Biseccion(logEmax,c1,c2,c3,t_br,t_adv,cte_ac)
             use iso_fortran_env, only: dp => real64
             implicit none
-            real(dp), intent(in) :: c1,c2,c3,t_br,t_adv
+            real(dp), intent(in) :: c1,c2,c3,t_br,t_adv,cte_ac
             real(dp), intent(out) :: logEmax
          end subroutine Biseccion
       end interface
@@ -52,11 +52,13 @@ contains
          T_6 = T_sh_RS/1.d6
          L_inj = L_inj_RS
          c_s = c_s_RS
+         efi_ac = efi_ac_RS
          else if (shock=='FS') then     
          n_a = n_sh_FS
          T_6 = T_sh_FS/1.d6
          L_inj = L_inj_FS
          c_s = c_s_FS
+         efi_ac = efi_ac_FS
       end if
 
       L_inj_e = inj_e*L_inj 
@@ -71,6 +73,7 @@ contains
       !=======================================================================
       ! Define some relevant constants and timescales
 
+      cte_ac = efi_ac/(B_par*c*qe)
       cte_sy = 6.*pi*mec2**2/(c*sigma_T*B**2)   ! Valid for isotropic e- distribution
       log_coul = 29.7d0 + log( T_6/sqrt(n_a) ) 
 
@@ -87,7 +90,7 @@ contains
       t_br = 1.d15/n_a/z_br   ! added z_be according to Padovani+2018; very approximated expression
 
       ! Search for maximum electron energy
-      call Biseccion(log10Emax,C_ic_st,C_ic_IR,C_ic_CMB,t_br,t_adv)
+      call Biseccion(log10Emax,C_ic_st,C_ic_IR,C_ic_CMB,t_br,t_adv,cte_ac)
       Emax_e = MIN(10.d0**log10Emax,qe*B_par*R_acel)! Hillas criterion
 
       ! Build a logarithmic-spaced energy vector
@@ -148,7 +151,7 @@ contains
 
          t_loss = min(t_esc(i),t_coole)    ! general losses      
 
-         t_ac = efi_ac_sw*E_e(i)/(B_par*c*qe)
+         t_ac = cte_ac*E_e(i)
 
          ! N(E)=1/|dE/dt|*S, with |dE/dt|= E/t_loss
          E_punto = abs(E_e(i)/t_loss)
@@ -190,19 +193,19 @@ END module diste
 !                                                                         //
 !///////////////////////////////////////////////////////////////////////////
 
-Subroutine Biseccion(x3,c1,c2,c3,t_br,t_adv)
+Subroutine Biseccion(x3,c1,c2,c3,t_br,t_adv,c_ac)
    use global
    implicit none
    integer, parameter :: t_err = 4
    real(dp) :: a_,b_,c_,err
-   real(dp), intent(in) :: c1,c2,c3,t_br,t_adv
+   real(dp), intent(in) :: c1,c2,c3,t_br,t_adv,c_ac
    real(dp), intent(out) :: x3
    interface
-      function resta(a,ic1,ic2,ic3,t_br,t_adv)
+      function resta(a,ic1,ic2,ic3,t_br,t_adv,c_ac)
          use iso_fortran_env, only: dp => real64
          implicit none
          real(dp) :: resta
-         real(dp), intent(in) :: a,ic1,ic2,ic3,t_br,t_adv
+         real(dp), intent(in) :: a,ic1,ic2,ic3,t_br,t_adv,c_ac
       end function resta
    end interface
 
@@ -214,11 +217,11 @@ Subroutine Biseccion(x3,c1,c2,c3,t_br,t_adv)
    do while ( abs(b_ - a_) > err )
       i = i+1
       c_ = (a_+b_)/2.
-      if ( abs(resta(c_,c1,c2,c3,t_br,t_adv)) <= 1.d-8 ) then
+      if ( abs(resta(c_,c1,c2,c3,t_br,t_adv,c_ac)) <= 1.d-8 ) then
          b_ = c_
-         elseif (resta(a_,c1,c2,c3,t_br,t_adv)*resta(c_,c1,c2,c3,t_br,t_adv) < 0) then
+         elseif (resta(a_,c1,c2,c3,t_br,t_adv,c_ac)*resta(c_,c1,c2,c3,t_br,t_adv,c_ac) < 0) then
          b_ = c_
-         elseif (resta(a_,c1,c2,c3,t_br,t_adv)*resta(c_,c1,c2,c3,t_br,t_adv) > 0) then
+         elseif (resta(a_,c1,c2,c3,t_br,t_adv,c_ac)*resta(c_,c1,c2,c3,t_br,t_adv,c_ac) > 0) then
          a_ = c_
       endif
    end do
@@ -228,10 +231,10 @@ end Subroutine Biseccion
 
 !/////////////////////////////////////////////////////////////////////////
 
-Function resta(log10E,c1,c2,c3,t_br,t_adv)
+Function resta(log10E,c1,c2,c3,t_br,t_adv,c_ac)
    use global
    implicit none
-   real(dp), intent(in) :: log10E,c1,c2,c3,t_br,t_adv
+   real(dp), intent(in) :: log10E,c1,c2,c3,t_br,t_adv,c_ac
    real(dp) :: resta,E_l,gamm
    real(dp) :: t_sy,t_ic_st,t_ic_IR,t_ic_CMB,t_ac,t_coole
    real(dp) :: D_Bohm,t_diff,t_loss,t_esc
@@ -252,7 +255,7 @@ Function resta(log10E,c1,c2,c3,t_br,t_adv)
 
    t_loss = min(t_coole,t_esc) ! general losses
 
-   t_ac = efi_ac_sw*E_l/(B_par*c*qe)
+   t_ac = c_ac*E_l
    resta = t_loss - t_ac
 
    return
