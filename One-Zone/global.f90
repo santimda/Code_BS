@@ -74,7 +74,6 @@ contains
 
    SUBROUTINE vector_log(Emin,Emax,Eint,E_vec)
       implicit none
-      integer, parameter :: dp = kind(1.d0)
       real(dp), intent(in) :: Emin,Emax
       integer :: N_puntos, i_vec
       real(dp), intent(out) :: Eint
@@ -86,7 +85,6 @@ contains
       E_vec(1) = Emin
       do i_vec=2,N_puntos
          E_vec(i_vec)=E_vec(i_vec-1)*Eint
-
       end do
 
       RETURN

@@ -93,7 +93,7 @@ contains
             nuc = 4.22d6*B_par*gamma(j)**2
             x_sy = nu(i)/nuc
             if (x_sy <= 10.d0) then  
-               P_Eps = ( cte_Psy*x_sy**(1.d0/3.d0)*exp(-x_sy) )  ![erg/s/erg]
+               P_Eps = cte_Psy*x_sy**(1.d0/3.d0)*exp(-x_sy)  ![erg/s/erg]
                dE_e = E_e(j)*(Eint_e - 1.d0)
                dP_Eps = N_e(j)*P_eps*dE_e
                sum = dP_Eps + sum
