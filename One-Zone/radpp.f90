@@ -19,7 +19,7 @@ contains
       real(dp) :: Ef_int,dEf,sum_pp,Epp,L1,n_a 
       real(dp) :: E_th=1.22d9*eV, TeV=1.d12*eV
       real(dp) :: Epi_min,Epi_max,Epi_int,dE_pi,integral
-      real(dp), parameter :: k_pp=0.17d0, n_pp=1.1d0 ! n_pp=1.1 corresponds to alfa=2 (Kelner2006)
+      real(dp), parameter :: K_pi=0.17d0, n_pp=0.86d0 ! n_pp=1.1 for alfa=2, n_pp=0.86 for alpha=2.5
       integer :: mE_pi,i_p
       interface
          function F(a,b)
@@ -84,11 +84,11 @@ contains
             integral = 0.d0
             do j=1,mE_pi         ! E_pi
                dE_pi = Epi(j)*(Epi_int-1.d0)
-               Epp = n_pp*Epi(j)/k_pp + mpc2       ! Eq.75 Kelner+2006
+               Epp = Epi(j)/K_pi + mpc2       ! Eq.75 Kelner+2006
                i_p = int(log(Epp/Emin_p)/log(Eint_p))+1
                if (i_p <= mE_pi .and. Epp <= E_p(mE_p) .and. Epp > E_th) then 
                   L1 = log(Epp/TeV)    
-                  qpi = n_pp**2*N_p(i_p)*sigma_pp(L1,Epp)/k_pp ! Eq.77 Kelner+2006 [1/erg/s]
+                  qpi = n_pp*N_p(i_p)*sigma_pp(L1,Epp)/K_pi ! Eq.77 Kelner+2006 [1/erg/s]
                   integral = integral + qpi*dE_pi/sqrt(Epi(j)**2-(m_pic2)**2) 
                endif
             end do               ! E_pi
