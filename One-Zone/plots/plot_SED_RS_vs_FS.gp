@@ -13,11 +13,14 @@ eV = 1.602176e-12
 
 plot '../radsyn_FS.dat' u (log10($1)):(log10($3)) t 'sy (FS)' w l lw 2 dt 2 lc 1,\
      '../radsyn_RS.dat' u (log10($1)):(log10($2)) t 'sy (RS)' w l lw 2 dt 1 lc 1,\
-     '../radic_IR_FS.dat' u (log10($1)):(log10($2)) t 'IC-dust' w l lw 2,\
-     '../radic_IR_RS.dat' u (log10($1)):(log10($2)) t 'IC-dust' w l lw 2,\
-     '../radic_st.dat' u (log10($1)):(log10($2)) t 'IC-star' w l lw 2 smooth bezier,\
-     '../radic_CMB.dat' u (log10($1)):(log10($2)) t 'IC-CMB' w l lw 2 smooth bezier,\
-     '../radbr.dat' u (log10($1)):(log10($2)) t 'rel. br.' w l lw 2 smooth bezier,\
+     '../radic_IR_FS.dat' u (log10($1)):(log10($2)) t 'IC-dust (FS)' w l lw 2,\
+     '../radic_IR_RS.dat' u (log10($1)):(log10($2)) t 'IC-dust (RS)' w l lw 2,\
+     '../radic_st_FS.dat' u (log10($1)):(log10($2)) t 'IC-star (FS)' w l lw 2 smooth bezier,\
+     '../radic_st_RS.dat' u (log10($1)):(log10($2)) t 'IC-star (RS)' w l lw 2 smooth sbezier,\
+     '../radic_CMB_FS.dat' u (log10($1)):(log10($2)) t 'IC-CMB (FS)' w l lw 2 smooth bezier,\
+     '../radic_CMB_RS.dat' u (log10($1)):(log10($2)) t 'IC-CMB (RS)' w l lw 2 smooth sbezier,\
+     '../radbr_FS.dat' u (log10($1)):(log10($2)) t 'rel. br. (FS)' w l lw 2 smooth bezier,\
+     '../radbr_RS.dat' u (log10($1)):(log10($2)) t 'rel. br. (RS)' w l lw 2 smooth sbezier,\
      '../radpp.dat' u (log10($1)):(log10($2)) t 'p-p' w l lw 2 #smooth bezier
 
 set terminal postscript color solid enhanced dl 2.5 lw 2.2 "Helvetica" 21
