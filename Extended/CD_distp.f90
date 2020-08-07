@@ -1,8 +1,5 @@
 module CD_distp
 
-   use global
-   
-   implicit none
    private
    public :: CD_distp_run
 
@@ -93,7 +90,7 @@ module CD_distp
 
       !========================================================================
       ! First calculate the cooling time at all energies and at each position 
-      ! (and also de maximum energy)
+      ! (and also the maximum energy)
 
       open(70,file='CD_tcoolp.dat')
 
@@ -281,7 +278,7 @@ module CD_distp
       !177  format(A10,X,Es10.2)
       !write(*,177) 'E_tot_p=', sum ! Total NT energy in the BS
 
-      
+      !------------------------------------------------------------
       ! Group in bins according to position angle
       call Np_bin(E_p,N_ptot,theta)
 
@@ -353,10 +350,10 @@ end subroutine Np_bin
 Subroutine Biseccion_p(Be,x3,t_pp,t_adv,xi)
    use global
    implicit none
-   integer :: t_err
-   real(dp) :: a_,b_,c_,err
+   real(dp) :: a_,b_,c_
    real(dp), intent(in) :: Be,t_pp,t_adv,xi
    real(dp), intent(out) :: x3
+   real(dp), parameter :: err = 1.d-3  ! error in Emax < err
    interface
    function resta_p(a,B,t_pp,t_adv,efi)
       use iso_fortran_env, only: dp => real64
@@ -366,11 +363,9 @@ Subroutine Biseccion_p(Be,x3,t_pp,t_adv,xi)
    end function resta_p
    end interface
 
-   !     El error en el n-esimo será menor a |a-b|/2**n
+   ! Error in nth step < |a-b|/2**n
    a_ = log10(1.d12*eV) ! log10(Emin [CGS]) ~ 100 GeV
    b_ = log10(1.d15*eV) ! log10(Emax [CGS]) ~ 1 PeV
-   t_err = 2
-   err = 10.d0**(-t_err) ! error < 10**-t
    i = 0
    do while ( abs(b_ - a_) > err )
       i = i+1

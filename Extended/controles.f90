@@ -20,18 +20,18 @@ logical, parameter :: rotate = yes
 
 !----------
 
-logical, parameter :: electrons = no!yes
+logical, parameter :: electrons = yes
 
 logical, parameter :: diste_sw_calc = yes
-logical, parameter :: radsyn_sw_calc = no!yes
+logical, parameter :: radsyn_sw_calc = yes
 logical, parameter :: radbr_sw_calc = yes
 logical, parameter :: radic_st_calc = no!yes
 logical, parameter :: radic_IR_calc = no!yes
 logical, parameter :: abssyn_calc = yes
-logical, parameter :: maps_calc = no!yes
-logical, parameter :: convolution = no!yes
+logical, parameter :: maps_calc = yes
+logical, parameter :: convolution = yes
 
-logical, parameter :: escribir_e = no!yes
+logical, parameter :: escribir_e = yes
 
 !----------
 

@@ -3,7 +3,7 @@ module CD_diste
    private
    public :: CD_diste_run 
 
-contains
+   contains
 
    !============================================================================
    ! CD_diste_run (START)
@@ -13,7 +13,7 @@ contains
    !  in which Ne(l,E(i)) is saved, with m_theta*mE_e data; diste_sw_total.dat, 
    !  which stores Ne(E(i)), and ENTe.dat, with E_NT(l). Emin_e and Emax_e are 
    !  fixed in global.
-   !***************************************************************************
+   !============================================================================
 
    subroutine CD_diste_run  
 
@@ -33,12 +33,12 @@ contains
       logical :: new_count
 
       interface
-         subroutine Biseccion(c_sy,Bl,logEmax,c1,c2,T1,tbr,tad,xi)
-            use iso_fortran_env, only: dp => real64
-            implicit none
-            real(dp), intent(in) :: c_sy,Bl,c1,c2,T1,tbr,tad,xi
-            real(dp), intent(out) :: logEmax
-         end subroutine Biseccion
+      subroutine Biseccion(c_sy,Bl,logEmax,c1,c2,T1,tbr,tad,xi)
+         use iso_fortran_env, only: dp => real64
+         implicit none
+         real(dp), intent(in) :: c_sy,Bl,c1,c2,T1,tbr,tad,xi
+         real(dp), intent(out) :: logEmax
+      end subroutine Biseccion
       end interface
 
       allocate( theta(m_theta),R_theta(m_theta),H_theta(m_theta) )
@@ -95,9 +95,8 @@ contains
 
       !--------------------------------------------------------------------
       ! Build an energy vector that is common for all linear-emitters: 
-      call vector_log(Emin_e,Emax_e,Eint_e,E_e)
 
-      ! Consider different starting points for each linear emitter
+      call vector_log(Emin_e,Emax_e,Eint_e,E_e)
 
       open(70,file='CD_tcoole.dat')
       cte_IC = pi*h_bar**3*c**2/(2.*re**2*mec2**3)
@@ -108,14 +107,14 @@ contains
 
       !========================================================================
       ! First calculate the cooling time at all energies and at each position 
-      ! (and also de maximum energy)
+      ! (and also the maximum energy)
 
       do l = 1, m_theta
          t_cell(l) = dR(l)/v_t(l)      ! Cell advection time
          t_adv(l) = R_theta(l)/v_t(l)  ! Characteristic advection time
          if (l < m_theta) then
-            t_adi(l) = 3.*dR(l)/(v_t(l)*(rho(l)-rho(l+1))*2./(rho(l)+rho(l+1))) ! Characteristic adiabatic losses time
-         else 
+            t_adi(l) = 3.*dR(l)/(v_t(l)*log(rho(l)/rho(l+1))) ! Characteristic adiabatic losses time
+         else if (l == m_theta) then
             t_adi(l) = t_adi(l-1)
          end if
       end do
@@ -131,7 +130,6 @@ contains
          call Biseccion(cte_sy,B(l),log10Emaxl,kC_ic_st,kC_ic_IR,T_IR_ad(l),t_br,t_adv(l),efi_ac_sw(l))
          Emax_e0(l) = MIN(10.d0**log10Emaxl,qe*B(l)*R_acel*sqrt(1.5d0/efi_ac_sw(l))) 
          if (Emax_e0(l) >= 0.5*Emax_e) write(*,*) 'Emax_e in global.f90 is too small!'
-         !       write(*,70) 'Emax=',Emax_e0(l)/eV
 
          log_coul = 29.7d0 + log( (T(l)/1.d6)/sqrt(n_a(l)) ) 
          cte_coul = 3.d-14*n_a(l)*log_coul
@@ -153,7 +151,7 @@ contains
 
             t_coole(l,i) = 1./(1./t_sy + 1./t_ic + 1./t_br + 1./t_adi(l) + 1./t_coul)
 
-            t_loss(l,i) = min(t_coole(l,i),t_esc) ! general losses
+            t_loss(l,i) = 1.d0/(1.d0/t_coole(l,i) + 1.d0/t_esc) ! general losses
 
             t_ac = efi_ac_sw(l)*E_e(i)/(B(l)*c*qe)
 
@@ -168,7 +166,10 @@ contains
 
       !========================================================================
 
+      ! Consider different starting points for each linear emitter
+
       N_etot = 0.d0
+
       ! At the starting point of the line we calculate the distribution 
       ! Ne_0(E_0), the cooling rate Edot0, and we sum it to Ne_tot(l,i)
 
@@ -243,7 +244,7 @@ contains
                      new_count = .false.
                   end if
                   count = count + 1
-                  
+
                   if (count >= steps) then
                      count = 0
                      index1 = index1 - 1
@@ -335,16 +336,16 @@ subroutine Ne_bin(Ee,Ne_tot,ang)
    do i=1,mE_e
       N_total_i = 0.d0
       do l=1,m_theta
-      ! Make some distributions binned in intervals of 0.1*D
+         ! Make some distributions binned in intervals of 0.1*D
          if (ang(l) < 0.15*pi) then
             N_bin_i(1,i) = N_bin_i(1,i) + Ne_tot(l,i)
-            elseif (ang(l) >= 0.15*pi .and. ang(l) < 0.30*pi) then
+         elseif (ang(l) >= 0.15*pi .and. ang(l) < 0.30*pi) then
             N_bin_i(2,i) = N_bin_i(2,i) + Ne_tot(l,i)
-            elseif (ang(l) >= 0.30*pi .and. ang(l) < 0.45*pi) then
+         elseif (ang(l) >= 0.30*pi .and. ang(l) < 0.45*pi) then
             N_bin_i(3,i) = N_bin_i(3,i) + Ne_tot(l,i)
-            elseif (ang(l) >= 0.45*pi .and. ang(l) < 0.60*pi) then
+         elseif (ang(l) >= 0.45*pi .and. ang(l) < 0.60*pi) then
             N_bin_i(4,i) = N_bin_i(4,i) + Ne_tot(l,i)
-            elseif (ang(l) >= 0.60*pi .and. ang(l) < 0.75*pi) then
+         elseif (ang(l) >= 0.60*pi .and. ang(l) < 0.75*pi) then
             N_bin_i(5,i) = N_bin_i(5,i) + Ne_tot(l,i)
          end if  
          N_total_i = N_total_i + Ne_tot(l,i)
@@ -371,28 +372,27 @@ end subroutine Ne_bin
 Subroutine Biseccion(csy,Bl,x3,c1,c2,T1,t_br,t_adv,xi)
    use global
    implicit none
-   integer, parameter :: t_err = 3
-   real(dp) :: a_,b_,c_,err
+   real(dp) :: a_,b_,c_
    real(dp), intent(in) :: csy,Bl,c1,c2,T1,t_br,t_adv,xi
    real(dp), intent(out) :: x3
+   real(dp), parameter :: err = 1.d-3  ! error in Emax < err
    interface
-      function resta(a,csy,Bl,ic1,ic2,T1,t_br,t_adv,efi)
-         use iso_fortran_env, only: dp => real64
-         implicit none
-         real(dp) :: resta
-         real(dp), intent(in) :: a,csy,Bl,ic1,ic2,T1,t_br,t_adv,efi
-      end function resta
+   function resta(a,csy,Bl,ic1,ic2,T1,t_br,t_adv,efi)
+      use iso_fortran_env, only: dp => real64
+      implicit none
+      real(dp) :: resta
+      real(dp), intent(in) :: a,csy,Bl,ic1,ic2,T1,t_br,t_adv,efi
+   end function resta
    end interface
 
    ! Error in nth step < |a-b|/2**n
    a_ = log10(2.d10*eV)    ! log10(Emin [CGS]) ~ 20 GeV
    b_ = log10(Emax_e)   
-   err = 10.d0**(-t_err)   ! error in Emax < 10**-t
    i = 0
    do while ( abs(b_ - a_) > err )
       i = i+1
       c_ = (a_+b_)/2.
-      if (resta(c_,csy,Bl,c1,c2,T1,t_br,t_adv,xi) <= 1.d-8 ) then 
+      if (resta(c_,csy,Bl,c1,c2,T1,t_br,t_adv,xi) < 1.d-8 ) then 
          b_ = c_
       elseif (resta(a_,csy,Bl,c1,c2,T1,t_br,t_adv,xi)*resta(c_,csy,Bl,c1,c2,T1,t_br,t_adv,xi) < 0) then 
          b_ = c_
@@ -427,7 +427,7 @@ Function resta(log10E,csy,Bl,c1,c2,T1,t_br,t_adv,xi)
    t_ic_IR = c2*gamm/F_iso(4.*gamm*T1)  
    t_coole = 1./(1.d0/t_sy + 1.d0/t_ic_st + 1.d0/t_ic_IR + 1.d0/t_br) ! radiative cooling
 
-   t_loss = min(t_coole,t_esc) ! general losses
+   t_loss = 1.d0/(1.d0/t_coole + 1.d0/t_esc) ! general losses
 
    t_ac = xi*E_l/(Bl*c*qe)  !      t_ac = (efiac*B_l*c*qe/E_l)**(-1)
    resta = t_loss - t_ac
