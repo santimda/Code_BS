@@ -253,6 +253,18 @@ module global
    END SUBROUTINE versorresta
 
    !============================================================================
+   ! p-p cross section
+
+   Function sigma_pp(L1,Ep)
+      real(dp), intent(in) :: L1,Ep
+      real(dp) :: sigma_pp
+      sigma_pp = (34.3d0 + 1.88d0*L1 + 0.25d0*L1**2)*1.d-27 !cm²
+      sigma_pp = sigma_pp*(1.d0-(E_th/Ep)**4)**2 ! Add factor for better fit at low energies 
+      return
+   end Function sigma_pp
+
+
+   !============================================================================
 
 
 END module global

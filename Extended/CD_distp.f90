@@ -1,12 +1,12 @@
 module CD_distp
-   
+
    use global
    
    implicit none
    private
    public :: CD_distp_run
 
-contains
+   contains
    
    !============================================================================
    ! CD_distp_run (START)
@@ -16,7 +16,7 @@ contains
    !  in which Np(l,E(i)) is saved, with m_theta*mE_e data; distp_sw_total.dat, 
    !  which stores Np(E(i)), and ENTp.dat, with E_NT(l). Emin_p and Emax_p are 
    !  fixed in global.
-   !***************************************************************************
+   !============================================================================
    
    subroutine CD_distp_run 
 
@@ -26,20 +26,21 @@ contains
       real(dp) :: t_cell(m_theta),t_adv(m_theta),t_coolp(m_theta,mE_p)
       real(dp) :: t_ac,t_pp,t_diff,D_diff,t_esc,t_loss(m_theta,mE_p)
       real(dp) :: log10Emaxl,R_acel,integral,Q
-      real(dp) :: E_dot(m_theta,mE_p),Emax_p0(m_theta),Ka,E_NT,N_totalp_i
+      real(dp) :: E_dot(m_theta,mE_p),Emax_p0(m_theta),Ka,E_NT
       real(dp) :: N_p0(mE_p),n_a(m_theta),L_inj(m_theta),dR(m_theta)
-      real(dp) :: L_inj_p(m_theta), sum,dummy
+      real(dp) :: L_inj_p(m_theta), sum,dummy,b_pp,L1
       real(dp) :: dE_aprox ,cool,t_adi(m_theta)
+      real(dp), parameter :: kappa_pp=0.5d0
       integer :: index1,index2,count,steps 
       logical :: new_count
       
       interface
-         subroutine Biseccion_p(Be,logEmax,tpp,tadv,xi)
-            use iso_fortran_env, only: dp => real64
-            implicit none
-            real(dp), intent(in) :: Be,tpp,tadv,xi
-            real(dp), intent(out) :: logEmax
-         end subroutine Biseccion_p
+      subroutine Biseccion_p(Be,logEmax,tpp,tadv,xi)
+         use iso_fortran_env, only: dp => real64
+         implicit none
+         real(dp), intent(in) :: Be,tpp,tadv,xi
+         real(dp), intent(out) :: logEmax
+      end subroutine Biseccion_p
       end interface
       
       allocate( theta(m_theta),R_theta(m_theta),H_theta(m_theta) )
@@ -86,30 +87,30 @@ contains
       
       !--------------------------------------------------------------------
       ! Build an energy vector that is common for all linear-emitters: 
+      
       call vector_log(Emin_p,Emax_p,Eint_p,E_p)
 
-      ! Consider different starting points for each linear emitter
-      
-      open(70,file='CD_tcoolp.dat')
-            
+
       !========================================================================
       ! First calculate the cooling time at all energies and at each position 
       ! (and also de maximum energy)
 
+      open(70,file='CD_tcoolp.dat')
+
       do l = 1, m_theta
-         t_cell(l) = dR(l)/v_t(l) ! Cell advection time
-         t_adv(l) = R_theta(l)/v_t(l) ! Characteristic advection time
+         t_cell(l) = dR(l)/v_t(l)      ! Cell advection time
+         t_adv(l) = R_theta(l)/v_t(l)  ! Characteristic advection time
          if (l < m_theta) then
             t_adi(l) = 3.*dR(l)/(v_t(l)*log(rho(l)/rho(l+1))) ! Characteristic adiabatic losses time
-            else 
+         else if (l == m_theta) then
             t_adi(l) = t_adi(l-1)
          end if
       end do
 
       do l=1,m_theta
 
-         R_acel = H_theta(l)         ! Accelerator size  ????????????
-         t_pp = 1.d15/n_a(l)       ! p-p losses (approx)
+         R_acel = H_theta(l)           ! Accelerator size  ????????????
+         !t_pp = 1.d15/n_a(l)/z_pp      ! p-p losses (approx)
 
          call Biseccion_p(B(l),log10Emaxl,t_pp,t_adv(l),efi_ac_sw(l))
          Emax_p0(l) = MIN(10.d0**log10Emaxl,qe*B(l)*R_acel*sqrt(1.5d0/efi_ac_sw(l)))! Pérdidas difusivas
@@ -117,13 +118,21 @@ contains
 
          do i=1,mE_p
 
+            if (E_p(i) <= E_th) then    ! E_th= 1.22 GeV
+               b_pp = 1.d-30        ! just not to divide by zero
+            else            
+               L1 = log(E_p(i)/TeV)     ! L = ln(Ep/1TeV)
+               b_pp = c*kappa_pp*n_a(l)*sigma_pp(L1,E_p(i))*E_p(i)
+            endif
+            t_pp = E_p(i)/(b_pp*z_pp)
+
             D_diff = E_p(i)*c/(3.d0*qe*B(l))
-            t_diff = H_theta(l)**2/(2.d0*D_diff) ! Diffusion losses
-            t_esc = 1./( 1./t_adv(l) + 1.d0/t_diff ) ! escape
+            t_diff = H_theta(l)**2/(2.d0*D_diff)      ! Diffusion losses
+            t_esc = 1./( 1./t_adv(l) + 1.d0/t_diff )  ! escape
 
             t_coolp(l,i) = 1./(1.d0/t_pp + 1./t_adi(l))
 
-            t_loss(l,i) = min(t_coolp(l,i),t_esc) ! general losses
+            t_loss(l,i) = 1.d0/(1.d0/t_coolp(l,i) + 1.d0/t_esc) ! general losses
 
             t_ac = efi_ac_sw(l)*E_p(i)/(B(l)*c*qe)
 
@@ -138,11 +147,13 @@ contains
 
       !========================================================================
 
+      ! Consider different starting points for each linear emitter
+      
       N_ptot = 0.d0
       
       ! At the starting point of the line we calculate the distribution 
       ! Np_0(E_0), the cooling rate Edot0, and we sum it to Np_tot(l,i)
-          
+
       Do l_min=1,m_theta
 
          ! Q = Ka*E**-alpha*e^(-E/Emax), alpha=2. The normalization constant Ka is obtained 
@@ -166,11 +177,11 @@ contains
          do while (i < mE_p+1 .and. E_p(i) < 10.d0*Emax_p0(l_min)) 
             ! N(E)=1/|dE/dt|*int_E^Emax Q(E')dE' = Q(E)*dt, with |dE/dt|= E/t_cool 
             ! in [erg/seg], dt = min(t_cell,t_cool) so that [N(E)]=erg/erg**2
-                           
+
             Q = Ka*E_p(i)**(-alpha_sw)*exp(-E_p(i)/Emax_p0(l_min)) 
             N_p0(i) = Q*min(t_cell(l_min),t_coolp(l_min,i))
             N_ptot(l_min,i) = N_ptot(l_min,i) + N_p0(i)
-               
+
             ! We calculate the evolved version of the injected electron distribution at each
             ! position "l" as: N_l(l) = N_l-1* (Edot_l-1/Edot_l), where the energy also evolves
             ! as E0(l) given by: t_cell(l) = int_E0^El Edot * dE
@@ -283,7 +294,7 @@ contains
    !============================================================================
    ! CD_distp_run (END)
    !============================================================================
-             
+
 END module CD_distp
 
 
@@ -306,16 +317,16 @@ subroutine Np_bin(Ep,Np_tot,ang)
    do i=1,mE_p
       N_total_i = 0.d0
       do l=1,m_theta
-      ! Make some distributions binned in intervals of 0.1*D
+         ! Make some distributions binned in intervals of 0.1*D
          if (ang(l) < 0.15*pi) then
             N_bin_i(1,i) = N_bin_i(1,i) + Np_tot(l,i)
-            elseif (ang(l) >= 0.15*pi .and. ang(l) < 0.30*pi) then
+         elseif (ang(l) >= 0.15*pi .and. ang(l) < 0.30*pi) then
             N_bin_i(2,i) = N_bin_i(2,i) + Np_tot(l,i)
-            elseif (ang(l) >= 0.30*pi .and. ang(l) < 0.45*pi) then
+         elseif (ang(l) >= 0.30*pi .and. ang(l) < 0.45*pi) then
             N_bin_i(3,i) = N_bin_i(3,i) + Np_tot(l,i)
-            elseif (ang(l) >= 0.45*pi .and. ang(l) < 0.60*pi) then
+         elseif (ang(l) >= 0.45*pi .and. ang(l) < 0.60*pi) then
             N_bin_i(4,i) = N_bin_i(4,i) + Np_tot(l,i)
-            elseif (ang(l) >= 0.60*pi .and. ang(l) < 0.75*pi) then
+         elseif (ang(l) >= 0.60*pi .and. ang(l) < 0.75*pi) then
             N_bin_i(5,i) = N_bin_i(5,i) + Np_tot(l,i)
          end if  
          N_total_i = N_total_i + Np_tot(l,i)
@@ -326,7 +337,7 @@ subroutine Np_bin(Ep,Np_tot,ang)
 
    open(82,file='distp_sw_bin.dat')
    do j = 1,N_bins
-      do i = 1, mE_e
+      do i = 1, mE_p
          write(82,*) j,Ep(i)/eV, N_bin_i(j,i)* mphi*1.d0
       end do
       write(82,*) 
@@ -347,12 +358,12 @@ Subroutine Biseccion_p(Be,x3,t_pp,t_adv,xi)
    real(dp), intent(in) :: Be,t_pp,t_adv,xi
    real(dp), intent(out) :: x3
    interface
-      function resta_p(a,B,t_pp,t_adv,efi)
-         use iso_fortran_env, only: dp => real64
-         implicit none
-         real(dp) :: resta_p
-         real(dp), intent(in) :: a,B,t_pp,t_adv,efi
-      end function resta_p
+   function resta_p(a,B,t_pp,t_adv,efi)
+      use iso_fortran_env, only: dp => real64
+      implicit none
+      real(dp) :: resta_p
+      real(dp), intent(in) :: a,B,t_pp,t_adv,efi
+   end function resta_p
    end interface
 
    !     El error en el n-esimo será menor a |a-b|/2**n
@@ -364,7 +375,7 @@ Subroutine Biseccion_p(Be,x3,t_pp,t_adv,xi)
    do while ( abs(b_ - a_) > err )
       i = i+1
       c_ = (a_+b_)/2.
-      if (resta_p(c_,Be,t_pp,t_adv,xi)==0) then 
+      if ( abs(resta_p(c_,Be,t_pp,t_adv,xi)) < 1.d-8 ) then 
          b_ = c_
       elseif (resta_p(a_,Be,t_pp,t_adv,xi)*resta_p(c_,Be,t_pp,t_adv,xi) < 0) then
          b_ = c_
@@ -388,13 +399,13 @@ Function resta_p(log10E,B_l,t_pp,t_adv,xi)
    
    E_l = 10.d0**log10E
 
-   D_diff = E_l*c/(3.d0*qe*B_l) ! Bohm
-   t_diff = (0.2*R0)**2/(2.d0*D_diff) ! Diffusion losses APPROX
+   D_diff = E_l*c/(3.d0*qe*B_l)        ! Bohm
+   t_diff = (0.2*R0)**2/(2.d0*D_diff)  ! Diffusion losses APPROX
    t_esc = 1./(1./t_adv + 1.d0/t_diff) ! escape
    
    t_coolp = t_pp
 
-   t_loss = min(t_coolp,t_esc) ! general losses
+   t_loss = 1.d0/(1.d0/t_coolp + 1.d0/t_esc) ! general losses
 
    t_ac = xi*E_l/(B_l*c*qe)    
    resta_p = t_loss - t_ac

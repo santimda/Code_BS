@@ -37,5 +37,11 @@ real(dp), parameter :: u_CMB = 10.d0**(-236.d0/19.d0) ! CITE?
 real(dp), parameter :: Ry = 2.17987d-11   ! Rydberg unit = 2.18e-18 J
 
 !============================================================================
+! Some useful constants for p-p
+real(dp), parameter :: TeV = 1.d12*eV  
+real(dp), parameter :: E_th = 1.22d9*eV   ! threshold energy for pi^0 production
+
+
+!============================================================================
 
 END module constants
