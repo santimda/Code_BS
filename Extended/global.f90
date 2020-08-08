@@ -20,7 +20,7 @@ module global
    integer, parameter :: mE_e = 256    ! energy resolution for electrons
    integer, parameter :: mE_p = 200    ! energy resolution for protons < mE_f 
    integer, parameter :: mE_f = 300    ! it is the same for br, p-p and IC
-   integer, parameter :: mphi = 4      ! amount of linear-emitters
+   integer, parameter :: mphi = 6      ! amount of linear-emitters
    real(dp) :: delta_phi = 0.5*pi/(mphi-1.d0) ! angular separation between linear-emitters
    real(dp) :: d_phi = 0.5*pi/mphi     ! angular width of each linear-emitter or wedge
 

@@ -8,18 +8,18 @@ module system_parameters
    ! This module contains the parameters of the specific system modelled
    !====================================================================
 
-   real(dp), parameter :: distance = 1.32d0*kpc       ! source distance K2017
-   real(dp), parameter :: inclination = 30.d0*pi/180.d0     ! angle between the star motion and the LOS in rad   
+   real(dp), parameter :: distance = 1.32d0*kpc          ! source distance K2017
+   real(dp), parameter :: inclination = 75.d0*pi/180.d0  ! angle between the star motion and the LOS in rad   
    ! i = 0° is face-on, i = 90° corresponds to BS in front of the star, i = -90° is BS behind the star
-   real(dp), parameter :: incli = pi/2.d0 - inclination   ! angle that I use
+   real(dp), parameter :: incli = pi/2.d0 - inclination  ! angle that I use
    ! incli = 90° is BS in front of the star, incli = 0° is edge-on,  incli = -90° is BS behind the star
-   !real(dp), parameter :: R0_proj = 5.d0*60.d3      ! projected BS distance to the star (5') in mas  
+   !real(dp), parameter :: R0_proj = 5.d0*60.d3          ! projected BS distance to the star (5') in mas  
    !real(dp), parameter :: R0 = R0_proj*(distance/kpc)*UA/abs(cos(incli)) ! linear distance to the BS stagnation point
    real(dp), parameter :: theta_max = (137.d0/180.d0)*pi ! ~ extension of the BS modelled ~ pi/2
 
    !--------------------------------------------------------------------------------------
    ! Star
-   real(dp), parameter :: v_st = 70.d5             ! Peri 2014 
+   real(dp), parameter :: v_st = 40.d5             ! Peri 2014 
    real(dp), parameter :: T_st = 4.07d4            ! K2017  
    real(dp), parameter :: T_st_ad = k*T_st/mec2    ! Adimensional stellar temperature
    !real(dp), parameter :: L_st = 7.d5*L_sun       ! del Valle 2012
@@ -27,7 +27,7 @@ module system_parameters
    real(dp), parameter :: R_st = 19.*R_sun         ! K2017  
    !real(dp), parameter :: L_st = 4.d0*pi*R_st**2*sigma*T_st**4 ! Stellar luminosity 
    real(dp), parameter :: L_st = 8.7d5*L_sun       ! K2018
-   real(dp), parameter :: Mdot = 6.5d-6*M_sun_yr   ! Peri 2014
+   real(dp), parameter :: Mdot = 9.d-6*M_sun_yr    ! Peri 2014
    !real(dp), parameter :: Mdot = 5.5d-6*M_sun_yr  ! Brookes 2016
    !real(dp), parameter :: v_w =  2200.d5          ! del Valle 2012
    !real(dp), parameter :: v_w =  2325.d5          ! Peri 2014
@@ -38,7 +38,6 @@ module system_parameters
    real(dp), parameter :: mu_w = 1.3_dp            ! Leitherer 1995 
    real(dp), parameter :: Zq_w = 1.0_dp            ! Z = rms ionic charge
    real(dp), parameter :: gamma_w = 1.0_dp         ! Leitherer 1995
-   !real(dp), parameter :: ab_X=0.705d0, ab_Y=0.275d0, ab_Z=0.02 ! stellar abundances 
    real(dp), parameter :: filling = 1.d-1          ! ..... 10% ?
    real(dp), parameter :: r_A_st = 1.0_dp          ! r_A/R_st
 
@@ -52,11 +51,10 @@ module system_parameters
    !real(dp), parameter :: n_ISM = 19.d0           ! K2018
    real(dp), parameter :: n_ISM = 15.d0            ! 
    real(dp), parameter :: T_ISM = 8000.d0          ! warm Brookes p.136
-   real(dp), parameter :: T_ISM_ad = k*T_ISM/mec2! Adimensional ISM temperature 
+   real(dp), parameter :: T_ISM_ad = k*T_ISM/mec2  ! Adimensional ISM temperature 
    !real(dp), parameter :: U_ISM = 4.d0*sigma*T_ISM**4/c ! average energy density
-   real(dp), parameter :: alpha_ISM = 4.d-2      ! P_thermal_ISM = alpha*P_kin_ISM
+   real(dp), parameter :: alpha_ISM = 4.d-2        ! P_thermal_ISM = alpha*P_kin_ISM ~ kT_ISM/(m_p*v_ISM**2)
    real(dp), parameter :: lambda = alpha_ISM/(alpha_ISM + 1.d0)
-
    real(dp), parameter :: mu_ISM = 1.3_dp         ! ? 
    real(dp), parameter :: Zq_ISM = 1.0_dp         ! Z = rms ionic charge
    real(dp), parameter :: gamma_ISM = 1.0_dp      ! ?
@@ -81,7 +79,6 @@ module system_parameters
 
    !--------------------------------------------------------------------------------------
    ! Heated dust (IR)   
-   !real(dp), parameter :: L_IR = 4.d0*pi*H0**2.*sigma*T_IR**4. ! Dust luminosity ?????
    !real(dp), parameter :: L_IR = 5.7d36 ! Dust luminosity, observed ?????
    real(dp), parameter :: L_IR = L_st/350.d0     ! Dust luminosity, K2017
    real(dp), dimension(:), allocatable :: T_IR,T_IR_ad
@@ -93,8 +90,8 @@ module system_parameters
    real(dp), parameter :: alpha_sw = 2.2_dp        ! injection spectral index in the sw 
 
    real(dp), parameter :: frac_NT = 1.d-1          ! Fraction L_NT/L_inj_perp
-   real(dp), parameter :: inj_e = frac_NT*4.2d-2   ! Fraction L_NT_e/L_iny_perp 
-   real(dp), parameter :: inj_p = frac_NT-inj_e    ! Fraction L_NT_p/L_iny_perp 
+   real(dp), parameter :: inj_e = 0.0042d0 !frac_NT*4.2d-2   ! Fraction L_NT_e/L_iny_perp 
+   real(dp), parameter :: inj_p = 1.d-1 !frac_NT-inj_e    ! Fraction L_NT_p/L_iny_perp 
 
 
    !============================================================================
