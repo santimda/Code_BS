@@ -10,7 +10,7 @@ logical, parameter :: no = .FALSE.
 logical, parameter :: yes = .TRUE.
 
 logical, parameter :: BBrad_calc = no!yes
-logical, parameter :: opacff_calc = yes ! also calculates emi_ff(wind), needs
+logical, parameter :: opacff_calc = no!yes ! also calculates emi_ff(wind), needs
 !also electrons = yes
 
 logical, parameter :: CD_calc = yes
@@ -28,8 +28,8 @@ logical, parameter :: radbr_sw_calc = yes
 logical, parameter :: radic_st_calc = yes
 logical, parameter :: radic_IR_calc = yes
 logical, parameter :: abssyn_calc = yes
-logical, parameter :: maps_calc = yes
-logical, parameter :: convolution = yes
+logical, parameter :: maps_calc = no!yes
+logical, parameter :: convolution = no!yes
 
 logical, parameter :: escribir_e = yes
 
