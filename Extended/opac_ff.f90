@@ -259,7 +259,7 @@ module opac_ff
          do j=1,mphi
             y_map(j) = r_map(i) * sin(phi_map(j)) * convert
             x_map(j) = r_map(i) * cos(phi_map(j)) * convert
-            write(161,*) x_map(j),y_map(j),S_map(i)
+            write(162,*) x_map(j),y_map(j),S_map(i)
          enddo
       enddo
       close(162)
