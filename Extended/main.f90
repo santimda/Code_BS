@@ -15,7 +15,7 @@ PROGRAM main
    use CD_radpp, only: CD_radpp_run
    use opac_ff, only: opac_ff_run
    use CD_abssyn, only: CD_abssyn_run
-   use SW_conv, only: SW_conv1G_run, SW_conv5G_run, SW_spex_run
+   use SW_conv, only: SW_conv1G_run, SW_conv3G_run, SW_conv5G_run, SW_spex_run
 
    implicit none
    80 format(A9,X,Es10.2)
@@ -71,7 +71,8 @@ PROGRAM main
 
       if (maps_calc) then      
          open(88,file='SW_radiomap_1GHz.dat')
-         open(89,file='SW_radiomap_5GHz.dat')
+         open(89,file='SW_radiomap_3GHz.dat')
+         open(90,file='SW_radiomap_5GHz.dat')
       endif
 
 
@@ -127,7 +128,8 @@ PROGRAM main
             if (maps_calc.eqv.yes) then           
                write(*,*) 'Save synthetic radio emission maps'
                open(55,file='CD_radiomap_1GHz.dat') ! 1.4 GHz
-               open(56,file='CD_radiomap_5GHz.dat') ! 4.8 GHz
+               open(56,file='CD_radiomap_3GHz.dat') ! 4.8 GHz
+               open(57,file='CD_radiomap_5GHz.dat') ! 4.8 GHz
                do i_l = 1,2*m_theta
                   read(55,*) u_proj,v_proj,emi,emi_abs
                   write(88,*) u_proj,v_proj,emi,emi_abs
@@ -139,9 +141,15 @@ PROGRAM main
                   if (i_phi.ne.1) then !.and. i_phi.ne.mphi) then
                      write(89,*) u_proj,-v_proj,emi,emi_abs ! symmetry???
                   endif
+                  read(57,*) u_proj,v_proj,emi,emi_abs
+                  write(90,*) u_proj,v_proj,emi,emi_abs  
+                  if (i_phi.ne.1) then !.and. i_phi.ne.mphi) then
+                     write(90,*) u_proj,-v_proj,emi,emi_abs ! symmetry???
+                  endif
                end do
                close(55)
                close(56)
+               close(57)
             endif
 
             phi = phi + delta_phi           
@@ -154,6 +162,7 @@ PROGRAM main
 
          close(88) ! maps for conv
          close(89)
+         close(90)
 
       endif
 
@@ -243,6 +252,7 @@ PROGRAM main
    if (convolution) then
       write(*,*) 'Convolution of the emission map with the instrument response'
       call SW_conv1G_run
+      call SW_conv3G_run  
       call SW_conv5G_run  
       call SW_spex_run  
 
@@ -251,7 +261,7 @@ PROGRAM main
    !--------------------------------
 
    IF (protons) then
-      write(*,*) 'PROTONS:'
+      write(*,*) '\n PROTONS:'
 
       if (distp_calc) call CD_distp_run 
 

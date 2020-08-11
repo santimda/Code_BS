@@ -29,11 +29,11 @@ module CD_abssyn
       Real(dp) :: r_ff(mr_ff),dr_ff
       Real(dp) :: theta1,x1,y1,z1,r1,dr0,x1_0,y1_0,z1_0
       Real(dp) :: dr_x,dr_y,tginc,sinc,cinc
-      Real(dp) :: Ef(m_nu),log_nu_int,flux,flux1,flux2
+      Real(dp) :: Ef(m_nu),log_nu_int,flux,flux1,flux2,flux3
       Real(dp) :: u_proj,v_proj  ! coords in the plane of the sky 
-      Real(dp) :: emision1,emision2,emision1_abs,emision2_abs,convert
+      Real(dp) :: emision1,emision2,emision3,emision1_abs,emision2_abs,emision3_abs,convert
       Real(dp) :: dummy
-      Integer :: ir,nl,inu_max,i_1G,i_5G,i_ff,i_theta
+      Integer :: ir,nl,inu_max,i_1G,i_3G,i_5G,i_ff,i_theta
       integer, parameter :: m_l = 2*m_theta  ! CD position, both sides
       Logical :: integra
  
@@ -175,19 +175,19 @@ module CD_abssyn
       close(31)
 
       i_1G = int(log(1.42d9/nu(1))/log_nu_int) + 1        ! 1.4 GHz
+      i_3G = int(log(3.00d9/nu(1))/log_nu_int) + 1         ! 3.0 GHz
       i_5G = int(log(4.86d9/nu(1))/log_nu_int) + 1        ! 4.8 GHz
       flux1 = flux/nu(i_1G)   
-      flux2 = flux/nu(i_5G) 
-      ! Chequeo si caen cerca:
-      !write(*,*) '1.4GHz aprox', nu(i_1G)/1.d9, '4.8GHz aprox', nu(i_5G)/1.d9
-      !write(*,*) i_1G, i_5G
+      flux2 = flux/nu(i_3G) 
+      flux3 = flux/nu(i_5G) 
 
       !-----------------------------------------------------------------------
       ! Calculate the total and absorbed emission for each linear emitter. 
       ! Also stores the emission projected in the plane of the sky, (u_proj,v_proj)
 
       open(70,file='CD_radiomap_1GHz.dat')
-      open(71,file='CD_radiomap_5GHz.dat')
+      open(71,file='CD_radiomap_3GHz.dat')
+      open(72,file='CD_radiomap_5GHz.dat')
       do l=1,m_l
 !         u_proj = (y(l)+x(l)/tginc)*sinc *convert ! ?
          u_proj = (y(l)+x(l)/abs(tginc))*abs(sinc) *convert 
@@ -195,7 +195,6 @@ module CD_abssyn
 
          do i=1,m_nu
             Lsy_tot(i) = Lsy_tot(i) + Lsy(l,i)
-
             if (i < inu_max) then !  The abs was calculated at these freqs  
                Lsy_tot_abs(i) = Lsy_tot_abs(i) + Lsy(l,i)*exp(-tauff(l,i))  
             else
@@ -205,15 +204,18 @@ module CD_abssyn
          
          emision1 = Lsy(l,i_1G) * flux1 ! At 1.4 GHz
          emision1_abs = emision1 * exp(-tauff(l,i_1G))
-         emision2 = Lsy(l,i_5G) * flux2 ! At 4.8 GHz
-         emision2_abs = emision2 * exp(-tauff(l,i_5G))
+         emision2 = Lsy(l,i_3G) * flux2 ! At 3.0 GHz
+         emision2_abs = emision2 * exp(-tauff(l,i_3G))
+         emision3 = Lsy(l,i_5G) * flux3 ! At 4.8 GHz
+         emision3_abs = emision3 * exp(-tauff(l,i_5G))
          
          write(70,*) u_proj,v_proj,emision1,emision1_abs
          write(71,*) u_proj,v_proj,emision2,emision2_abs
-
+         write(72,*) u_proj,v_proj,emision3,emision3_abs
       end do
       close(70)
       close(71)
+      close(72)
 
       open(33,file='radsyn_abs.dat')
       do i=1,m_nu

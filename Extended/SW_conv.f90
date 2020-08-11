@@ -5,7 +5,7 @@ module SW_conv
   
   implicit none
   private
-  public :: SW_conv1G_run,SW_conv5G_run,SW_spex_run
+  public :: SW_conv1G_run,SW_conv3G_run,SW_conv5G_run,SW_spex_run
   
 contains
   
@@ -151,6 +151,144 @@ contains
   ! SW_conv1G_run (END)
   !============================================================================
   
+  
+  !============================================================================
+  ! SW_conv3G_run
+  !============================================================================
+  
+  subroutine SW_conv3G_run  
+    use global
+    implicit none
+    integer, parameter :: m_tot = (2*(mphi-1))*(m_theta*2)    ! Total number of data
+    real(dp), parameter :: sigma_x = 12.d0, sigma_y = 12.d0   ! Benaglia2010
+!    real(dp), parameter :: coc = sqrt(8.d0*log(2.d0))        ! Benaglia gives sigma, not theta!
+!    real(dp), parameter :: theta_x = sigma_x*coc, theta_y = sigma_y*coc ! HPBW = Resolution (Ben2010)  
+    real(dp) :: x_map(m_tot),y_map(m_tot)
+    real(dp) :: F_3Gabs(m_tot),F_3Gun(m_tot)
+    real(dp) :: ancho_x, ancho_y, D_x, D_y,ci
+    real(dp) :: x_c0,y_c0,d_pesada2,suma,D_f,atenua,sum,mJy_beam
+    real(dp), dimension(:), allocatable :: x_c,y_c
+    real(dp), dimension(:,:), allocatable :: F_map3Gabs
+    integer :: m_x,m_y
+    integer, parameter:: m_map = mphi*mr_map
+    real(dp) :: A_beam,A_cell, suma2,x_map2(m_map),y_map2(m_map),S_map2(m_map)
+
+    A_beam = 2*pi*sigma_x*sigma_y     ! = Gaussian normalization factor 
+    A_cell = f_Ny**2.*sigma_x*sigma_y ! cell sample size
+
+    ci = abs(cos(incli))
+
+    !///////////////////////////////////////////////////////
+    !-------------------------------------------------------
+    ! Initialize the data for the convolution region
+
+    ancho_x = 4.d0*R0_proj/ci * 1.3d0 ! [mas](extra margin)
+    ancho_y = 2.d0*(1.+ci)*R0_proj/ci * 1.3d0 ! [mas](extra margin)
+  
+    D_x = f_Ny*sigma_x
+    D_y = f_Ny*sigma_y
+    m_x = int(ancho_x/D_x) ! Number of ellipses in the x-direction
+    m_y = int(ancho_y/D_y) ! Number of ellipses in the y-direction
+    x_c0 = -ancho_x/2.d0   ! Center of the first ellipse 
+    y_c0 = -ancho_y*(3.-ci)/4.d0
+    allocate( x_c(m_x), y_c(m_y), F_map3Gabs(m_x,m_y)  )
+
+    !//////////////////////////////////////////////////////
+    !------------------------------------------------------
+    ! Data read
+
+    sum = 0.d0
+    open(13,file='SW_radiomap_3GHz.dat')
+    do l=1,m_tot
+       read(13,*) y_map(l),x_map(l),F_3Gun(l),F_3Gabs(l)
+       sum = sum + F_3Gabs(l)
+    enddo
+    write(*,*) 'Pre-conv:'
+    write(*,80) 'S(3.0GHz)=',sum,'mJy'
+    close(13)
+    
+    sum = 0.d0
+    open(133,file='S_ff_map_3G.dat')
+    do l=1,m_map
+       read(133,*) x_map2(l),y_map2(l),S_map2(l)
+       sum = sum + S_map2(l)
+    enddo
+    write(*,*) 'Pre-conv:'
+    write(*,80) 'S_ff(3.0G)=',sum,'mJy'
+    close(133)
+ 
+    !------------------------------------------
+
+    do i=1,m_x
+       x_c(i) = x_c0 + (i-0.5)*D_x ! x-coord of the center of the i-th ellipse
+       
+       do j=1,m_y
+          y_c(j) = y_c0 + (j-0.5)*D_y ! y-coord of the center of the (x_i,y_j) ellipse
+          
+          suma=1.d-9  ! simulate noise (?)
+          do l=1,m_tot
+             d_pesada2 = ((x_map(l)-x_c(i))**2.d0)/(2.d0*sigma_x**2.d0) + &
+                  ((y_map(l)-y_c(j))**2.d0)/(2.d0*sigma_y**2.d0) ! added extra sigma
+             if (d_pesada2 < 6.d0) then 
+                ! Gaussian beam -> /(sigma*sqrt(2*pi)), both in x and y
+                atenua = exp( -d_pesada2 ) !/ norm
+                D_F = F_3Gabs(l)*atenua
+             else
+                D_F = 0.d0 ! flux drops < 1e-3 farther from there, no need to sum
+             endif
+             suma = suma + D_f
+          enddo
+
+          suma2 = 0.d0
+          do l=1,m_map
+             d_pesada2 = ((x_map2(l)-x_c(i))**2.d0)/(2.d0*sigma_x**2.d0) + &
+                  ((y_map2(l)-y_c(j))**2.d0)/(2.d0*sigma_y**2.d0) ! added extra sigma
+             if (d_pesada2 < 6.d0) then      
+                ! Gaussian beam -> /(sigma*sqrt(2*pi)), both in x and y
+                atenua = exp( -d_pesada2 ) !/ norm
+                D_F = S_map2(l)*atenua
+             else
+                D_F = 0.d0 ! flux drops < 1e-3 farther from there, no need to sum
+             endif
+             suma2 = suma2 + D_f
+          enddo
+          
+          F_map3Gabs(i,j) = suma + suma2
+       enddo
+
+    enddo
+
+
+    !///////////////////////////////////////////////////////////////
+    !
+    ! Data storage + consistency check:
+
+    mJy_beam = A_cell/A_beam ! Transform mJy/beam --> mJy (for consistency checks)
+
+    sum = 0.d0
+    open (18,file='SW_conv_3Gabs.dat')
+    do i=1,m_x
+       do j=1,m_y
+          write(18,61) x_c(i),y_c(j),F_map3Gabs(i,j)
+         sum = sum + F_map3Gabs(i,j)*mJy_beam
+       enddo
+       write(18,*) 
+    enddo
+    write(*,*) 'Post-conv:'
+    write(*,80) 'S(3.0GHz)=',sum,'mJy'
+    write(*,*) ''
+    close(18)
+
+61  format(F11.4,X,F11.4,X,E11.4)
+80  format(A11,X,Es10.2,X,A3)
+
+    deallocate (x_c,y_c,F_map3Gabs)
+
+  END subroutine SW_conv3G_run
+
+  !============================================================================
+  ! SW_conv3G_run (END)
+  !============================================================================
   
   !============================================================================
   ! SW_conv5G_run

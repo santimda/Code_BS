@@ -34,7 +34,7 @@ module opac_ff
       real(dp) :: gff(nu_mu,nu_mga),mu_ff(mE_ff)     
       real(dp) :: Mdot_eff = Mdot/sqrt(filling) ! effective mass-loss rate (account for clumping)
       !Variables for radio maps:
-      integer :: i_1G,i_5G
+      integer :: i_1G,i_3G,i_5G
       real(dp) :: log_nu_int,nu_S,B_ff,B_ff_D2,K_ff,cte_Tau
       real(dp) :: r_map(mr_map),S_ff_cm2(mr_map),A_cell(mr_map),S_map(mr_map)
       real(dp) :: convert,Delta_r,x_map(mphi),y_map(mphi),phi_map(mphi)
@@ -184,14 +184,14 @@ module opac_ff
       i_1G = int(log(1.42d9/nu(1))/log_nu_int) + 1        ! 1.4 GHz
       nu_S = nu(i_1G)
 
-      B_ff = 2.*nu_S**2.*k*T_w/c**2.    ! Planck function at the h nu << kT limit
-      B_ff_D2 = B_ff/distance**2.*1.d26 ! in mJy
+      B_ff = 2.*nu_S**2*k*T_w/c**2    ! Planck function at the h nu << kT limit
+      B_ff_D2 = B_ff/distance**2*1.d26 ! in mJy
 
       j_mu = int((log10(mu_ff(i_1G))+16.d0)/0.2d0) + 1
       dmu = ((log10(mu_ff(i_1G))+16.d0)/0.2d0+1.d0 - float(j_mu))*0.2
       call interpol(dg,dmu,gff(j_g,j_mu),gff(j_g+1,j_mu),gff(j_g,j_mu+1),gffinter)  
-      K_ff = 3.7d8*h*Zq_w**2.*gffinter/(k*T_w**1.5*nu_S**2.)
-      cte_Tau = K_ff*gamma_w*A_ff**2.*pi/2.
+      K_ff = 3.7d8*h*Zq_w**2*gffinter/(k*T_w**1.5*nu_S**2)
+      cte_Tau = K_ff*gamma_w*A_ff**2*pi/2.d0
  !     write(*,*) gffinter,K_ff,cte_Tau
 
       call S_ff_map(B_ff_D2,cte_Tau,R_st,R0,S_ff_cm2,r_map)
@@ -208,23 +208,23 @@ module opac_ff
       enddo
       close(160)
 
-      !------------ 4.8 GHz
+      !------------ 3.0 GHz
 
-      i_5G = int(log(4.86d9/nu(1))/log_nu_int) + 1        ! 4.8 GHz
-      nu_S = nu(i_5G)
+      i_3G = int(log(3.0d9/nu(1))/log_nu_int) + 1        ! 4.8 GHz
+      nu_S = nu(i_3G)
 
-      B_ff = 2.*nu_S**2.*k*T_w/c**2.    ! Planck function at the h nu << kT limit
-      B_ff_D2 = B_ff/distance**2.*1.d26 ! in mJy
+      B_ff = 2.*nu_S**2*k*T_w/c**2    ! Planck function at the h nu << kT limit
+      B_ff_D2 = B_ff/distance**2*1.d26 ! in mJy
 
-      j_mu = int((log10(mu_ff(i_5G))+16.d0)/0.2d0) + 1
-      dmu = ((log10(mu_ff(i_5G))+16.d0)/0.2d0+1.d0 - float(j_mu))*0.2
+      j_mu = int((log10(mu_ff(i_3G))+16.d0)/0.2d0) + 1
+      dmu = ((log10(mu_ff(i_3G))+16.d0)/0.2d0+1.d0 - float(j_mu))*0.2
       call interpol(dg,dmu,gff(j_g,j_mu),gff(j_g+1,j_mu),gff(j_g,j_mu+1),gffinter)  
-      K_ff = 3.7d8*h*Zq_w**2.*gffinter/(k*T_w**1.5*nu_S**2.)
-      cte_Tau = K_ff*gamma_w*A_ff**2.*pi/2.
+      K_ff = 3.7d8*h*Zq_w**2*gffinter/(k*T_w**1.5*nu_S**2)
+      cte_Tau = K_ff*gamma_w*A_ff**2*pi/2.
 !      write(*,*) gffinter,K_ff,cte_Tau
       
       call S_ff_map(B_ff_D2,cte_Tau,R_st,R0,S_ff_cm2,r_map)
-      open(161,file='S_ff_map_5G.dat')
+      open(161,file='S_ff_map_3G.dat')
       do i = 1,mr_map
          A_cell(i) = r_map(i)*Delta_r*d_phi
          S_map(i) = S_ff_cm2(i)*A_cell(i)
@@ -235,6 +235,34 @@ module opac_ff
          enddo
       enddo
       close(161)
+
+      !------------ 4.8 GHz
+
+      i_5G = int(log(4.86d9/nu(1))/log_nu_int) + 1        ! 4.8 GHz
+      nu_S = nu(i_5G)
+
+      B_ff = 2.*nu_S**2*k*T_w/c**2    ! Planck function at the h nu << kT limit
+      B_ff_D2 = B_ff/distance**2*1.d26 ! in mJy
+
+      j_mu = int((log10(mu_ff(i_5G))+16.d0)/0.2d0) + 1
+      dmu = ((log10(mu_ff(i_5G))+16.d0)/0.2d0+1.d0 - float(j_mu))*0.2
+      call interpol(dg,dmu,gff(j_g,j_mu),gff(j_g+1,j_mu),gff(j_g,j_mu+1),gffinter)  
+      K_ff = 3.7d8*h*Zq_w**2*gffinter/(k*T_w**1.5*nu_S**2)
+      cte_Tau = K_ff*gamma_w*A_ff**2*pi/2.
+!      write(*,*) gffinter,K_ff,cte_Tau
+      
+      call S_ff_map(B_ff_D2,cte_Tau,R_st,R0,S_ff_cm2,r_map)
+      open(162,file='S_ff_map_5G.dat')
+      do i = 1,mr_map
+         A_cell(i) = r_map(i)*Delta_r*d_phi
+         S_map(i) = S_ff_cm2(i)*A_cell(i)
+         do j=1,mphi
+            y_map(j) = r_map(i) * sin(phi_map(j)) * convert
+            x_map(j) = r_map(i) * cos(phi_map(j)) * convert
+            write(161,*) x_map(j),y_map(j),S_map(i)
+         enddo
+      enddo
+      close(162)
 
 
 
