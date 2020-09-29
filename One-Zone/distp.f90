@@ -20,6 +20,7 @@ contains
 
       character(LEN=*), intent(in) :: shock
       real(dp) :: L_inj_p,integral,Ka_p,Emax_p,log10Emax
+      real(dp) :: y, y1, y2
       real(dp) :: Q,S,t_adv,t_pp,t_diff,t_ac,t_loss,t_esc,t_adi,t_cool_p
       real(dp) :: b_pp,sigma_pp,L1,E_punto,c_s,E_NT,D_Bohm,b_ion,t_ion
       real(dp) :: dE2_p,E2_p,Eint2_p,Emax2_p,Emin2_p,efi_ac,cte_ac
@@ -85,12 +86,16 @@ contains
       ! Build a logarithmic-spaced energy vector
       call vector_log(Emin_p,10.d0*Emax_p,Eint_p,E_p)
 
-      ! Q = Ka*E**-alpha*e^(-E/Emax), with Ka given by: int Q(E')*E'dE' = L_inj
-      ! [Linj]=erg/s, [Q]=1/erg/s
-      integral=0.d0
-      do i=1,mE_p
+      ! Q = Ka*E**-alpha*e^(-E/Emax), with Ka given by: int Q(E')*E'dE' = L_inj. 
+      ! [Linj]=erg/s, [Q]=1/erg/s. The integral is solved with the trapezoid method
+      integral = 0.d0
+      y1 = E_p(1)**(-alpha_NT+1.d0)*exp(-E_p(1)/Emax_p)
+      do i = 1, mE_p-1
+         y2 = E_p(i+1)**(-alpha_NT+1.d0)*exp(-E_p(i+1)/Emax_p)
+         y = (y1 + y2)/2.d0
          dE_p = E_p(i)*(Eint_p-1.d0)
-         integral = integral + E_p(i)**(-alpha_NT+1.d0)*exp(-E_p(i)/Emax_p)*dE_p
+         integral = integral + y*dE_p
+         y1 = y2
       end do
       Ka_p = L_inj_p/integral
 

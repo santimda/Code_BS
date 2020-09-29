@@ -3,7 +3,7 @@ module diste
    private 
    public :: diste_run
 
-contains
+   contains
 
    !============================================================================
    ! diste_run
@@ -26,17 +26,18 @@ contains
       real(dp) :: log_coul,gdot_coul,t_coul,cte_sy,cte_br,p_br
       real(dp) :: t_coole,t_esc(mE_e),t_loss
       real(dp) :: log10Emax,D_Bohm
+      real(dp) :: y, y1, y2
       real(dp) :: E2_e,dE2_e,Emin2_e,Emax2_e,Eint2_e,integral,S,Q
       real(dp) :: E_punto,Emax_e,Ka,E_NT,L_inj_e,c_s,efi_ac,cte_ac
       real(dp) :: T_6,n_a,L_inj,B,B_par,cte_Bohm
 
       interface
-         subroutine Biseccion(logEmax,c1,c2,c3,t_br,t_adv,cte_ac,cB,c_sy)
-            use iso_fortran_env, only: dp => real64
-            implicit none
-            real(dp), intent(in) :: c1,c2,c3,t_br,t_adv,cte_ac,cB,c_sy
-            real(dp), intent(out) :: logEmax
-         end subroutine Biseccion
+      subroutine Biseccion(logEmax,c1,c2,c3,t_br,t_adv,cte_ac,cB,c_sy)
+         use iso_fortran_env, only: dp => real64
+         implicit none
+         real(dp), intent(in) :: c1,c2,c3,t_br,t_adv,cte_ac,cB,c_sy
+         real(dp), intent(out) :: logEmax
+      end subroutine Biseccion
       end interface
 
       allocate( N_e(mE_e),E_e(mE_e) )
@@ -54,7 +55,7 @@ contains
          c_s = c_s_RS
          efi_ac = efi_ac_RS
          B = B_RS
-         else if (shock=='FS') then     
+      else if (shock=='FS') then     
          n_a = n_sh_FS
          T_6 = T_sh_FS/1.d6
          L_inj = L_inj_FS
@@ -101,14 +102,18 @@ contains
       call vector_log(Emin_e,10.d0*Emax_e,Eint_e,E_e)
 
       ! Q = Ka*E**-alpha*e^(-E/Emax), with Ka given by: int Q(E')*E'dE' = L_inj
-      ! [Linj]=erg/s, [Q]=1/erg/s
-      integral=0.d0
-      do i=1,mE_e
+      ! [Linj]=erg/s, [Q]=1/erg/s. The integral is solved with the trapezoid method
+      integral = 0.d0
+      y1 = E_e(1)**(-alpha_NT+1.d0)*exp(-E_e(1)/Emax_e)
+      do i = 1, mE_e-1
+         y2 = E_e(i+1)**(-alpha_NT+1.d0)*exp(-E_e(i+1)/Emax_e)
+         y = (y1 + y2)/2.d0
          dE_e = E_e(i)*(Eint_e-1.d0)
-         integral = integral + E_e(i)**(-alpha_NT+1.d0)*exp(-E_e(i)/Emax_e)*dE_e
+         integral = integral + y*dE_e
+         y1 = y2
       end do
       Ka = L_inj_e/integral
-
+      
       !=======================================================================
       ! Calculate the electron steady-state energy distribution
 
@@ -142,7 +147,7 @@ contains
          t_ic_IR = C_ic_IR*gamm/F_iso(4.*gamm*T_IR_ad)
          t_ic_CMB = C_ic_CMB*gamm/F_iso(4.*gamm*T_CMB_ad)       
          t_ic = 1./(1.d0/t_ic_st + 1.d0/t_ic_IR + 1.d0/t_ic_CMB)      
-       
+
          gdot_coul = 3.d-14*n_a*log_coul/sqrt(gamm**2-1.d0) ! Pittard2006
          t_coul = gamm/gdot_coul*z_ion    ! Not sure, Coulomb losses = ionization losses ?
 
@@ -205,12 +210,12 @@ Subroutine Biseccion(x3,c1,c2,c3,t_br,t_adv,c_ac,cB,c_sy)
    real(dp), intent(in) :: c1,c2,c3,t_br,t_adv,c_ac,cB,c_sy 
    real(dp), intent(out) :: x3
    interface
-      function resta(a,ic1,ic2,ic3,t_br,t_adv,c_ac,cB,c_sy)
-         use iso_fortran_env, only: dp => real64
-         implicit none
-         real(dp) :: resta
-         real(dp), intent(in) :: a,ic1,ic2,ic3,t_br,t_adv,c_ac,cB,c_sy
-      end function resta
+   function resta(a,ic1,ic2,ic3,t_br,t_adv,c_ac,cB,c_sy)
+      use iso_fortran_env, only: dp => real64
+      implicit none
+      real(dp) :: resta
+      real(dp), intent(in) :: a,ic1,ic2,ic3,t_br,t_adv,c_ac,cB,c_sy
+   end function resta
    end interface
 
    ! Error in nth step < |a-b|/2**n
@@ -223,9 +228,9 @@ Subroutine Biseccion(x3,c1,c2,c3,t_br,t_adv,c_ac,cB,c_sy)
       c_ = (a_+b_)/2.
       if ( abs(resta(c_,c1,c2,c3,t_br,t_adv,c_ac,cB,c_sy)) <= 1.d-8 ) then
          b_ = c_
-         elseif (resta(a_,c1,c2,c3,t_br,t_adv,c_ac,cB,c_sy)*resta(c_,c1,c2,c3,t_br,t_adv,c_ac,cB,c_sy) < 0) then
+      elseif (resta(a_,c1,c2,c3,t_br,t_adv,c_ac,cB,c_sy)*resta(c_,c1,c2,c3,t_br,t_adv,c_ac,cB,c_sy) < 0) then
          b_ = c_
-         elseif (resta(a_,c1,c2,c3,t_br,t_adv,c_ac,cB,c_sy)*resta(c_,c1,c2,c3,t_br,t_adv,c_ac,cB,c_sy) > 0) then
+      elseif (resta(a_,c1,c2,c3,t_br,t_adv,c_ac,cB,c_sy)*resta(c_,c1,c2,c3,t_br,t_adv,c_ac,cB,c_sy) > 0) then
          a_ = c_
       endif
    end do
