@@ -18,15 +18,15 @@ module system_parameters
 
    !--------------------------------------------------------------------------------------
    ! Star
-   real(dp), parameter :: v_st = 600.d5             !
-   real(dp), parameter :: T_st = 2.9d4             ! K2017  
+   real(dp), parameter :: v_st = 1000.d5             !
+   real(dp), parameter :: T_st = 2.5d4             ! K2017  
    real(dp), parameter :: T_st_ad = k*T_st/mec2     ! Adimensional stellar temperature
    !real(dp), parameter :: L_st = 7.d5*L_sun        ! del Valle 2012
    !real(dp), parameter :: R_st = sqrt( L_st/(4.*pi*sigma*T_st**4.) ) 
-   real(dp), parameter :: R_st = 5.5*R_sun          ! K2017  
+   real(dp), parameter :: R_st = 4.8*R_sun          ! K2017  
    real(dp), parameter :: L_st = 4.d0*pi*R_st**2*sigma*T_st**4 ! Stellar luminosity 
-   real(dp), parameter :: Mdot = 1.d-8*M_sun_yr     ! 
-   real(dp), parameter :: v_w =  1500.d5            ! Peri 2014
+   real(dp), parameter :: Mdot = 1.d-9*M_sun_yr     ! 
+   real(dp), parameter :: v_w =  1200.d5            ! Peri 2014
    real(dp), parameter :: L_wind = 0.5d0*(Mdot*v_w**2) ! Wind kinetic power
    real(dp), parameter :: L_inj_RS = frac_BS*L_wind    ! Wind kinetic power injeted in the RS
    real(dp), parameter :: v_st_rot = 0.1d0*v_w      ! Rule-of-thumb
@@ -38,8 +38,8 @@ module system_parameters
    !--------------------------------------------------------------------------------------
    ! ISM
    real(dp), parameter :: v_ISM = v_st             ! ISM speed in the star's ref. frame
-   real(dp), parameter :: n_ISM = 10.d0            ! 
-   real(dp), parameter :: T_ISM = 1.d2             ! 10000 K = warm ISM
+   real(dp), parameter :: n_ISM = 0.1d0            ! 
+   real(dp), parameter :: T_ISM = 1.d4             ! 10000 K = warm ISM
    real(dp), parameter :: T_ISM_ad = k*T_ISM/mec2  ! Adimensional ISM temperature 
    real(dp), parameter :: mu_ISM = 1.28_dp         ! mean atomic weight for an atomic cloud
    real(dp), parameter :: gamma_ISM = 1.0_dp       ! abundance parameter ???
