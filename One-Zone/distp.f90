@@ -236,7 +236,7 @@ Function resta_p(log10E,t_pp,t_adv,c_ac,cB)
 
    t_coolp = t_pp 
 
-   t_loss = min(t_coolp,t_esc) ! general losses
+   t_loss = 1.d0/(1.d0/t_coolp + 1.d0/t_esc) ! general losses
 
    t_ac = c_ac*E_l
    resta_p = t_loss - t_ac

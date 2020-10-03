@@ -262,7 +262,7 @@ Function resta(log10E,c1,c2,c3,t_br,t_adv,c_ac,cB,c_sy)
 
    t_coole = 1./(1.d0/t_sy + 1.d0/t_ic_st + 1.d0/t_ic_IR + 1./t_br + 1.d0/t_ic_CMB)
 
-   t_loss = min(t_coole,t_esc) ! general losses
+   t_loss = 1.d0/(1.d0/t_coole + 1.d0/t_esc) ! general losses
 
    t_ac = c_ac*E_l
    resta = t_loss - t_ac
