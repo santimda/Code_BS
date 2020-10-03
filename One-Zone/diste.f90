@@ -157,9 +157,9 @@ module diste
          t_diff = R_acel**2/(2.*D_Bohm) ! del Valle 2012
 
          t_esc(i) = 1./(1./t_adv + 1.d0/t_diff) ! escape
-
-         t_loss = min(t_esc(i),t_coole)    ! general losses      
-
+  
+         t_loss = 1.d0/(1.d0/t_coole + 1.d0/t_esc(i))     ! general losses
+   
          t_ac = cte_ac*E_e(i)
 
          ! N(E)=1/|dE/dt|*S, with |dE/dt|= E/t_loss

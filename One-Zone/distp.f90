@@ -141,7 +141,7 @@ contains
          t_diff = R_acel**2/(2.*D_Bohm)   ! del Valle 2012
          t_esc = 1./( 1./t_adv + 1.d0/t_diff ) ! escape
 
-         t_loss = min(t_cool_p,t_esc)     ! general losses
+         t_loss = 1.d0/(1.d0/t_cool_p + 1.d0/t_esc)     ! general losses
 
          t_ac = cte_ac*E_p(i)
 
