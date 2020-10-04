@@ -68,9 +68,9 @@ contains
       call vector_log(10.d6*eV,E_p(mE_p),Ef_int,Ef)
 
       Lpp = 0.d0
-      sum_pp=0.d0  
+      sum_pp = 0.d0  
       mE_pi = mE_f    ! Initial value
-      do i = 1,mE_f           ! Ef(i) 
+      do i = 1, mE_f           ! Ef(i) 
          dEf = Ef(i)*(Ef_int-1.d0)
 
          ! Different formalism according to energy range:
@@ -86,7 +86,7 @@ contains
                dE_pi = Epi(j)*(Epi_int-1.d0)
                Epp = Epi(j)/K_pi + mpc2       ! Eq.75 Kelner+2006
                i_p = int(log(Epp/Emin_p)/log(Eint_p))+1
-               if (i_p <= mE_pi .and. Epp <= E_p(mE_p) .and. Epp > E_th) then 
+               if (i_p <= mE_p .and. Epp <= E_p(mE_p) .and. Epp > E_th) then 
                   L1 = log(Epp/TeV)    
                   qpi = n_pp*N_p(i_p)*sigma_pp(L1,Epp)/K_pi ! Eq.77 Kelner+2006 [1/erg/s]
                   integral = integral + qpi*dE_pi/sqrt(Epi(j)**2-(m_pic2)**2) 
@@ -99,8 +99,8 @@ contains
 
          ! Eq.72 Kelner+2006 for Ep > 100 GeV -> Ef > 0.01 TeV
          else 
-            integral=0.d0
-            do j=1,mE_p
+            integral = 0.d0
+            do j = 1, mE_p
                if (Ef(i) < E_p(j)) then
                   dE_p = E_p(j)*(Eint_p-1.d0)
                   x_pp = Ef(i)/E_p(j)
