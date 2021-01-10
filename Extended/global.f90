@@ -16,11 +16,11 @@ module global
    !===========================================================
    ! Simulation grid/vectors size
 
-   integer, parameter :: m_theta = 400 ! angular resolution in the CD/shock
+   integer, parameter :: m_theta = 200 ! angular resolution in the CD/shock
    integer, parameter :: mE_e = 256    ! energy resolution for electrons
    integer, parameter :: mE_p = 200    ! energy resolution for protons < mE_f 
    integer, parameter :: mE_f = 300    ! it is the same for br, p-p and IC
-   integer, parameter :: mphi = 6      ! amount of linear-emitters
+   integer, parameter :: mphi = 20      ! amount of linear-emitters
    real(dp) :: delta_phi = 0.5*pi/(mphi-1.d0) ! angular separation between linear-emitters
    real(dp) :: d_phi = 0.5*pi/mphi     ! angular width of each linear-emitter or wedge
 
@@ -256,10 +256,14 @@ module global
    ! p-p cross section
 
    Function sigma_pp(L1,Ep)
-      real(dp), intent(in) :: L1,Ep
+      real(dp), intent(in) :: L1, Ep
       real(dp) :: sigma_pp
-      sigma_pp = (34.3d0 + 1.88d0*L1 + 0.25d0*L1**2)*1.d-27 !cm²
-      sigma_pp = sigma_pp*(1.d0-(E_th/Ep)**4)**2 ! Add factor for better fit at low energies 
+      if (Ep < E_th) then !E_th= 1.22 GeV
+         sigma_pp = 0.d0
+      else           
+         sigma_pp = (34.3d0 + 1.88d0*L1 + 0.25d0*L1**2)*1.d-27 !cm²
+         sigma_pp = sigma_pp*(1.d0-(E_th/Ep)**4)**2 ! Add factor for better fit at low energies 
+      endif
       return
    end Function sigma_pp
 

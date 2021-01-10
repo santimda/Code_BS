@@ -16,13 +16,12 @@ eV = 1.602176e-12
 a = 4.0*pi*dist**2.
 
 plot './data_radio2010.dat' u 1:2:3:4:5:6 w xyerrorbars pt 7 lc 7 t 'VLA',\
-     '../radsyn_abs.dat' u (log10($1)):(log10($3)) t 'sync' w l lw 2 lc 1,\
-     '../radsyn_abs.dat' u (log10($1)):(log10($2)) t '' w l lw 2 dt 2 lc 1,\
-     '../radic_IR.dat' u (log10($1)):(log10($2)) t 'IC-dust' w l lw 2,\
-     '../radic_st.dat' u (log10($1)):(log10($2)) t 'IC-star' w l lw 2 smooth bezier,\
-     '../radic_CMB.dat' u (log10($1)):(log10($2)) t 'IC-CMB' w l lw 2 smooth bezier,\
-     '../radbr.dat' u (log10($1)):(log10($2)) t 'rel. br.' w l lw 2 smooth bezier,\
-     '../radpp.dat' u (log10($1)):(log10($2)) t 'p-p' w l lw 2 #smooth bezier
+     '../radsyn_RS.dat' u (log10($1)):(log10($2)) t '' w l lw 2 dt 2 lc 1,\
+     '../radic_IR_RS.dat' u (log10($1)):(log10($2)) t 'IC-dust' w l lw 2,\
+     '../radic_st_RS.dat' u (log10($1)):(log10($2)) t 'IC-star' w l lw 2 smooth bezier,\
+     '../radic_CMB_RS.dat' u (log10($1)):(log10($2)) t 'IC-CMB' w l lw 2 smooth bezier,\
+     '../radbr_RS.dat' u (log10($1)):(log10($2)) t 'rel. br.' w l lw 2 smooth bezier,\
+     '../radpp_RS.dat' u (log10($1)):(log10($2)) t 'p-p' w l lw 2 #smooth bezier
 
 set terminal postscript color solid enhanced dl 2.5 lw 2.2 "Helvetica" 21
 set output 'SED.ps'

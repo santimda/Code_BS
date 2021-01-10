@@ -1,7 +1,6 @@
 eV=1.602176e-12
 set encoding iso_8859_1
-set title ''
-#'Electron distribution in SW'
+set title '' #'Electron distribution in SW'
 set xrange [9:14.9]
 set yrange [40:]
 set xlabel 'log_{10}(E_p [eV])'; set ylabel offset 0.0,-0.1

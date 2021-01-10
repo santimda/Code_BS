@@ -92,7 +92,7 @@ module CD_radpp
         dEf = Ef(i)*(Ef_int-1.d0)
         ! We use a different formalism in 2 energy ranges: 
 
-        if (Ef(i) < 0.1d0*TeV) then     ! Ef < 100 GeV
+        if (Ef(i) < 0.01d0*TeV) then     ! Ep < 100 GeV -> Ef < 0.01 TeV
           allocate(Epi(mE_pi))
           Epi_min = Ef(i)+(m_pic2)**2/4.d0/Ef(i)
           Epi_min = Epi_min*1.005d0     ! Factor to avoid numerical errors very close to Epi_min
@@ -102,20 +102,19 @@ module CD_radpp
             dE_pi = Epi(j)*(Epi_int-1.d0)
             Epp = n_pp*Epi(j)/kappa_pp + mpc2       ! Eq.75 Kelner+2006
             i_p = int(log(Epp/Emin_p)/log(Eint_p))+1
-            if (i_p <= mE_pi .and. Epp <= E_p(mE_p) .and. Epp > E_th) then 
+            if (i_p <= mE_p .and. Epp <= E_p(mE_p) .and. Epp > E_th) then 
               L1 = log(Epp/TeV)    
               qpi = n_pp*N_p(i_p)*sigma_pp(L1,Epp)/K_pi ! Eq.77 Kelner+2006 [1/erg/s]
               integral = integral + qpi*dE_pi/sqrt(Epi(j)**2-(m_pic2)**2) 
             end if
           end do              ! E_pi
-
           Q_Ef = 2.d0*c*n_a(l)*integral*z_pp   !Eq.78 Kelner+2006
           Lpp(i) = Ef(i)*Q_Ef
           deallocate(Epi)
           mE_pi = MAX(mE_pi-1,32) ! Diminish the number of points 
 
 
-        elseif (Ef(i) > 0.1d0*TeV) then  ! Ef > 100 GeV > Emin_p
+        elseif (Ef(i) > 0.01d0*TeV) then  ! Ef > 100 GeV > Emin_p
           integral=0
           do j=1,mE_p
             if (Ef(i) < E_p(j)) then

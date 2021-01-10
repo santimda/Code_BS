@@ -4,7 +4,7 @@ set title ''
 set ylabel 'log_{10}({E_e}^2 N_e(E_e) [erg])'
 set xlabel 'log_{10}(E_e [eV])'
 set xrange [6:14]
-set yrange [35:39]
+#set yrange [35:39]
 set ytics 1; set mytics 2
 
 eV = 1.602176e-12

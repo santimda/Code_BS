@@ -8,6 +8,8 @@ module system_parameters
    ! This module contains the parameters of the specific system modelled
    !====================================================================
 
+   character, parameter :: diff_regime = 'F' ! diffusion regime (F, S, K, B)
+
    real(dp), parameter :: distance = 1.32d0*kpc         ! source distance K2017
    real(dp), parameter :: inclination = 30.d0*pi/180.d0 ! angle between v_star and the LOS [rad]
    ! i = 0° is face-on, i = 90° corresponds to BS in front of the star, i = -90° is BS behind the star
@@ -18,15 +20,15 @@ module system_parameters
 
    !--------------------------------------------------------------------------------------
    ! Star
-   real(dp), parameter :: v_st = 1000.d5             !
-   real(dp), parameter :: T_st = 2.5d4             ! K2017  
+   real(dp), parameter :: v_st = 70.d5             ! Peri 2014 
+   real(dp), parameter :: T_st = 4.07d4            ! K2017  
    real(dp), parameter :: T_st_ad = k*T_st/mec2     ! Adimensional stellar temperature
    !real(dp), parameter :: L_st = 7.d5*L_sun        ! del Valle 2012
    !real(dp), parameter :: R_st = sqrt( L_st/(4.*pi*sigma*T_st**4.) ) 
-   real(dp), parameter :: R_st = 4.8*R_sun          ! K2017  
+   real(dp), parameter :: R_st = 19.*R_sun            ! K2017  
    real(dp), parameter :: L_st = 4.d0*pi*R_st**2*sigma*T_st**4 ! Stellar luminosity 
-   real(dp), parameter :: Mdot = 1.d-9*M_sun_yr     ! 
-   real(dp), parameter :: v_w =  1200.d5            ! Peri 2014
+   real(dp), parameter :: Mdot = 6.5d-6*M_sun_yr   ! Peri 2014
+   real(dp), parameter :: v_w =  2325.d5           ! Peri 2014
    real(dp), parameter :: L_wind = 0.5d0*(Mdot*v_w**2) ! Wind kinetic power
    real(dp), parameter :: L_inj_RS = frac_BS*L_wind    ! Wind kinetic power injeted in the RS
    real(dp), parameter :: v_st_rot = 0.1d0*v_w      ! Rule-of-thumb
@@ -38,7 +40,7 @@ module system_parameters
    !--------------------------------------------------------------------------------------
    ! ISM
    real(dp), parameter :: v_ISM = v_st             ! ISM speed in the star's ref. frame
-   real(dp), parameter :: n_ISM = 0.1d0            ! 
+   real(dp), parameter :: n_ISM = 1.d0            ! 
    real(dp), parameter :: T_ISM = 1.d4             ! 10000 K = warm ISM
    real(dp), parameter :: T_ISM_ad = k*T_ISM/mec2  ! Adimensional ISM temperature 
    real(dp), parameter :: mu_ISM = 1.28_dp         ! mean atomic weight for an atomic cloud
@@ -88,7 +90,7 @@ module system_parameters
    ! Non-thermal particles
    real(dp), parameter :: efi_ac_RS = 2.d0*pi*(c/v_w)**2    ! Particle accel. efficiency at the RS
    real(dp), parameter :: efi_ac_FS = 2.d0*pi*(c/v_ISM)**2  ! Particle accel. efficiency at the FS
-   real(dp), parameter :: alpha_NT = 2.01d0            ! Injection spectral index
+   real(dp), parameter :: alpha_NT = 2.21d0            ! Injection spectral index
    real(dp), parameter :: R_acel = R0  !
 
    real(dp), parameter :: frac_NT = 0.1_dp             ! Fraction of L_inj_perp converted to L_NT
@@ -98,7 +100,7 @@ module system_parameters
    !real(dp), parameter :: B = frac_B*sqrt(4.d0*pi*rho_w*4.*v_w**2) 
    ! If U_mag = frac*U_th -> B^2/4pi = frac*(g_ad/(g_ad - 1))*P 
    ! If P_mag = frac*P_th -> B^2/8pi = frac*P 
-   real(dp), parameter :: frac_B = sqrt(0.1_dp)        ! Fraction B/B_equipartition
+   real(dp), parameter :: frac_B = sqrt(0.9_dp)        ! Fraction B/B_equipartition
    real(dp), parameter :: B_RS = frac_B*sqrt(Mdot*v_w/R0**2) ! del Valle 2012
    real(dp), parameter :: B_FS = frac_B*sqrt(6.d0*pi*rho_ISM*v_ISM**2) ! P ~ 3/4*rho*v^2
 

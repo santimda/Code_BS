@@ -22,17 +22,17 @@ contains
       real(dp) :: L_inj_p,integral,Ka_p,Emax_p,log10Emax
       real(dp) :: y, y1, y2
       real(dp) :: Q,S,t_adv,t_pp,t_diff,t_ac,t_loss,t_esc,t_adi,t_cool_p
-      real(dp) :: b_pp,sigma_pp,L1,E_punto,c_s,E_NT,D_Bohm,b_ion,t_ion
+      real(dp) :: b_pp,sigma_pp,L1,E_punto,c_s,E_NT,b_ion,t_ion
       real(dp) :: dE2_p,E2_p,Eint2_p,Emax2_p,Emin2_p,efi_ac,cte_ac
-      real(dp) :: n_a,L_inj,B,B_par,cte_Bohm
+      real(dp) :: n_a,L_inj,B,B_par
       real(dp), parameter :: E_th=1.22d9*eV, TeV=1.d12*eV, kappa_pp=0.5d0
       integer :: mE2
 
       interface
-         subroutine Biseccion_p(logEmax,t_pp,t_adv,cte_ac,cB)
+         subroutine Biseccion_p(logEmax,t_pp,t_adv,cte_ac,B)
             use iso_fortran_env, only: dp => real64
             implicit none
-            real(dp), intent(in) :: t_pp,t_adv,cte_ac,cB
+            real(dp), intent(in) :: t_pp,t_adv,cte_ac,B
             real(dp), intent(out) :: logEmax
          end subroutine Biseccion_p
       end interface
@@ -67,7 +67,6 @@ contains
       ! Define some relevant constants and timescales
       
       cte_ac = efi_ac/(B_par*c*qe)
-      cte_Bohm = c/(3.d0*qe*B)
 
       t_adv = R0/c_s 
       t_adi = 3.d0*R0/c_s*5.d0! adiabatic losses: dE/dt = 1/3*d(log(rho))/dl *E*v, delta_rho/rho ~ 0.2 
@@ -80,7 +79,7 @@ contains
       endif
 
       ! Search for maximum proton energy
-      call Biseccion_p(log10Emax,t_pp,t_adv,cte_ac,cte_Bohm)
+      call Biseccion_p(log10Emax,t_pp,t_adv,cte_ac,B)
       Emax_p = MIN(10.d0**log10Emax,qe*B_par*R_acel)! Hillas criterion
 
       ! Build a logarithmic-spaced energy vector
@@ -137,8 +136,7 @@ contains
          t_ion = E_p(i)/b_ion
          t_cool_p = 1./(1./t_pp + 1./t_adi)
 
-         D_Bohm = E_p(i)*cte_Bohm
-         t_diff = R_acel**2/(2.*D_Bohm)   ! del Valle 2012
+         t_diff = R_acel**2/(D_diff(E_p(i),B)) ! Romero & Muller 2018
          t_esc = 1./( 1./t_adv + 1.d0/t_diff ) ! escape
 
          t_loss = 1.d0/(1.d0/t_cool_p + 1.d0/t_esc)     ! general losses
@@ -182,20 +180,20 @@ END module distp
 !                                                                         //
 !///////////////////////////////////////////////////////////////////////////
 
-Subroutine Biseccion_p(x3,t_pp,t_adv,c_ac,cB)
+Subroutine Biseccion_p(x3,t_pp,t_adv,c_ac,B)
    use global
    implicit none
    integer, parameter :: t_err = 4
-   real(dp), intent(in) :: t_pp,t_adv,c_ac,cB
+   real(dp), intent(in) :: t_pp,t_adv,c_ac,B
    real(dp), intent(out) :: x3
    real(dp) :: a_,b_,c_,err
 
    interface
-      function resta_p(a,t1,t2,c_ac,cB)
+      function resta_p(a,t1,t2,c_ac,B)
          use iso_fortran_env, only: dp => real64
          implicit none
          real(dp) :: resta_p
-         real(dp), intent(in) :: a,t1,t2,c_ac,cB
+         real(dp), intent(in) :: a,t1,t2,c_ac,B
       end function resta_p
    end interface
 
@@ -207,11 +205,11 @@ Subroutine Biseccion_p(x3,t_pp,t_adv,c_ac,cB)
    do while ( abs(b_ - a_) > err )
       i = i+1
       c_ = (a_+b_)/2.
-      if ( abs(resta_p(c_,t_pp,t_adv,c_ac,cB)) <= 1.d-8 ) then
+      if ( abs(resta_p(c_,t_pp,t_adv,c_ac,B)) <= 1.d-8 ) then
          b_ = c_
-         else if (resta_p(a_,t_pp,t_adv,c_ac,cB)*resta_p(c_,t_pp,t_adv,c_ac,cB) < 0) then
+         else if (resta_p(a_,t_pp,t_adv,c_ac,B)*resta_p(c_,t_pp,t_adv,c_ac,B) < 0) then
          b_ = c_
-         else if (resta_p(a_,t_pp,t_adv,c_ac,cB)*resta_p(c_,t_pp,t_adv,c_ac,cB) > 0) then
+         else if (resta_p(a_,t_pp,t_adv,c_ac,B)*resta_p(c_,t_pp,t_adv,c_ac,B) > 0) then
          a_ = c_
       endif
    end do
@@ -221,17 +219,16 @@ end Subroutine Biseccion_p
 
 !/////////////////////////////////////////////////////////////////////////
 
-Function resta_p(log10E,t_pp,t_adv,c_ac,cB)
+Function resta_p(log10E,t_pp,t_adv,c_ac,B)
    use global
    implicit none
-   real(dp), intent(in) :: log10E,t_pp,t_adv,c_ac,cB
+   real(dp), intent(in) :: log10E,t_pp,t_adv,c_ac,B
    real(dp) :: resta_p,E_l,t_diff,t_ac,t_coolp
-   real(dp) :: D_Bohm,t_loss,t_esc
+   real(dp) :: t_loss,t_esc
 
    E_l = 10.d0**log10E
 
-   D_Bohm = E_l*cB
-   t_diff = R_acel**2/(2.*D_Bohm) ! del Valle 2012
+   t_diff = R_acel**2/(D_diff(E_l,B)) ! Romero & Muller 2018
    t_esc = 1./(1./t_adv + 1.d0/t_diff) ! escape
 
    t_coolp = t_pp 

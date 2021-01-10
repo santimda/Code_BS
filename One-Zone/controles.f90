@@ -24,7 +24,7 @@ logical, parameter :: radbr_calc = yes
 logical, parameter :: radic_calc = yes
 logical, parameter :: radpp_calc = yes
 
-logical, parameter :: opac_ff_calc = no!yes
+logical, parameter :: opac_ff_calc = yes
 logical, parameter :: abssyn_calc = no!yes
 
 !===================================================

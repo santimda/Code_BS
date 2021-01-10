@@ -188,6 +188,31 @@ contains
    end Function F_4
 
    !============================================================================
+   !  Diffusion coefficients
+   !============================================================================
+
+   Function D_diff(E,B)
+      real(dp) :: D_diff
+      real(dp), intent(in) :: E, B 
+      real(dp), parameter :: delta=1./3.d0, E0=1.d10*eV !Kolm MW normalization   
+      !character :: diff_regime --> Defined in system_parameters
+      if (diff_regime == 'K') then           !Kolmogorov   
+         D_diff = 3.86d28*(E/E0)**delta      !cm^2 s^-1
+      else if (diff_regime == 'B') then      ! Bohm diff
+         D_diff = E*c/(3.d0*qe*B)            !cm^2 s^-1
+      else if (diff_regime == 'S') then      ! del Valle+2018
+         D_diff = 1.d25*(E/E0)**0.5d0      !cm^2 s^-1
+      else if (diff_regime == 'F') then      ! del Valle+2018
+         D_diff = 1.d27*(E/E0)**0.5d0      !cm^2 s^-1
+      else 
+         write(*,*) 'ERROR, UNKNOWN DIFFUSION'
+         stop
+      endif
+
+      RETURN
+   end Function D_diff
+
+   !============================================================================
 
 
 

@@ -78,7 +78,6 @@ module diste
       ! Define some relevant constants and timescales
 
       cte_ac = efi_ac/(B_par*c*qe)
-      cte_Bohm = c/(3.d0*qe*B)
       cte_sy = 6.*pi*mec2**2/(c*sigma_T*B**2)   ! Valid for isotropic e- distribution
       log_coul = 29.7d0 + log( T_6/sqrt(n_a) ) 
 
@@ -95,7 +94,7 @@ module diste
       t_br = 1.d15/n_a/z_br   ! added z_be according to Padovani+2018; very approximated expression
 
       ! Search for maximum electron energy
-      call Biseccion(log10Emax,C_ic_st,C_ic_IR,C_ic_CMB,t_br,t_adv,cte_ac,cte_Bohm,cte_sy)
+      call Biseccion(log10Emax,C_ic_st,C_ic_IR,C_ic_CMB,t_br,t_adv,cte_ac,B,cte_sy)
       Emax_e = MIN(10.d0**log10Emax,qe*B_par*R_acel)! Hillas criterion
 
       ! Build a logarithmic-spaced energy vector
@@ -154,7 +153,7 @@ module diste
          t_coole = 1./(1.d0/t_sy + 1.d0/t_ic + 1.d0/t_br + 1.d0/t_adi + 1.d0/t_coul) 
 
          D_Bohm = E_e(i)*cte_Bohm
-         t_diff = R_acel**2/(2.*D_Bohm) ! del Valle 2012
+         t_diff = R_acel**2/D_diff(E_e(i),B) ! del Valle 2012
 
          t_esc(i) = 1./(1./t_adv + 1.d0/t_diff) ! escape
   
@@ -202,19 +201,19 @@ END module diste
 !                                                                         //
 !///////////////////////////////////////////////////////////////////////////
 
-Subroutine Biseccion(x3,c1,c2,c3,t_br,t_adv,c_ac,cB,c_sy)
+Subroutine Biseccion(x3,c1,c2,c3,t_br,t_adv,c_ac,B,c_sy)
    use global
    implicit none
    integer, parameter :: t_err = 4
    real(dp) :: a_,b_,c_,err
-   real(dp), intent(in) :: c1,c2,c3,t_br,t_adv,c_ac,cB,c_sy 
+   real(dp), intent(in) :: c1,c2,c3,t_br,t_adv,c_ac,B,c_sy 
    real(dp), intent(out) :: x3
    interface
-   function resta(a,ic1,ic2,ic3,t_br,t_adv,c_ac,cB,c_sy)
+   function resta(a,ic1,ic2,ic3,t_br,t_adv,c_ac,B,c_sy)
       use iso_fortran_env, only: dp => real64
       implicit none
       real(dp) :: resta
-      real(dp), intent(in) :: a,ic1,ic2,ic3,t_br,t_adv,c_ac,cB,c_sy
+      real(dp), intent(in) :: a,ic1,ic2,ic3,t_br,t_adv,c_ac,B,c_sy
    end function resta
    end interface
 
@@ -226,11 +225,11 @@ Subroutine Biseccion(x3,c1,c2,c3,t_br,t_adv,c_ac,cB,c_sy)
    do while ( abs(b_ - a_) > err )
       i = i+1
       c_ = (a_+b_)/2.
-      if ( abs(resta(c_,c1,c2,c3,t_br,t_adv,c_ac,cB,c_sy)) <= 1.d-8 ) then
+      if ( abs(resta(c_,c1,c2,c3,t_br,t_adv,c_ac,B,c_sy)) <= 1.d-8 ) then
          b_ = c_
-      elseif (resta(a_,c1,c2,c3,t_br,t_adv,c_ac,cB,c_sy)*resta(c_,c1,c2,c3,t_br,t_adv,c_ac,cB,c_sy) < 0) then
+      elseif (resta(a_,c1,c2,c3,t_br,t_adv,c_ac,B,c_sy)*resta(c_,c1,c2,c3,t_br,t_adv,c_ac,B,c_sy) < 0) then
          b_ = c_
-      elseif (resta(a_,c1,c2,c3,t_br,t_adv,c_ac,cB,c_sy)*resta(c_,c1,c2,c3,t_br,t_adv,c_ac,cB,c_sy) > 0) then
+      elseif (resta(a_,c1,c2,c3,t_br,t_adv,c_ac,B,c_sy)*resta(c_,c1,c2,c3,t_br,t_adv,c_ac,B,c_sy) > 0) then
          a_ = c_
       endif
    end do
@@ -240,18 +239,17 @@ end Subroutine Biseccion
 
 !/////////////////////////////////////////////////////////////////////////
 
-Function resta(log10E,c1,c2,c3,t_br,t_adv,c_ac,cB,c_sy)
+Function resta(log10E,c1,c2,c3,t_br,t_adv,c_ac,B,c_sy)
    use global
    implicit none
-   real(dp), intent(in) :: log10E,c1,c2,c3,t_br,t_adv,c_ac,cB,c_sy
+   real(dp), intent(in) :: log10E,c1,c2,c3,t_br,t_adv,c_ac,B,c_sy
    real(dp) :: resta,E_l,gamm
    real(dp) :: t_sy,t_ic_st,t_ic_IR,t_ic_CMB,t_ac,t_coole
-   real(dp) :: D_Bohm,t_diff,t_loss,t_esc
+   real(dp) :: t_diff,t_loss,t_esc
 
    E_l = 10.d0**log10E
 
-   D_Bohm = E_l*cB
-   t_diff = R_acel**2/(2.*D_Bohm) ! del Valle 2012
+   t_diff = R_acel**2/(D_diff(E_l,B))  ! Romero & Muller 2018
    t_esc = 1./(1./t_adv + 1.d0/t_diff) ! escape
 
    gamm = E_l/mec2

@@ -32,6 +32,7 @@ module CD_radic
     LIC = 0.d0 
     LIC_tot = 0.d0
 
+    write(*,*) 'Calculate the IC(st) emission'
     !------------------------------------------------------------------------
     !
     !  Reading information here  
@@ -157,6 +158,7 @@ module CD_radic
     LIC = 0.d0 
     LIC_tot = 0.d0
 
+    write(*,*) 'Calculate the IC(IR) emission'
     !------------------------------------------------------------------------
     !
     !  Reading information here  

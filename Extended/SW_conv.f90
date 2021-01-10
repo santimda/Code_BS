@@ -36,7 +36,7 @@ contains
     ci = abs(cos(incli))
 
     open(188,file='R0_proj.dat')
-    write(188,*) 0.d0,R0_proj
+    write(188,*) 0.d0,R0_proj/abs(cos(incli))
     close(188)
 
     !///////////////////////////////////////////////////////
@@ -160,9 +160,10 @@ contains
     use global
     implicit none
     integer, parameter :: m_tot = (2*(mphi-1))*(m_theta*2)    ! Total number of data
-    real(dp), parameter :: sigma_x = 12.d0, sigma_y = 12.d0   ! Benaglia2010
-!    real(dp), parameter :: coc = sqrt(8.d0*log(2.d0))        ! Benaglia gives sigma, not theta!
-!    real(dp), parameter :: theta_x = sigma_x*coc, theta_y = sigma_y*coc ! HPBW = Resolution (Ben2010)  
+    !real(dp), parameter :: coc = sqrt(8.d0*log(2.d0))         ! theta to sigma
+    !real(dp), parameter :: theta_x = 20.2d0, theta_y = 12.5d0   ! HPBW = Resolution 
+    !real(dp), parameter :: sigma_x = theta_x/coc, sigma_y = theta_y/coc   ! Benaglia2010
+    real(dp), parameter :: sigma_x = 20.2d0, sigma_y = 12.5d0   ! Benaglia2020
     real(dp) :: x_map(m_tot),y_map(m_tot)
     real(dp) :: F_3Gabs(m_tot),F_3Gun(m_tot)
     real(dp) :: ancho_x, ancho_y, D_x, D_y,ci
@@ -174,7 +175,7 @@ contains
     real(dp) :: A_beam,A_cell, suma2,x_map2(m_map),y_map2(m_map),S_map2(m_map)
 
     A_beam = 2*pi*sigma_x*sigma_y     ! = Gaussian normalization factor 
-    A_cell = f_Ny**2.*sigma_x*sigma_y ! cell sample size
+    A_cell = f_Ny**2*sigma_x*sigma_y ! cell sample size
 
     ci = abs(cos(incli))
 
@@ -227,8 +228,8 @@ contains
           
           suma=1.d-9  ! simulate noise (?)
           do l=1,m_tot
-             d_pesada2 = ((x_map(l)-x_c(i))**2.d0)/(2.d0*sigma_x**2.d0) + &
-                  ((y_map(l)-y_c(j))**2.d0)/(2.d0*sigma_y**2.d0) ! added extra sigma
+             d_pesada2 = ((x_map(l)-x_c(i))**2)/(2.d0*sigma_x**2) + &
+                  ((y_map(l)-y_c(j))**2)/(2.d0*sigma_y**2) ! added extra sigma
              if (d_pesada2 < 6.d0) then 
                 ! Gaussian beam -> /(sigma*sqrt(2*pi)), both in x and y
                 atenua = exp( -d_pesada2 ) !/ norm
@@ -241,8 +242,8 @@ contains
 
           suma2 = 0.d0
           do l=1,m_map
-             d_pesada2 = ((x_map2(l)-x_c(i))**2.d0)/(2.d0*sigma_x**2.d0) + &
-                  ((y_map2(l)-y_c(j))**2.d0)/(2.d0*sigma_y**2.d0) ! added extra sigma
+             d_pesada2 = ((x_map2(l)-x_c(i))**2)/(2.d0*sigma_x**2) + &
+                  ((y_map2(l)-y_c(j))**2)/(2.d0*sigma_y**2) ! added extra sigma
              if (d_pesada2 < 6.d0) then      
                 ! Gaussian beam -> /(sigma*sqrt(2*pi)), both in x and y
                 atenua = exp( -d_pesada2 ) !/ norm
@@ -250,10 +251,10 @@ contains
              else
                 D_F = 0.d0 ! flux drops < 1e-3 farther from there, no need to sum
              endif
-             suma2 = suma2 + D_f
+             suma2 = suma2 + D_F
           enddo
           
-          F_map3Gabs(i,j) = suma + suma2
+          F_map3Gabs(i,j) = suma + suma2 ! >>>>> CHECK! FF FLUX TOO HIGH!
        enddo
 
     enddo

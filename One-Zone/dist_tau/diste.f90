@@ -246,13 +246,13 @@ END module diste
     
     !/////////////////////////////////////////////////////////////////////////
     
-    Function resta(log10E,c1,c2,c3,tloss)
+    Function resta(log10E,c1,c2,c3,tloss,B)
       use global
       implicit none
       real(dp), intent(in) :: log10E,c1,c2,c3,tloss
       real(dp) :: resta,E_l,gamm
       real(dp) :: tsy,tic_st,tic_IR,tic_CMB,tac,tcoole
-      real(dp) :: D_Bohm,tdif
+      real(dp) :: tdif
 
       E_l = 10.d0**log10E
       gamm = E_l/mec2
@@ -263,7 +263,6 @@ END module diste
       tic_IR = c2*gamm/F_iso(4.*gamm*T_IR_ad)    
       tic_CMB = c3*gamm/F_iso(4.*gamm*T_CMB_ad)
 
-      D_Bohm = E_l*c/(3.d0*qe*B)
       tdif = H0**2/(2.*D_Bohm) ! del Valle 2012
 
       tcoole = 1./(1.d0/tsy + 1.d0/tic_st + 1.d0/tic_IR + &

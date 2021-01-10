@@ -78,16 +78,13 @@ PROGRAM main
 
       if (diste_sw_calc) call CD_diste_run 
 
-      if (radsyn_sw_calc) call CD_radsyn_run      ! Just one linear emitter      
+      if (radsyn_sw_calc) call CD_radsyn_run       ! Just one linear emitter      
 
       if (opacff_calc) call opac_ff_run
 
-      if (radbr_sw_calc) call CD_radbr_run(unscr) ! Just one linear emitter  
+      if (radbr_sw_calc) call CD_radbr_run(unscr)  ! Just one linear emitter  
 
-      if (radic_ir_calc) then
-         write(*,*) 'Calculate the IC(IR) emission'
-         call CD_radic_ir_run !(phi)
-      endif
+      if (radic_ir_calc) call CD_radic_ir_run      !(phi)
 
       ! IC-star emission, g-g and f-f absorption depend on the 3D position, so we make
       ! linear-emitters for different phi-values.      
@@ -128,7 +125,7 @@ PROGRAM main
             if (maps_calc.eqv.yes) then           
                write(*,*) 'Save synthetic radio emission maps'
                open(55,file='CD_radiomap_1GHz.dat') ! 1.4 GHz
-               open(56,file='CD_radiomap_3GHz.dat') ! 4.8 GHz
+               open(56,file='CD_radiomap_3GHz.dat') ! 3.0 GHz
                open(57,file='CD_radiomap_5GHz.dat') ! 4.8 GHz
                do i_l = 1,2*m_theta
                   read(55,*) u_proj,v_proj,emi,emi_abs

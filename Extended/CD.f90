@@ -32,6 +32,7 @@ contains
 
       write(*,*) 'Calculate the CD position'
 
+      write(*,80) 'alpha = ', k*T_ISM/(mp*mu_ISM*v_ISM**2) ! P_thermal_ISM /P_kin_ISM kT_ISM/(mu*m_p*v_ISM**2)
       !-----------------------------------------------------------------------------
       !  Scheme: We calculate the (theta,r(theta)) positions of the CD. We build  
       !  arrays theta(n),r(theta(n)), such that the star is located at r=0 
@@ -43,7 +44,7 @@ contains
 
       80  format(A12,X,F5.2)
       90  format(A8,X,Es10.2)
-      100 format(A17,X,F5.2)
+      100 format(A17,X,F5.2,X,A12)
 
       ! ----------------------------------------------------------------------------
       ! Set the initial conditions:
@@ -56,7 +57,7 @@ contains
       dtheta = (theta_max-theta(1))/float(m_theta)
       dR(1) = R0*r_norm(1)*theta(1)  ! theta(1) =/ 0
       Length(1) = 0.d0
-      do i=2,m_theta
+      do i = 2, m_theta
 
          theta(i)=theta(i-1) + dtheta
          ! The subroutine RK obtains r(i) using theta(i-1),r(i-1), and dtheta. 
@@ -67,7 +68,7 @@ contains
          dR(i) = R0*sqrt( r_norm(i-1)**2 + r_norm(i)**2 - 2.*r_norm(i)*r_norm(i-1)*cos(dtheta) ) ! cosine theorem
          Length(i) = Length(i-1) + dR(i)   
       end do
-      write(*,100) 'R0_proj[arcmin] =',R0_proj/60.
+      write(*,100) 'R0_proj[arcmin] =',R0_proj/60./abs(cos(incli)), ' (no cos(i))'
       write(*,90) 'R0[pc] =', R0/pc
       write(*,80) 'Length[R0] =', Length(m_theta)/R0
 
