@@ -19,7 +19,7 @@ contains
       logical, intent(in) :: screened
       Real(dp) :: dummy,n_a(m_theta),dsigma_Br,cte_sigma,u_br
       Real(dp) :: Ef_int,dEf,sum,sum_br
-      Real(dp) :: gamma(mE_f), Eps(mE_f), Ef(mE_f)
+      Real(dp) :: gamma_e(mE_e), Eps(mE_f), Ef(mE_f)
       Integer :: nl
 
       interface
@@ -61,7 +61,6 @@ contains
       end do
       close(14) 
       Eint_e = E_e(2)/E_e(1)
-      gamma = E_e/mec2
 
       !------------------------------------------------------------
       ! Build Ef vector for the SED with Ef_min = 1 keV
@@ -77,7 +76,7 @@ contains
       Lbr_tot = 0.d0
 
       Eps = Ef/mec2
-      gamma = E_e/mec2
+      gamma_e = E_e/mec2
 
       ! At each position we calculate the brem. emission; then we sum all.
       sum_br=0.d0
@@ -89,12 +88,12 @@ contains
          do i = 1,mE_f              ! Eps(i) 
             dEf = Ef(i)*(Ef_int-1.d0)
             sum = 0.d0
-            do j = 1,mE_e              ! N_e(j),gamma(j)
-               u_br = Eps(i)/gamma(j)     ! energy ratio
+            do j = 1,mE_e              ! N_e(j),gamma_e(j)
+               u_br = Eps(i)/gamma_e(j)     ! energy ratio
                if (u_br > 1.d0) then   ! Ef <= Ee from energy conservation
                   dsigma_Br = 0.d0  ![cm**2/m_e c2]
                else
-                  dsigma_Br= cte_sigma*Phi_Br(u_br,gamma(j),screened) !/Ef(i), cancels later
+                  dsigma_Br= cte_sigma*Phi_Br(u_br,gamma_e(j),screened) !/Ef(i), cancels later
                   if (dsigma_Br > 0.d0) then !Phi_Br can yield negative values in bad E ranges
                      P_ef = n_a(l)*c*dsigma_Br ! *Ef(i), cancels in dsigma_Br; [P_eps] = 1/seg
                      dE_e = E_e(j)*(Eint_e-1.d0)
