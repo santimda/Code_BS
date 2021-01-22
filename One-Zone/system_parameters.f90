@@ -8,7 +8,7 @@ module system_parameters
    ! This module contains the parameters of the specific system modelled
    !====================================================================
 
-   character, parameter :: diff_regime = 'F' ! diffusion regime (F, S, K, B)
+   character, parameter :: diff_regime = 'B' ! diffusion regime (F, S, K, B)
 
    real(dp), parameter :: distance = 1.32d0*kpc         ! source distance K2017
    real(dp), parameter :: inclination = 30.d0*pi/180.d0 ! angle between v_star and the LOS [rad]

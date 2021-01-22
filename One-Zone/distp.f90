@@ -52,7 +52,7 @@ contains
          c_s = c_s_RS
          efi_ac = efi_ac_RS
          B = B_RS
-         else if (shock=='FS') then     
+      else if (shock=='FS') then     
          n_a = n_sh_FS
          L_inj = L_inj_FS
          c_s = c_s_FS

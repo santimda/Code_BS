@@ -74,10 +74,9 @@ END PROGRAM main
 
       character(LEN=*), intent(in) :: shock
       real(dp) :: E_NT_p, E_NT_e, E_NT
-      real(dp) :: U_NT, U_B, eta_mag, B
+      real(dp) :: U_NT, U_B, eta_mag
 
-815   format(A11,X,Es10.2)
-825   format(A8,X,Es10.2)
+825   format(A13,X,Es7.1)
 
       !--------------------------------
 
@@ -112,35 +111,22 @@ END PROGRAM main
 
       !--------------------------------
 
-      write(*,*) 'Calculate the total relativistic particles energy'
+      write(*,*) '\n Calculate eta_mag = U_B/U_NT'
       
-      E_NT = E_NT_e+E_NT_p
-      Write(*,815) 'E_NT [erg]=', E_NT
+      E_NT = E_NT_e + E_NT_p
 
-      !--------------------------------
-     
-      U_NT = E_NT/(R0**2*H)   ! Define the NT energy density
+      U_NT = E_NT/(pi*R0**2*H0)      ! Define the NT energy density
 
-      !--------------------------------
-      
-      if (shock=='RS') then        
-         n_a = n_sh_RS
-         B = B_RS
-         write(*,*) 'B_RS=', B
-         else if (shock=='FS') then     
-         n_a = n_sh_FS
-         B = B_FS
-         write(*,*) 'B_FS=', B
+      if (shock=='RS') then     
+         U_B = B_RS**2/(8.*pi)      ! Define the magnetic energy density
+      else if (shock=='FS') then    
+         U_B = B_FS**2/(8.*pi)      ! Define the magnetic energy density
       end if
       
-      U_B = B**2/(8.*pi)      ! Define the magnetic energy density
+      eta_mag = U_B/U_NT            ! De Becker 2017  
+      write(*,825) 'eta_mag =', eta_mag
 
       !--------------------------------
-
-      write(*,*) 'Calculate eta_mag'
-
-      eta_mag = U_B/U_NT      ! De Becker 2017  
-      write(*,825) 'eta_mag=', eta_mag
 
    end subroutine calculate
 

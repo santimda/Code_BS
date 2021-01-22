@@ -18,10 +18,9 @@ module diste
    subroutine diste_run(shock, E_NT_e)   
       use global
       implicit none
+
       character(LEN=*), intent(in) :: shock
       real(dp), intent(out) :: E_NT_e
-
-      integer :: mE2
       real(dp) :: gamm,const_ic,C_ic_st,C_ic_IR,C_ic_CMB
       real(dp) :: t_ic_st,t_ic_IR,t_ic_CMB,t_ic,t_sy,t_ac,t_adv,t_br,t_diff,t_adi
       real(dp) :: log_coul,gdot_coul,t_coul,cte_sy,cte_br,p_br
@@ -31,6 +30,7 @@ module diste
       real(dp) :: E2_e,dE2_e,Emin2_e,Emax2_e,Eint2_e,integral,S,Q
       real(dp) :: E_punto,Emax_e,Ka,L_inj_e,c_s,efi_ac,cte_ac
       real(dp) :: T_6,n_a,L_inj,B,B_par,cte_Bohm
+      integer :: mE2
 
       interface
       subroutine Biseccion(logEmax,c1,c2,c3,t_br,t_adv,cte_ac,cB,c_sy)
