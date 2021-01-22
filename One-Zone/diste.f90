@@ -15,10 +15,11 @@ module diste
    !============================================================================
 
 
-   subroutine diste_run(shock)   
+   subroutine diste_run(shock, E_NT_e)   
       use global
       implicit none
       character(LEN=*), intent(in) :: shock
+      real(dp), intent(out) :: E_NT_e
 
       integer :: mE2
       real(dp) :: gamm,const_ic,C_ic_st,C_ic_IR,C_ic_CMB
@@ -28,7 +29,7 @@ module diste
       real(dp) :: log10Emax,D_Bohm
       real(dp) :: y, y1, y2
       real(dp) :: E2_e,dE2_e,Emin2_e,Emax2_e,Eint2_e,integral,S,Q
-      real(dp) :: E_punto,Emax_e,Ka,E_NT,L_inj_e,c_s,efi_ac,cte_ac
+      real(dp) :: E_punto,Emax_e,Ka,L_inj_e,c_s,efi_ac,cte_ac
       real(dp) :: T_6,n_a,L_inj,B,B_par,cte_Bohm
 
       interface
@@ -173,22 +174,23 @@ module diste
       !===================================================
       !   Save the distribution 
 
-      E_NT = 0.d0
+      E_NT_e = 0.d0
       open(79,file='dist_e_'//shock//'.dat') ! Electron energy distribution
       open(69,file='inj_e_'//shock//'.dat')  ! Approx. electron E-distribution neglecting radiative losses
       do i=1,mE_e
          dE_e = E_e(i)*(Eint_e - 1.d0)  
-         E_NT = E_NT + E_e(i)*N_e(i)*dE_e  ! Control
+         E_NT_e = E_NT_e + E_e(i)*N_e(i)*dE_e  ! Control
          write(79,*) E_e(i)/eV,N_e(i)
          write(69,*) E_e(i)/eV,Ka*E_e(i)**(-alpha_NT)*exp(-E_e(i)/Emax_e)*t_esc(i)
       end do
-      !write(*,810) 'E_NT =',E_NT
+      write(*,810) 'E_NT(e) [erg] =',E_NT_e
       close(79)
       close(69)
 
       deallocate( N_e,E_e ) 
 
    END subroutine diste_run
+
 
 
 END module diste
