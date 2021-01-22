@@ -73,13 +73,18 @@ END PROGRAM main
       use radadi, only: radadi_run
 
       character(LEN=*), intent(in) :: shock
+      real(dp) :: E_NT_p, E_NT_e, E_NT
+      real(dp) :: U_NT, U_B, eta_mag, B
+
+815   format(A11,X,Es10.2)
+825   format(A8,X,Es10.2)
 
       !--------------------------------
 
       IF (electrons) then
          write(*,*) '\n ELECTRONS:'
 
-         if (diste_calc) call diste_run(shock)
+         if (diste_calc) call diste_run(shock, E_NT_e)
          if (radbr_calc) call radbr_run(shock)
 
          if (radic_calc) then
@@ -89,7 +94,7 @@ END PROGRAM main
          endif
 
          if (radsyn_calc) call radsyn_run(shock)
-         if (opac_ff_calc) call opac_ff_run
+        ! if (opac_ff_calc) call opac_ff_run
          if (abssyn_calc) call abssyn_run(shock)
 
       ENDIF
@@ -99,13 +104,43 @@ END PROGRAM main
       IF (protons) then
          write(*,*) '\n PROTONS:'
 
-         if (distp_calc) call distp_run(shock)      
+         if (distp_calc) call distp_run(shock, E_NT_p)      
 
          if (radpp_calc) call radpp_run(shock)
 
       ENDIF
 
       !--------------------------------
+
+      write(*,*) 'Calculate the total relativistic particles energy'
+      
+      E_NT = E_NT_e+E_NT_p
+      Write(*,815) 'E_NT [erg]=', E_NT
+
+      !--------------------------------
+     
+      U_NT = E_NT/(R0**2*H)   ! Define the NT energy density
+
+      !--------------------------------
+      
+      if (shock=='RS') then        
+         n_a = n_sh_RS
+         B = B_RS
+         write(*,*) 'B_RS=', B
+         else if (shock=='FS') then     
+         n_a = n_sh_FS
+         B = B_FS
+         write(*,*) 'B_FS=', B
+      end if
+      
+      U_B = B**2/(8.*pi)      ! Define the magnetic energy density
+
+      !--------------------------------
+
+      write(*,*) 'Calculate eta_mag'
+
+      eta_mag = U_B/U_NT      ! De Becker 2017  
+      write(*,825) 'eta_mag=', eta_mag
 
    end subroutine calculate
 

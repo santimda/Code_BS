@@ -14,15 +14,16 @@ contains
    ! so that t_loss = min(t_rad,t_esc)
    !============================================================================
 
-   subroutine distp_run(shock)   
+   subroutine distp_run(shock, E_NT_p)   
       use global
       implicit none
 
       character(LEN=*), intent(in) :: shock
+      real(dp), intent(out) :: E_NT_p
       real(dp) :: L_inj_p,integral,Ka_p,Emax_p,log10Emax
       real(dp) :: y, y1, y2
       real(dp) :: Q,S,t_adv,t_pp,t_diff,t_ac,t_loss,t_esc,t_adi,t_cool_p
-      real(dp) :: b_pp,sigma_pp,L1,E_punto,c_s,E_NT,b_ion,t_ion
+      real(dp) :: b_pp,sigma_pp,L1,E_punto,c_s,b_ion,t_ion
       real(dp) :: dE2_p,E2_p,Eint2_p,Emax2_p,Emin2_p,efi_ac,cte_ac
       real(dp) :: n_a,L_inj,B,B_par
       real(dp), parameter :: E_th=1.22d9*eV, TeV=1.d12*eV, kappa_pp=0.5d0
@@ -38,7 +39,7 @@ contains
       end interface
 
       allocate( N_p(mE_p),E_p(mE_p) )
-      810  format(A11,X,Es10.2)
+      810  format(A15,X,Es10.2)
 
       write(*,*) '\n Calculate the non-thermal proton distribution in the SW'
 
@@ -154,15 +155,15 @@ contains
       !===================================================
       !   Save the distribution 
 
-      E_NT = 0.d0
+      E_NT_p = 0.d0
       open(79,file='dist_p_'//shock//'.dat')
       do i=1,mE_p
          dE_p = E_p(i)*(Eint_p-1.d0)
-         E_NT = E_NT + E_p(i)*N_p(i)*dE_p
+         E_NT_p = E_NT_p + E_p(i)*N_p(i)*dE_p
          write(79,*) E_p(i)/eV,N_p(i) 
       end do
       close(79)
-      !write(*,810) 'E_NT(p)=', E_NT
+      write(*,810) 'E_NT(p) [erg]=', E_NT_p
 
       deallocate( N_p,E_p ) 
 
