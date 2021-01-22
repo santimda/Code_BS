@@ -29,7 +29,7 @@ module system_parameters
    !real(dp), parameter :: L_st = 4.d0*pi*R_st**2*sigma*T_st**4 ! Stellar luminosity 
    real(dp), parameter :: L_st = 8.7d5*L_sun       ! K2018
    !real(dp), parameter :: Mdot = 9.d-6*M_sun_yr    ! Peri 2014
-   real(dp), parameter :: Mdot = 1.d-5*M_sun_yr    ! Benaglia2020 (2.5 for alpha>0.3)
+   real(dp), parameter :: Mdot = 1.d-5*M_sun_yr    ! Benaglia2020 (2.d-5 for alpha>0.3)
    !real(dp), parameter :: Mdot = 5.5d-6*M_sun_yr  ! Brookes 2016
    !real(dp), parameter :: v_w =  2200.d5          ! del Valle 2012
    !real(dp), parameter :: v_w =  2325.d5          ! Peri 2014
@@ -55,15 +55,14 @@ module system_parameters
    real(dp), parameter :: T_ISM = 1.d4             ! warm ISM (Brookes p.136 uses T=8e3)
    real(dp), parameter :: T_ISM_ad = k*T_ISM/mec2  ! Adimensional ISM temperature 
    !real(dp), parameter :: U_ISM = 4.d0*sigma*T_ISM**4/c ! average energy density
-   real(dp), parameter :: alpha_ISM = 1.d-2        ! P_thermal_ISM = alpha*P_kin_ISM ~ kT_ISM/(mu*m_p*v_ISM**2)
+   real(dp), parameter :: alpha_ISM = 5.d-2        ! P_thermal_ISM = alpha*P_kin_ISM ~ kT_ISM/(mu*m_p*v_ISM**2)
    real(dp), parameter :: lambda = alpha_ISM/(alpha_ISM + 1.d0)
-   real(dp), parameter :: mu_ISM = 0.5_dp           ! Pure H ionized
+   real(dp), parameter :: mu_ISM = 1.38_dp          ! K2018; 0.5 for pure H ionized
    real(dp), parameter :: Zq_ISM = 1.0_dp           ! Z = rms ionic charge
    real(dp), parameter :: gamma_ISM = 1.0_dp        ! Pure H
 
    real(dp), parameter :: rho_ISM = n_ISM*mp*mu_ISM ! CHECK
    real(dp), parameter :: R0 = sqrt( (Mdot*v_w)/(4.*pi*(1.+alpha_ISM)*rho_ISM*v_ISM**2) ) 
-   real(dp), parameter :: H0 = R0*0.3             ! shock width
    real(dp), parameter :: R0_proj = (R0/AU)/(distance/pc)*abs(cos(incli)) ! angular distance ["] to the BS stagnation point
    ! Peri 2014: R0_proj ~ 3.5 arcmin; K2018: R0_proj ~ 193" ~ 3.2 arcmin; Ben2020: ~3.9 arcmin
 
@@ -89,9 +88,10 @@ module system_parameters
    ! Non-thermal particles
    real(dp), dimension(:), allocatable :: efi_ac_sw! particle accel. efficiency at the sw  (l)
    !real(dp), parameter :: frac_sw = sqrt(0.999_dp) ! fraction sqrt(UB_sw/UB_equipartition_sw)
-   real(dp), parameter :: frac_sw = sqrt(0.15_dp) ! fraction sqrt(UB_sw/UB_equipartition_sw)
+   real(dp), parameter :: frac_sw = sqrt(0.128_dp) ! fraction sqrt(UB_sw/UB_equipartition_sw), f_NT=1
    real(dp), parameter :: alpha_sw = 2.2_dp        ! injection spectral index in the sw 
-   real(dp), parameter :: frac_NT = 1.d0          ! Fraction L_NT/L_inj_perp, alpha=0.01, eta_B=0.1
+   real(dp), parameter :: frac_NT = 1.d0          ! Fraction L_NT/L_inj_perp, alpha=0.05, eta_B=0.15
+   !real(dp), parameter :: frac_NT = 1.53d-1       ! Fraction L_NT/L_inj_perp, alpha=0.05, eta_B=1
    !real(dp), parameter :: frac_NT = 1.14d-1          ! Fraction L_NT/L_inj_perp, alpha=0.35, eta_B=0.1
    !real(dp), parameter :: frac_NT = 7.8d-1          ! Fraction L_NT/L_inj_perp, alpha=0.35, eta_B=0.01
    !real(dp), parameter :: frac_NT = 4.6d-2          ! Fraction L_NT/L_inj_perp, alpha=0.01, eta_B=1

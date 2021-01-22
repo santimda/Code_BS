@@ -35,12 +35,12 @@ logical, parameter :: escribir_e = yes
 
 !----------
 
-logical, parameter :: protons = no!yes
+logical, parameter :: protons = yes
 
 logical, parameter :: distp_calc = yes
-logical, parameter :: radpp_calc = yes
+logical, parameter :: radpp_calc = no!yes
 
-logical, parameter :: escribir_p = yes
+logical, parameter :: escribir_p = no!yes
 
 !===================================================
 

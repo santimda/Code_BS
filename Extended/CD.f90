@@ -32,7 +32,7 @@ contains
 
       write(*,*) 'Calculate the CD position'
 
-      write(*,80) 'alpha = ', k*T_ISM/(mp*mu_ISM*v_ISM**2) ! P_thermal_ISM /P_kin_ISM kT_ISM/(mu*m_p*v_ISM**2)
+      !write(*,80) 'alpha = ', k*T_ISM/(mp*mu_ISM*v_ISM**2) ! P_thermal_ISM /P_kin_ISM kT_ISM/(mu*m_p*v_ISM**2)
       !-----------------------------------------------------------------------------
       !  Scheme: We calculate the (theta,r(theta)) positions of the CD. We build  
       !  arrays theta(n),r(theta(n)), such that the star is located at r=0 

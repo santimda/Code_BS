@@ -25,7 +25,7 @@ module CD_diste
       real(dp) :: cte_sy, gamm, cte_IC, C_ic_st,kC_ic_st, C_ic_IR(m_theta),kC_ic_IR
       real(dp) :: log_coul,gdot_coul,cte_coul,t_coul
       real(dp) :: log10Emaxl,R_acel,Q,integral
-      real(dp) :: E_dot(m_theta,mE_e),Emax_e0(m_theta),Ka,E_NT
+      real(dp) :: E_dot(m_theta,mE_e),Emax_e0(m_theta),Ka,E_NT,dVol,U_NT
       real(dp) :: N_e0(mE_e),n_a(m_theta),L_inj(m_theta),dR(m_theta)
       real(dp) :: L_inj_e(m_theta), sum,dummy
       real(dp) :: dE_aprox, cool
@@ -293,7 +293,9 @@ module CD_diste
             E_NT = E_NT + E_e(i)*N_etot(l,i)*dE_e
          end do
          E_NT = E_NT * 4.d0*mphi ! Total NT energy in each BS "ring"
-         write(80,*) l, E_NT
+         dVol = 2.d0*pi*R_theta(m_theta)*sin(theta(l))*dR(m_theta)*H_theta(m_theta) ! Volume of the "ring"
+         U_NT = E_NT/dVol
+         write(80,*) l, E_NT, U_NT, U_NT/(8.d0*pi*B(l)**2)! Store the energy density as well
          sum = sum + E_NT
       end do
       close(80)

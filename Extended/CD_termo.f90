@@ -167,8 +167,8 @@ SUBROUTINE A_theta(theta0,st,ct,r1,A_z,A_omega,H0_norm)
 
    g_theta = 2.*(v_ISM/v_w)*(1.-ct) !+ r1**2.*st**2.*(1.-lambda) ! Eq. 22
 
-   !  H0_norm = 0.5*(g_ad-1.)/(g_ad+1.) * (v_w/v_ISM)**2.* (g_theta**2.)/(f_theta*st) ! Eq. 23
-   H0_norm = 0.2d0 ! + (theta0/2./pi)**2.
+   H0_norm = 0.5*(g_ad-1.)/(g_ad+1.) * (v_w/v_ISM)**2.* (g_theta**2.)/(f_theta*st) ! Eq. 23
+   !H0_norm = 0.2d0 ! + (theta0/2./pi)**2.
 
    RETURN
 
