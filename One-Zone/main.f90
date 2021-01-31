@@ -93,7 +93,7 @@ END PROGRAM main
          endif
 
          if (radsyn_calc) call radsyn_run(shock)
-        ! if (opac_ff_calc) call opac_ff_run
+         if (opac_ff_calc) call opac_ff_run
          if (abssyn_calc) call abssyn_run(shock)
 
       ENDIF

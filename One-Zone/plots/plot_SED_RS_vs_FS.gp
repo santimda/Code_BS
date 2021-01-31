@@ -1,12 +1,12 @@
 set encoding iso_8859_1
-set key box out vertical right
+set key box out horizontal top
 set key font ",10"
 set xrange [-7:14]
 set yrange [20:28]
 set xtics 3; set mxtics 3
 set ytics 2; set mytics 2  
 set xlabel 'log_{10} ({/Symbol e} [eV])'
-set ylabel 'log_{10} ({/Symbol e} L({/Symbol e}) [erg s^{-1}])'
+set ylabel 'log_{10} ({/symbol e} L({/symbol e}) [erg s^{-1}])'
 set pointsize 1.5
 
 plot '../radsyn_FS.dat' u (log10($1)):(log10($3)) t 'sy (FS)' w l lw 2 dt 2 lc 1,\
