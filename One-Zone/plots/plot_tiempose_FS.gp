@@ -1,10 +1,14 @@
 set encoding iso_8859_1
 #set title 'Electron characteristic timescales (forward shock)'
+set size square
 set xrange [6:12.2]
 set yrange [3:19]
 set ylabel 'log_{10}(t [s])'
 set xlabel 'log_{10}(E_e [eV])'
 set key box out horizontal top
+
+set terminal postscript color solid enhanced dl 2.5 lw 1.7 "Helvetica" 20
+set output 'tiempose_FS.eps'
 
 plot '../tcoole_FS.dat' u (log10($1)):(log10($2)) t 'IC' w l lw 2,\
       '../tcoole_FS.dat' u (log10($1)):(log10($9)) t 'IC,st' w l dt 2,\
@@ -18,8 +22,5 @@ plot '../tcoole_FS.dat' u (log10($1)):(log10($2)) t 'IC' w l lw 2,\
       '../tcoole_FS.dat' u (log10($1)):(log10($15)) t 'adi' w l lw 2 lc rgb "pink",\
       '../tcoole_FS.dat' u (log10($1)):(log10($7)) t 'cool' w l lw 3
 
-
-set terminal postscript color solid enhanced dl 2.5 lw 1.7 "Helvetica" 20
-set output 'tiempose_FS.ps'
-replot
-!./fixbb tiempose_FS.ps
+!./fixbb tiempose_FS.eps
+!epstopdf tiempose_FS.eps
