@@ -1,17 +1,21 @@
 set encoding iso_8859_1
 set title ''
 set key off
-set ylabel 'log_{10}({E_p}^2 N_p(E_p) [erg])'
-set xlabel 'log_{10}(E_p [eV])'
-set xrange [9:13]
-set yrange [28:36]
-set ytics 1; set mytics 2
-set xtics 1; set mxtics 2
+set ylabel 'log_{10}({E_p}^2 N_p(E_p) [erg])' font "Helvetica,18"
+set xlabel 'log_{10}(E_p [eV])' font "Helvetica,18"
+set xrange [9:14]
+set yrange [32:41]
+set ytics 1; set mytics 2 
+set xtics 1; set mxtics 2 
+set label "B2-60-d" at 12,40
+set bmargin 0.2
+
 eV = 1.602176e-12
 
-plot '../dist_p_RS.dat' u (log10($1)):(log10((($1)*eV)**2.21*($2))) w l lw 3 
+set terminal postscript color solid enhanced dl 2.5 lw 1.7 "Helvetica" 20
+set output 'distp_RS.eps
 
-set terminal postscript color solid enhanced dl 3.5 lw 2.7 "Helvetica" 20
-set output 'dist_p_RS.ps'
-replot
-!./fixbb dist_p_RS.ps
+plot '../dist_p_RS.dat' u (log10($1)):(log10((($1)*eV)**2*($2))) w l lw 3 
+
+!./fixbb distp_RS.eps
+!epstopdf distp_RS.eps
