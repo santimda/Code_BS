@@ -7,7 +7,8 @@ set xrange [9:14]
 set yrange [32:42]
 set ytics 1 font "Helvetica,18"; set mytics 2 
 set xtics 1 font "Helvetica,18"; set mxtics 2 
-set label "NAME" at 12,40
+set label "NAME" at graph 0.05,0.95 font "Helvetica,18"
+set size square
 eV = 1.602176e-12
 
 set terminal postscript color solid enhanced dl 2.5 lw 1.7 "Helvetica" 20
