@@ -9,7 +9,7 @@ set xlabel 'log_{10} ({/Symbol e} [eV])'
 set ylabel 'log_{10} ({/Symbol e} L({/Symbol e}) [erg s^{-1}])'
 set bmargin 0.2
 set pointsize 1.5
-set label "B2-60-d" at -6.5,28.5 font "Helvetica,18"
+set label "NAME" at -6.5,28.5 font "Helvetica,18"
 
 set terminal postscript color solid enhanced dl 2.5 lw 1.7 "Helvetica" 20
 set output 'SED_RS_vs_FS.eps'

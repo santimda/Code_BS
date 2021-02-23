@@ -7,7 +7,7 @@ set xrange [6:14]
 set yrange [30:39]
 set ytics 1 font "Helvetica,18"; set mytics 2 
 set ytics 1 font "Helvetica,18"; set mytics 2 
-set label "B2-60-d" at 12,38 font "Helvetica,18"
+set label "NAME" at 12,38 font "Helvetica,18"
 
 set bmargin 0.2
 

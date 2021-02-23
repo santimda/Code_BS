@@ -18,12 +18,23 @@ cd plots
 sed "s/NAME/${name}/g" plot_tiempose_FS.gp > temp.gp
 gnuplot temp.gp
 
-gnuplot plot_tiempose_RS.gp
-gnuplot plot_diste_RS.gp
-gnuplot plot_diste_FS.gp
-gnuplot plot_distp_RS.gp
-gnuplot plot_distp_FS.gp
-gnuplot plot_SED_RS_vs_FS.gp
+sed "s/NAME/${name}/g" plot_tiempose_RS.gp > temp.gp
+gnuplot temp.gp
+
+sed "s/NAME/${name}/g" plot_diste_RS.gp > temp.gp
+gnuplot temp.gp
+
+sed "s/NAME/${name}/g" plot_diste_FS.gp > temp.gp
+gnuplot temp.gp
+
+sed "s/NAME/${name}/g" plot_distp_RS.gp > temp.gp
+gnuplot temp.gp
+
+sed "s/NAME/${name}/g" plot_distp_RS.gp > temp.gp
+gnuplot temp.gp
+
+sed "s/NAME/${name}/g" plot_SED_RS_vs_FS.gp > temp.gp
+gnuplot temp.gp
  
 rename "s/.pdf/_${name}.pdf/" *.pdf
 

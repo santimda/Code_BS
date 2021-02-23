@@ -7,7 +7,7 @@ set xrange [9:14]
 set yrange [32:41]
 set ytics 1; set mytics 2 
 set xtics 1; set mxtics 2 
-set label "B2-60-d" at 12,40
+set label "NAME" at 12,40
 set bmargin 0.2
 
 eV = 1.602176e-12
