@@ -8,7 +8,7 @@ set xlabel 'log_{10}(E_e [eV])' font "Helvetica,18"
 set xtics font "Helvetica,18"
 set ytics 2,2,16 font "Helvetica,18"
 set key box out horizontal top font "Helvetica,18"
-set label "B2-60-d" at 11,15 font ",18"
+set label "NAME" at 11,15 font ",18"
 set lmargin 0.05
 set bmargin 0.05
 

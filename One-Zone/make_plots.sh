@@ -13,7 +13,12 @@ sleep 0.01
 
 # Make plots with gnuplot, rename them, and move them to scenario folder.
 cd plots
-gnuplot plot_tiempose_FS.gp
+
+# To rename the name tag, we create a temporary file
+sed "s/NAME/${name}/g" plot_tiempose_FS.gp > temp.gp
+gnuplot temp.gp
+sed "s/${name}/NAME/g" temp.gp > plot_tiempose_FS.gp
+
 gnuplot plot_tiempose_RS.gp
 gnuplot plot_diste_RS.gp
 gnuplot plot_diste_FS.gp
