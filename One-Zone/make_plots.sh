@@ -17,7 +17,6 @@ cd plots
 # To rename the name tag, we create a temporary file
 sed "s/NAME/${name}/g" plot_tiempose_FS.gp > temp.gp
 gnuplot temp.gp
-sed "s/${name}/NAME/g" temp.gp > plot_tiempose_FS.gp
 
 gnuplot plot_tiempose_RS.gp
 gnuplot plot_diste_RS.gp
