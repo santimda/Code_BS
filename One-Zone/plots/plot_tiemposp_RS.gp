@@ -12,13 +12,14 @@ set label "NAME" at graph 0.8,0.95 font "Helvetica,18"
 set terminal postscript color solid enhanced dl 2.5 lw 1.7 "Helvetica" 20
 set output 'tiemposp_RS.eps'
 
-plot '../tcoolp_RS.dat' u (log10($1)):(log10($2)) t 'ac' w l lw 3,\
+plot  '../tcoolp_RS.dat' u (log10($1)):(log10($6)) t 'Total' w l lw 3,\
+      '../tcoolp_RS.dat' u (log10($1)):(log10($2)) t 'ac' w l lw 3,\
       '../tcoolp_RS.dat' u (log10($1)):(log10($3)) t 'pp' w l lw 2,\
-      '../tcoolp_RS.dat' u (log10($1)):(log10($4)) t 'conv' w l lw 2 lc "magenta",\
-      '../tcoolp_RS.dat' u (log10($1)):(log10($5)) t 'dif' w l lw 2,\
-      '../tcoolp_RS.dat' u (log10($1)):(log10($9)) t 'adi' w l lw 2
-
-      #'../tcoolp_RS.dat' u (log10($1)):(log10($10)) t 'ion' w l lw 2,\
+      '../tcoolp_RS.dat' u (log10($1)):(log10($4)) t 'con' w l lw 3 dt 2 lc rgb '#77ac30',\
+      '../tcoolp_RS.dat' u (log10($1)):(log10($5)) t 'dif' w l lw 2 dt 2 lc "black",\
+      '../tcoolp_RS.dat' u (log10($1)):(log10($9)) t 'adi' w l lw 3 lc "pink",\
+      '../tcoolp_RS.dat' u (log10($1)):(log10($10)) t 'ion' w l lw 2
+      #
       #'../tcoolp_RS.dat' u (log10($1)):(log10($6)) t 'cool' w l lw 3
 
 #'../tcoolp_RS.dat' u (log10($1)):(log10($6)) t 'loss' w l lw 3

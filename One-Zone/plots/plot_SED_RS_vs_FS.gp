@@ -15,16 +15,16 @@ set label "NAME" at graph 0.05,0.95 font "Helvetica,18"
 set terminal postscript color solid enhanced dl 2.5 lw 1.7 "Helvetica" 20
 set output 'SED_RS_vs_FS.eps'
 
-plot '../radsyn_FS.dat' u (log10($1)):(log10($3)) t 'sy (FS)' w l lw 2 dt 2 lc "red",\
-     '../radsyn_RS.dat' u (log10($1)):(log10($2)) t 'sy (RS)' w l lw 2 dt 1 lc "red",\
-     '../radic_IR_FS.dat' u (log10($1)):(log10($2)) t 'IC-dust (FS)' w l lw 2 dt 2 lc 2,\
-     '../radic_IR_RS.dat' u (log10($1)):(log10($2)) t 'IC-dust (RS)' w l lw 2 lc 2,\
-     '../radic_st_FS.dat' u (log10($1)):(log10($2)) t 'IC-star (FS)' w l lw 2 dt 2 lc "magenta" smooth bezier,\
-     '../radic_st_RS.dat' u (log10($1)):(log10($2)) t 'IC-star (RS)' w l lw 2 lc "magenta" smooth bezier,\
-     '../radbr_FS.dat' u (log10($1)):(log10($2)) t 'rel. br. (FS)' w l lw 2 dt 2 lc 5 smooth bezier,\
-     '../radbr_RS.dat' u (log10($1)):(log10($2)) t 'rel. br. (RS)' w l lw 2 lc 5 smooth bezier,\
-     '../radpp_FS.dat' u (log10($1)):(log10($2)) t 'p-p' w l lw 2 dt 2 lc 6 smooth bezier,\
-     '../radpp_RS.dat' u (log10($1)):(log10($2)) t 'p-p' w l lw 2 lc 6 smooth bezier
+plot '../radsyn_FS.dat' u (log10($1)):(log10($3)) t '' w l lw 3 dt 2 lc "red",\
+     '../radsyn_RS.dat' u (log10($1)):(log10($2)) t 'sy (RS)' w l lw 3 dt 1 lc "red",\
+     '../radic_IR_FS.dat' u (log10($1)):(log10($2)) t '' w l lw 3 dt 2 lc rgb "cyan",\
+     '../radic_IR_RS.dat' u (log10($1)):(log10($2)) t 'IC-dust (RS)' w l lw 3 lc rgb "cyan",\
+     '../radic_st_FS.dat' u (log10($1)):(log10($2)) t '' w l lw 3 dt 2 lc "magenta" smooth bezier,\
+     '../radic_st_RS.dat' u (log10($1)):(log10($2)) t 'IC-star (RS)' w l lw 3 lc "magenta" smooth bezier,\
+     '../radbr_FS.dat' u (log10($1)):(log10($2)) t '' w l lw 3 dt 2 lc "gold" smooth bezier,\
+     '../radbr_RS.dat' u (log10($1)):(log10($2)) t 'rel. br. (RS)' w l lw 3 lc "gold" smooth bezier,\
+     '../radpp_FS.dat' u (log10($1)):(log10($2)) t '' w l lw 3 dt 2 lc rgb '#005A32' smooth bezier,\
+     '../radpp_RS.dat' u (log10($1)):(log10($2)) t 'p-p' w l lw 3 lc rgb '#005A32' smooth bezier
 
    #  '../radic_CMB_FS.dat' u (log10($1)):(log10($2)) t 'IC-CMB (FS)' w l lw 2 lc 4 dt 2 smooth bezier,\
    #  '../radic_CMB_RS.dat' u (log10($1)):(log10($2)) t 'IC-CMB (RS)' w l lw 2 lc 4 smooth bezier,\

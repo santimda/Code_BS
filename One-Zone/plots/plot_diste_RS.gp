@@ -3,8 +3,8 @@ set title ''
 #set key off
 set ylabel 'log_{10}({E_e}^2 N_e(E_e) [erg])' font "Helvetica,18"
 set xlabel 'log_{10}(E_e [eV])' font "Helvetica,18"
-set xrange [6:14]
-#set yrange [31:39]
+set xrange [6:13]
+set yrange [28:35]
 set ytics 1 font "Helvetica,18"; set mytics 2 
 set xtics 1 font "Helvetica,18"; set mytics 2 
 set bmargin 0.2
