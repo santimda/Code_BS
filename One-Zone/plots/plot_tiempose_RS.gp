@@ -7,7 +7,9 @@ set ylabel 'log_{10}(t [s])' font "Helvetica,18"
 set xlabel 'log_{10}(E_e [eV])' font "Helvetica,18"
 set xtics 1 font "Helvetica,18"; set mxtics 2
 set ytics 2 font "Helvetica,18"; set mytics 2
-set key box out horizontal top 
+#set key box out horizontal top center
+set key box horizontal at graph 0.5,1.0 center bottom # Remove white space
+set tmargin -10
 set label "NAME" at graph 0.8,0.95 font "Helvetica,18"
 set bmargin 0.05
 
