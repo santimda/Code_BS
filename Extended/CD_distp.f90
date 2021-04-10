@@ -25,7 +25,7 @@ module CD_distp
       real(dp) :: log10Emaxl,R_acel,integral,Q
       real(dp) :: E_dot(m_theta,mE_p),Emax_p0(m_theta),Ka,E_NT,dVol,U_NT
       real(dp) :: N_p0(mE_p),n_a(m_theta),L_inj(m_theta),dR(m_theta)
-      real(dp) :: L_inj_p(m_theta), sum,dummy,b_pp,L1
+      real(dp) :: L_inj_p(m_theta), sum,dummy,b_pp,L1, f1, f2, f
       real(dp) :: dE_aprox ,cool,t_adi(m_theta)
       real(dp), parameter :: kappa_pp=0.5d0
       integer :: index1,index2,count,steps 
@@ -40,6 +40,15 @@ module CD_distp
       end subroutine Biseccion_p
       end interface
       
+      interface
+      function fQp(E,Emax) ! function Q(E)
+         use iso_fortran_env, only: dp => real64
+         implicit none
+         real(dp) :: fQp
+         real(dp), intent(in) :: E,Emax
+      end function fQp
+      end interface
+
       allocate( theta(m_theta),R_theta(m_theta),H_theta(m_theta) )
       allocate( P(m_theta),rho(m_theta),T(m_theta),B(m_theta),v_t(m_theta) )
       allocate( N_p(mE_p),E_p(mE_p),B_par(m_theta),N_ptot(m_theta,mE_p) )
@@ -151,31 +160,35 @@ module CD_distp
       ! At the starting point of the line we calculate the distribution 
       ! Np_0(E_0), the cooling rate Edot0, and we sum it to Np_tot(l,i)
 
-      Do l_min=1,m_theta
+      Do l_min = 1, m_theta
 
          ! Q = Ka*E**-alpha*e^(-E/Emax), alpha=2. The normalization constant Ka is obtained 
-         ! by the condition: int Q(E')*E'dE' = Linj. [Lrel]=erg/seg, [Ka]=erg/seg, [Q]=erg/erg**2/seg
+         ! by the condition: int Q(E')*E'dE' = Linj. [Linj]=erg/s, [Ka]=erg/s, [Q]=1/erg/seg
 
-         integral=0.d0
+         ! The integral is solved with the trapezoid method; Q(E) is obtained from fQp
+         integral = 0.d0
          i = 1
-         do while (i < mE_p+1 .and. E_p(i) < 10.d0*Emax_p0(l_min))
-            dE_p = E_p(i)*(Eint_p - 1.d0)
-            integral = integral + E_p(i)**(-alpha_sw+1.d0)*exp(-E_p(i)/Emax_p0(l_min))*dE_p
-            i=i+1
+         f1 = E_p(1) * fQp(E_p(1), Emax_p0(l_min))
+         do while (i < mE_p .and. E_p(i+1) < 10.d0*Emax_p0(l_min))
+           f2 = E_p(i+1) * fQp(E_p(i+1), Emax_p0(l_min))
+           f = (f1 + f2)/2.d0
+           dE_p = E_p(i)*(Eint_p-1.d0)
+           integral = integral + f*dE_p
+           f1 = f2
+           i = i + 1
          end do
-
-         Ka = L_inj_p(l_min)/integral ! Injected at the starting point of the line
+         Ka = L_inj_p(l_min)/integral ! Injected at the starting point of the line   
 
          !------------------------------------------------------------------------
 
          N_p0 = 0.d0            ! Initialize to zero at each loop in l_min
 
-         i=1
+         i = 1
          do while (i < mE_p+1 .and. E_p(i) < 10.d0*Emax_p0(l_min)) 
             ! N(E)=1/|dE/dt|*int_E^Emax Q(E')dE' = Q(E)*dt, with |dE/dt|= E/t_cool 
             ! in [erg/seg], dt = min(t_cell,t_cool) so that [N(E)]=erg/erg**2
 
-            Q = Ka*E_p(i)**(-alpha_sw)*exp(-E_p(i)/Emax_p0(l_min)) 
+            Q = Ka * fQp(E_p(i), Emax_p0(l_min))
             N_p0(i) = Q*min(t_cell(l_min),t_coolp(l_min,i))
             N_ptot(l_min,i) = N_ptot(l_min,i) + N_p0(i)
 
@@ -411,3 +424,14 @@ Function resta_p(log10E,B_l,t_pp,t_adv,xi)
 end Function resta_p
 
 !=========================================================================
+
+Function fQp(E, Emax)
+   use global  
+   real(dp) :: fQp
+   real(dp),intent(in) :: E, Emax
+   
+   fQp = E**(-alpha_sw)*exp(-E/Emax)
+
+end Function fQp
+
+!=====================================================================
