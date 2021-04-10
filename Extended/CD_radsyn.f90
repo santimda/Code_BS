@@ -22,7 +22,7 @@ contains
     implicit none
     ! m_theta - CD, mE_e - electrons, m_nu - emitted photons 
     integer :: il, i_1G
-    real(dp) :: Eps(m_nu),dEps,Eps_int, gamma(mE_e), dummy
+    real(dp) :: Eps(m_nu),dEps,Eps_int, gamma_e(mE_e), dummy
     real(dp) :: factor,nuc,nuc_max,nuc_min,sum,sum_sy,x_sy, log_nu_int
     real(dp) :: ni,ne,nu_RT,nuc_l
     allocate( x(m_theta),y(m_theta),B(m_theta),rho(m_theta),P(m_theta),v_t(m_theta),T(m_theta) )
@@ -40,22 +40,22 @@ contains
     ! Read shock position (x,y) and thermodynamical quantites at each position
     
     open(11,file='termo_sw.dat')
-    do l=1,m_theta
+    do l = 1, m_theta
        read(11,*) il,rho(l),P(l),v_t(l),T(l),B(l) ! todo en CGS
     enddo
     close(11)
     B_par = B*par
 
     open(12,file='CD_xy.dat')
-    do l=1,m_theta
+    do l = 1, m_theta
        read(12,*) x(l),y(l) ! la trayectoria en cm
     enddo
     close(12)
 
     ! Number of electrons at r(l) with energy E_e(i): N_etot(l,i) 
     open (14,file='diste_sw.dat')
-    do l=1,m_theta
-       do i=1,mE_e
+    do l = 1, m_theta
+       do i = 1, mE_e
           read(14,*) dummy, E_e(i),N_etot(l,i)
           E_e(i) = E_e(i)*eV    !   energy from eV to erg
        enddo
@@ -63,7 +63,7 @@ contains
     enddo
     close(14) 
     Eint_e = E_e(2)/E_e(1)
-    gamma = E_e/mec2
+    gamma_e = E_e/mec2
     
     !-----------------------------------------------------------------------!
     !                                                                       !
@@ -73,8 +73,8 @@ contains
 
     factor = h/mec2
     ! Use the same frequency range for all position
-    nuc_max = 4.22d6*B_par(1)*gamma(mE_e)**2. *2.d0  ! A bit arbitrary
-    nuc_min = 10.d6  !4.22d6*B_par(m_theta)*gamma(1)**2 / 1.d2  ! 10 MHz
+    nuc_max = 4.22d6*B_par(1)*gamma_e(mE_e)**2 *2.d0  ! A bit arbitrary
+    nuc_min = 10.d6  !4.22d6*B_par(m_theta)*gamma_e(1)**2 / 1.d2  ! 10 MHz
     
     ! Build logarithmic-spaced energy vector for emitted photons, Eps(i):
     call vector_log(factor*nuc_min,10.d0*factor*nuc_max,Eps_int,Eps)
@@ -87,10 +87,10 @@ contains
     close(66)
 
     ! At each position we calculate the synchrotron emission; then we sum all.
-    sum_sy=0.d0
-    DO l=1,m_theta
-       do i=1,mE_e
-          N_e(i)=N_etot(l,i)
+    sum_sy = 0.d0
+    DO l = 1, m_theta
+       do i = 1, mE_e
+          N_e(i) = N_etot(l,i)
        enddo
        ni = rho(l)/mp/2.085d0  ! 2.085 = x + 4*y + 14*z  ?????????
        ne = 1.395d0*ni         ! 1.395 = x + 2*y + 7*z   ?????????
@@ -102,10 +102,10 @@ contains
           sum = 0.d0
           ! Lsy(Eps) = int_Emin^Emax N(E_e) P(E_e,eps) dE [erg/s/eps]
 
-          !$omp parallel do private(nuc,dP_Eps,P_Eps,dE_e) &
-          !$omp reduction(+ : sum)
-          do j = 1,mE_e         ! Ne(j), nuc(j), gamma(j)
-             nuc = nuc_l*gamma(j)**2.
+          ! $omp parallel do private(nuc,dP_Eps,P_Eps,dE_e) &
+          ! $omp reduction(+ : sum)
+          do j = 1,mE_e         ! Ne(j), nuc(j), gamma_e(j)
+             nuc = nuc_l*gamma_e(j)**2
              x_sy = nu(i)/nuc
              if (x_sy > 10.d0) then
                 dP_Eps = 0.d0
@@ -117,7 +117,7 @@ contains
              endif
              sum = dP_Eps + sum
           enddo    
-          !$omp end parallel do 
+          ! $omp end parallel do 
     
           Lsy(l,i) = sum*mec2*exp(-nu_RT/nu(i))     !
           Lsy_tot(i) = Lsy_tot(i) + Eps(i)*Lsy(l,i) ! [erg/s]
