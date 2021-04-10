@@ -20,7 +20,7 @@ module global
    integer, parameter :: mE_e = 256    ! energy resolution for electrons
    integer, parameter :: mE_p = 200    ! energy resolution for protons < mE_f 
    integer, parameter :: mE_f = 300    ! it is the same for br, p-p and IC
-   integer, parameter :: mphi = 22      ! amount of linear-emitters
+   integer, parameter :: mphi = 4      ! amount of linear-emitters
    real(dp) :: delta_phi = 0.5*pi/(mphi-1.d0) ! angular separation between linear-emitters
    real(dp) :: d_phi = 0.5*pi/mphi     ! angular width of each linear-emitter or wedge
 
@@ -63,7 +63,7 @@ module global
 
    ! IC
    real(dp), dimension(:), allocatable :: LIC,LIC_tot,LIC_tot_abs
-   real(dp) :: Kappa_st, Kappa_IR(m_theta) ! = (R/2D)**2. 
+   real(dp) :: Kappa_st, Kappa_IR(m_theta) ! = (R/2D)**2 
    real(dp) :: X_st(3),X_emi(3),X_eE(3),X_obs(3) ! Position vectors for absorption integrals
    real(dp), parameter :: cte_Ndot = 2.*re**2*mec2**3/(pi*h_bar**3*c**2)
    logical, parameter :: ani = .True., iso = .False. 
@@ -108,14 +108,10 @@ module global
 
       N_puntos = SIZE(E_vec)
       Eint = (Emax/Emin)**(1.d0/dfloat(N_puntos-1))
-
-      !   write(*,*) Emin, Emax, Eint,N_puntos
-
       E_vec(1) = Emin
-      do i_vec=2,N_puntos
-         E_vec(i_vec)=E_vec(i_vec-1)*Eint    
+      do i_vec = 2, N_puntos
+         E_vec(i_vec) = E_vec(i_vec-1)*Eint    
       enddo
-
       RETURN
 
    END SUBROUTINE vector_log
@@ -157,7 +153,7 @@ module global
       integer, parameter :: dp = kind(1.d0)
       real(dp) :: F_ani
       real(dp), intent(in):: u
-      real(dp), parameter:: c_ani = 6.13
+      real(dp), parameter:: c_ani = 6.13d0
 
       F_ani = (c_ani*u*log(1.+2.16*u/c_ani)) / (1.+c_ani*u/0.822)
 
@@ -183,7 +179,7 @@ module global
       real(dp) :: F_1,g
       real(dp), intent(in):: x0
       g = 1./(1. + (0.153*x0**0.857)/(1. + 0.254*x0**1.84))
-      F_1 = ( (pi**2./6. + x0)*exp(-x0) )*g   
+      F_1 = ( (pi**2/6. + x0)*exp(-x0) )*g   
       RETURN
    end Function F_1
 
@@ -202,7 +198,7 @@ module global
       real(dp), intent(in):: x0
       real(dp), parameter:: c_3 = 0.319
       g = 1./(1. + (0.443*x0**0.606)/(1. + 0.54*x0**1.481))
-      F_3 = (pi**2./6.*(1.+c_3*x0)/(1.+pi**2.*c_3*x0/6.)*exp(-x0) )*g   
+      F_3 = (pi**2/6.*(1.+c_3*x0)/(1.+pi**2*c_3*x0/6.)*exp(-x0) )*g   
       RETURN
    end Function F_3
 
@@ -212,7 +208,7 @@ module global
       real(dp), intent(in):: x0
       real(dp), parameter:: c_4 = 6.62
       g = 1./(1. + (0.726*x0**0.461)/(1. + 0.382*x0**1.457))
-      F_4 = (pi**2./6.*(1.+c_4*x0)/(1.+pi**2.*c_4*x0/6.)*exp(-x0) )*g   
+      F_4 = (pi**2/6.*(1.+c_4*x0)/(1.+pi**2*c_4*x0/6.)*exp(-x0) )*g   
       RETURN
    end Function F_4
 
@@ -225,7 +221,7 @@ module global
       k = 1.380658d-16
       c = 2.99792458d10
       h = 6.6260755d-27
-      nBB = 2.d0*pi/((h*c)**3.)*(Epho**2./(exp(Epho/(k*T))-1.))
+      nBB = 2.d0*pi/((h*c)**3)*(Epho**2/(exp(Epho/(k*T))-1.))
       RETURN
    end Function nBB
 
@@ -239,14 +235,14 @@ module global
       real(dp) :: resta,suma
       DIMENSION V1(N),V2(N),versor(N),resta(N)
 
-      suma=0.d0
-      do i=1,N
-         resta(i)=V1(i)-V2(i)
-         suma=suma+resta(i)**2
+      suma = 0.d0
+      do i = 1, N
+         resta(i) = V1(i) - V2(i)
+         suma = suma + resta(i)**2
       enddo
-      suma=sqrt(suma)          ! suma = || versor_resta ||
-      do j=1,N
-         versor(j)=resta(j)/suma
+      suma = sqrt(suma)          ! suma = || versor_resta ||
+      do j = 1,N
+         versor(j) = resta(j)/suma
       enddo
 
       RETURN
