@@ -27,7 +27,7 @@ module CD_diste
       real(dp) :: log10Emaxl,R_acel,Q,integral
       real(dp) :: E_dot(m_theta,mE_e),Emax_e0(m_theta),Ka,E_NT,dVol,U_NT
       real(dp) :: N_e0(mE_e),n_a(m_theta),L_inj(m_theta),dR(m_theta)
-      real(dp) :: L_inj_e(m_theta), sum,dummy
+      real(dp) :: L_inj_e(m_theta), sum,dummy, f1, f2, f
       real(dp) :: dE_aprox, cool
       integer :: index1,index2,count,steps
       logical :: new_count
@@ -39,6 +39,15 @@ module CD_diste
          real(dp), intent(in) :: c_sy,Bl,c1,c2,T1,tbr,tad,xi
          real(dp), intent(out) :: logEmax
       end subroutine Biseccion
+      end interface
+
+      interface
+      function fQ(E,Emin,Emax) ! function Q(E)
+         use iso_fortran_env, only: dp => real64
+         implicit none
+         real(dp) :: fQ
+         real(dp), intent(in) :: E,Emin,Emax
+      end function fQ
       end interface
 
       allocate( theta(m_theta),R_theta(m_theta),H_theta(m_theta) )
@@ -54,7 +63,7 @@ module CD_diste
       !  the thermodynamical quantities and injected luminosity at each cell
 
       open(12,file='Linj_sw.dat')
-      do l=1,m_theta
+      do l = 1, m_theta
          read(12,*) theta(l),R_theta(l),L_inj(l),dR(l)
       end do
       close(12)
@@ -63,7 +72,7 @@ module CD_diste
       L_inj_e = inj_e*L_inj    ! The cell size is already taken into account in L_inj
 
       open(11,file='termo_sw.dat') 
-      do l=1,m_theta
+      do l = 1, m_theta
          read(11,*) l2,rho(l),P(l),v_t(l),T(l),B(l) ! all in CGS units
       end do
       close (11)
@@ -71,14 +80,14 @@ module CD_diste
       n_a = rho/mp/mu_sw   ! Ambient number density
 
       open(103,file='Hnorm_sw.dat') 
-      do l=1,m_theta
+      do l = 1, m_theta
          read(103,*) dummy,H_theta(l) ! normalized
          H_theta(l) = H_theta(l)*R_theta(l)
       end do
       close(103)
 
       open(113,file='T_IR.dat') 
-      do l=1,m_theta
+      do l = 1, m_theta
          !       T_IR(l) = 27.*(0.2)**(-1./6.)*(L_st/1.d38)**(1./6.)*(R_theta(l)/pc)**(-1./3.) ! Eq.10 del Valle 2012
          T_IR(l) =  100.d0            ! K2017
          T_IR_ad(l) = k*T_IR(l)/mec2  ! Adimensional dust temperature
@@ -88,7 +97,7 @@ module CD_diste
       close(113)
 
       open(114,file='efi_ac_sw.dat')
-      do l=1,m_theta
+      do l = 1, m_theta
          read(114,*) dummy,efi_ac_sw(l)
       end do
       close(114)
@@ -101,7 +110,7 @@ module CD_diste
       open(70,file='CD_tcoole.dat')
       cte_IC = pi*h_bar**3*c**2/(2.*re**2*mec2**3)
       C_ic_st = (cte_IC)/(T_st_ad**2)
-      do l=1,m_theta
+      do l = 1, m_theta
          C_ic_IR(l) = (cte_IC)/(T_IR_ad(l)**2)
       end do
 
@@ -119,7 +128,7 @@ module CD_diste
          end if
       end do
 
-      do l=1,m_theta
+      do l = 1, m_theta
          Kappa_st = ( R_st/(2.*R_theta(l)) )**2
          kC_ic_st = C_ic_st/Kappa_st
          kC_ic_IR = C_ic_IR(l)/Kappa_IR(l)
@@ -134,7 +143,7 @@ module CD_diste
          log_coul = 29.7d0 + log( (T(l)/1.d6)/sqrt(n_a(l)) ) 
          cte_coul = 3.d-14*n_a(l)*log_coul
 
-         do i=1,mE_e
+         do i = 1, mE_e
 
             D_diff = E_e(i)*c/(3.d0*qe*B(l)) ! Bohm
             t_diff = H_theta(l)**2/(2.d0*D_diff) ! Diffusion losses
@@ -173,33 +182,38 @@ module CD_diste
       ! At the starting point of the line we calculate the distribution 
       ! Ne_0(E_0), the cooling rate Edot0, and we sum it to Ne_tot(l,i)
 
-      Do l_min=1,m_theta
+      Do l_min = 1, m_theta
 
          ! Q = Ka*E**-alpha*e^(-E/Emax), alpha=2. The normalization constant Ka is obtained 
-         ! by the condition: int Q(E')*E'dE' = Linj. [Lrel]=erg/seg, [Ka]=erg/seg, [Q]=erg/erg**2/seg
-
-         integral=0.d0
+         ! by the condition: integral Q(E')*E'dE' = Linj. [Linj]=erg/s, [Ka]=erg/s, [Q]=1/erg/seg
+          
+         ! The integral is solved with the trapezoid method; Q(E) is obtained from fQ
+         integral = 0.d0
          i = 1
-         do while (i < mE_e+1 .and. E_e(i) < 10.d0*Emax_e0(l_min))
-            dE_e = E_e(i)*(Eint_e-1.d0)
-            integral = integral + E_e(i)**(-alpha_sw+1.d0)*exp(-E_e(i)/Emax_e0(l_min))*dE_e
-            i=i+1
+         f1 = E_e(1) * fQ(E_e(1), Emin_e_inj, Emax_e0(l_min))
+         do while (i < mE_e .and. E_e(i+1) < 10.d0*Emax_e0(l_min))
+           f2 = E_e(i+1) * fQ(E_e(i+1), Emin_e_inj, Emax_e0(l_min))
+           f = (f1 + f2)/2.d0
+           dE_e = E_e(i)*(Eint_e-1.d0)
+           integral = integral + f*dE_e
+           f1 = f2
+           i = i + 1
          end do
-         Ka = L_inj_e(l_min)/integral ! Injected at the starting point of the line
+         Ka = L_inj_e(l_min)/integral ! Injected at the starting point of the line   
+
 
          !------------------------------------------------------------------------
 
          N_e0 = 0.d0            ! Initialize to zero at each loop in l_min
 
-         i=1
-
+         i = 1
          do while (i < mE_e+1 .and. E_e(i) < 10.d0*Emax_e0(l_min)) 
             ! N(E)=1/|dE/dt|*int_E^Emax Q(E')dE' = Q(E)*dt, with |dE/dt|= E/t_cool 
-            ! in [erg/seg], dt = min(t_cell,t_cool) so that [N(E)]=erg/erg**2
-
-            Q = Ka*E_e(i)**(-alpha_sw)*exp(-E_e(i)/Emax_e0(l_min))
-            N_e0(i) = Q*min(t_cell(l_min),t_coole(l_min,i))
-            N_etot(l_min,i) = N_etot(l_min,i)+N_e0(i)  
+            ! in [erg/seg], dt = min(t_cell,t_cool) so that [N(E)]=1/erg
+   
+            Q = Ka * fQ(E_e(i), Emin_e_inj, Emax_e0(l_min))
+            N_e0(i) = Q * min(t_cell(l_min),t_coole(l_min,i))
+            N_etot(l_min,i) = N_etot(l_min,i) + N_e0(i)  
 
             ! We calculate the evolved version of the injected electron distribution at each
             ! position "l" as: N_l(l) = N_l-1* (Edot_l-1/Edot_l), where the energy also evolves
@@ -219,7 +233,7 @@ module CD_diste
                ! We find index1 <= i according to the cooling time:
 
                if (l == l_min+1) then
-                  do l2=l,m_theta
+                  do l2 = l, m_theta
                      cool = cool + t_cell(l2)/t_coole(l2,index1)
                   end do
                else
@@ -276,8 +290,8 @@ module CD_diste
       !----------------------------------------------------------------------
       ! Save the electron distribution at each position 
       open(79,file='diste_sw.dat')
-      do l=1,m_theta
-         do i=1,mE_e     
+      do l = 1, m_theta
+         do i = 1, mE_e     
             write(79,*) theta(l),E_e(i)/eV,N_etot(l,i)
          end do
          write(79,*) 
@@ -286,9 +300,9 @@ module CD_diste
 
       sum = 0.d0
       open(80,file='ENTe.dat')
-      do l=1,m_theta
+      do l= 1, m_theta
          E_NT = 0.d0
-         do i=1,mE_e
+         do i = 1, mE_e
             dE_e = E_e(i)*(Eint_e - 1.d0)  
             E_NT = E_NT + E_e(i)*N_etot(l,i)*dE_e
          end do
@@ -439,3 +453,16 @@ end Function resta
 
 !=========================================================================
 
+Function fQ(E, Emin, Emax)
+   use global  
+   real(dp) :: fQ
+   real(dp),intent(in) :: E, Emin, Emax
+   if (E < Emin) then
+      fQ = 0.d0 ! no injection
+   else
+      fQ = E**(-alpha_sw)*exp(-E/Emax)
+   endif
+
+end Function fQ
+
+!=====================================================================
