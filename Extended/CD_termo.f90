@@ -39,7 +39,7 @@ contains
       ! Read the shock position and cell size: theta,r_norm(theta),dR(theta)
 
       open(11,file='CD.dat')
-      do l=1,m_theta
+      do l = 1, m_theta
          read(11,*) theta(l),r_norm(l),dR(l) 
       end do
       close(11)
@@ -50,7 +50,7 @@ contains
       ! using Eqs.12-16 from Christie+16; we also calculate H(theta)/R(theta)
 
       open(18,file='Hnorm_sw.dat') ! normalized
-      do l=1,m_theta
+      do l = 1, m_theta
          st = sin(theta(l))
          ct = cos(theta(l))
          call A_theta(theta(l),st,ct,r_norm(l),A_z,A_omega,H_norm(l))
@@ -79,7 +79,7 @@ contains
       L_inj_tot = 0.d0
 
       open(42,file='Linj_sw.dat')            ! stores L_inj in one quadrant
-      do l=1,m_theta      
+      do l = 1, m_theta      
          dOmega = sin(theta(l))*dtheta*d_phi 
          L_wind_perp = (Mdot*v_perp(l)**2)/2.d0
          L_inj(l) = L_wind_perp*(dOmega/4.d0/pi)
@@ -106,7 +106,7 @@ contains
       cte_rho = (g_ad+1.)/(g_ad-1.)*(v_ISM/v_w)**2/(1.-lambda)
 
       !  $omp parallel do private(l)
-      do l=1,m_theta                                ! Calculo para la mitad de arriba
+      do l = 1, m_theta                                ! Calculo para la mitad de arriba
          rho_w = Mdot/(4.d0*pi*(R0*r_norm(l))**2*v_w)
          rho(l) = (rho_ISM*cte_rho)/(r_norm(l)**2) ! Eq. 17
          !Equivalent: rho(l) = (g_ad+1.)/(g_ad-1.)*rho_w    !  rho(l) = 4*rho_w
@@ -124,7 +124,7 @@ contains
 
       open(16,file='termo_sw.dat')
       open(17,file='termonorm_sw.dat') ! normalized
-      do l=1,m_theta
+      do l = 1, m_theta
          write(16,*) l,rho(l),P(l),v_t(l),T(l),B(l) 
          write(17,*) theta(l),rho(l)/rho(1),P(l)/P(1),v_t(l)/v_w,T(l)/T(1),B(l)/B(1) 
       end do
