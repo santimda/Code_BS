@@ -16,7 +16,7 @@ contains
    subroutine CD_run
       use global
       implicit none
-      real(dp) :: dtheta,dR(m_theta),Length(m_theta)
+      real(dp) :: dtheta, dR(m_theta), Length(m_theta), r_aprox
 
       interface
          Subroutine RK(x1,y1,dx,y2)
@@ -27,8 +27,8 @@ contains
          end Subroutine RK
       end interface
 
-      allocate( theta(m_theta),r_norm(m_theta) )
-      allocate( x(m_theta),y(m_theta) )
+      allocate( theta(m_theta), r_norm(m_theta) )
+      allocate( x(m_theta), y(m_theta) )
 
       write(*,*) 'Calculate the CD position'
 
@@ -59,7 +59,7 @@ contains
       Length(1) = 0.d0
       do i = 2, m_theta
 
-         theta(i)=theta(i-1) + dtheta
+         theta(i) = theta(i-1) + dtheta
          ! The subroutine RK obtains r(i) using theta(i-1),r(i-1), and dtheta. 
          ! The function dr/dtheta given by Eq. 11 of Christie+16 is defined as 
          ! the external function "g" 
@@ -68,23 +68,27 @@ contains
          dR(i) = R0*sqrt( r_norm(i-1)**2 + r_norm(i)**2 - 2.*r_norm(i)*r_norm(i-1)*cos(dtheta) ) ! cosine theorem
          Length(i) = Length(i-1) + dR(i)   
       end do
-      write(*,100) 'R0_proj[arcmin] =',R0_proj/60./abs(cos(incli)), ' (no cos(i))'
+      write(*,100) 'R0_proj[arcmin] =', R0_proj/60./abs(cos(incli)), ' (no cos(i))'
       write(*,90) 'R0[pc] =', R0/pc
       write(*,80) 'Length[R0] =', Length(m_theta)/R0
 
       open(11,file='CD.dat')
       open(12,file='CD_aprox.dat')
       open(13,file='CD_xy.dat')
-      do l=1,m_theta
+      open(14,file='CD_xy_aprox.dat')
+      do l = 1, m_theta
          x(l) = -r_norm(l)*cos(theta(l))
          y(l) = r_norm(l)*sin(theta(l))
-         write(11,*) theta(l),r_norm(l),dR(l),Length(l)/R0
-         write(12,*) theta(l),sqrt(3.*(1.-theta(l)/tan(theta(l))))/sin(theta(l))  ! solution for alpha = 0  
-         write(13,*) x(l),y(l) ! The z-coordinate is = zero, I rotate later
+         r_aprox = sqrt(3.*(1.-theta(l)/tan(theta(l))))/sin(theta(l))  ! solution for alpha = 0 (Wilkin 1996)
+         write(11,*) theta(l), r_norm(l), dR(l), Length(l)/R0
+         write(12,*) theta(l), r_aprox ! For consistency chechs
+         write(13,*) x(l),y(l) ! The z-coordinate is = zero, I rotate later 
+         write(14,*) -r_aprox*cos(theta(l)), r_aprox*sin(theta(l)) ! For consistency chechs
       end do
       close(11)
       close(12)
       close(13)
+      close(14)
 
       deallocate(x,y)
       deallocate(theta,r_norm)
@@ -117,18 +121,16 @@ Subroutine RK(xi,yi,dx,yf)
       end function g
    end interface
 
-   y(1)=yi
-   h=dx/float(n)
-
-   do i=1,n-1
+   y(1) = yi
+   h = dx/float(n)
+   do i = 1, n-1
       k1 = h*g(xi+(i-1)*h,y(i))
       k2 = h*g(xi+(i-1)*h+h/2.d0,y(i)+k1/2.d0)
       k3 = h*g(xi+(i-1)*h+h/2.d0,y(i)+k2/2.d0)
       k4 = h*g(xi+(i)*h,y(i)+k3)
       y(i+1) = y(i) + (k1 + 2.*k2 + 2.*k3 + k4)/6.d0
    end do
-
-   yf=y(n)
+   yf = y(n)
 
    return
 
