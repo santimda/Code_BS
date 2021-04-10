@@ -91,7 +91,7 @@ PROGRAM main
       phi = 0.d0
       LIC_all = 0.d0
       if (rotate) then
-         DO i_phi = 1,mphi
+         DO i_phi = 1, mphi
             write(*,*) 'i(phi)=',i_phi,'/',mphi
             !     write(*,*) 'phi(deg)=', phi*180_dp/pi
 
@@ -110,7 +110,7 @@ PROGRAM main
                LIC_all = LIC_all + LIC_int
             endif
 
-            if (abssyn_calc.eqv..true.) then
+            if (abssyn_calc) then
                write(*,*) 'Calculate the free-free synchrotron absorption'
                call CD_abssyn_run !(phi)
                open (45,file='radsyn_abs.dat')
@@ -122,7 +122,7 @@ PROGRAM main
                close(45)
             endif
 
-            if (maps_calc.eqv.yes) then           
+            if (maps_calc) then           
                write(*,*) 'Save synthetic radio emission maps'
                open(55,file='CD_radiomap_1GHz.dat') ! 1.4 GHz
                open(56,file='CD_radiomap_3GHz.dat') ! 3.0 GHz

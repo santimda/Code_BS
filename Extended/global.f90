@@ -40,6 +40,7 @@ module global
 
    ! dist
    real(dp), parameter :: Emin_e = 2.d0*mec2   ! ~1 MeV
+   real(dp), parameter :: Emin_e_inj = Emin_e  ! Emin_e_inj >= Emin_e
    real(dp), parameter :: Emax_e = 1.d14*eV    ! 100 TeV
    real(dp) :: Eint_e,dE_e
    real(dp), dimension(:,:), allocatable :: N_etot ! Ne(theta,E_i)

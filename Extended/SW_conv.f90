@@ -31,7 +31,7 @@ contains
     real(dp) :: A_beam,A_cell, suma2,x_map2(m_map),y_map2(m_map),S_map2(m_map)
 
     A_beam = 2*pi*sigma_x*sigma_y     ! = Gaussian normalization factor 
-    A_cell = f_Ny**2.*sigma_x*sigma_y ! cell sample size
+    A_cell = f_Ny**2*sigma_x*sigma_y ! cell sample size
 
     ci = abs(cos(incli))
 
@@ -89,8 +89,8 @@ contains
           
           suma = 0.d0  !1.d-9  ! simulate noise (?)
           do l=1,m_tot
-             d_pesada2 = ((x_map(l)-x_c(i))**2.d0)/(2.d0*sigma_x**2.d0) + &
-                  ((y_map(l)-y_c(j))**2.d0)/(2.d0*sigma_y**2.d0) ! added extra sigma
+             d_pesada2 = ((x_map(l)-x_c(i))**2)/(2.d0*sigma_x**2) + &
+                  ((y_map(l)-y_c(j))**2)/(2.d0*sigma_y**2) ! added extra sigma
              if (d_pesada2 < 6.d0) then      
                 ! Gaussian beam -> /(sigma*sqrt(2*pi)), both in x and y
                 atenua = exp( -d_pesada2 ) !/ norm
@@ -103,8 +103,8 @@ contains
           
           suma2 = 0.d0
           do l=1,m_map
-             d_pesada2 = ((x_map2(l)-x_c(i))**2.d0)/(2.d0*sigma_x**2.d0) + &
-                  ((y_map2(l)-y_c(j))**2.d0)/(2.d0*sigma_y**2.d0) ! added extra sigma
+             d_pesada2 = ((x_map2(l)-x_c(i))**2)/(2.d0*sigma_x**2) + &
+                  ((y_map2(l)-y_c(j))**2)/(2.d0*sigma_y**2) ! added extra sigma
              if (d_pesada2 < 6.d0) then      
                 ! Gaussian beam -> /(sigma*sqrt(2*pi)), both in x and y
                 atenua = exp( -d_pesada2 ) !/ norm
@@ -366,8 +366,8 @@ contains
           
           suma=1.d-9  ! simulate noise (?)
           do l=1,m_tot
-             d_pesada2 = ((x_map(l)-x_c(i))**2.d0)/(2.d0*sigma_x**2.d0) + &
-                  ((y_map(l)-y_c(j))**2.d0)/(2.d0*sigma_y**2.d0) ! added extra sigma
+             d_pesada2 = ((x_map(l)-x_c(i))**2)/(2.d0*sigma_x**2) + &
+                  ((y_map(l)-y_c(j))**2)/(2.d0*sigma_y**2) ! added extra sigma
              if (d_pesada2 < 6.d0) then 
                 ! Gaussian beam -> /(sigma*sqrt(2*pi)), both in x and y
                 atenua = exp( -d_pesada2 ) !/ norm
@@ -380,8 +380,8 @@ contains
 
           suma2 = 0.d0
           do l=1,m_map
-             d_pesada2 = ((x_map2(l)-x_c(i))**2.d0)/(2.d0*sigma_x**2.d0) + &
-                  ((y_map2(l)-y_c(j))**2.d0)/(2.d0*sigma_y**2.d0) ! added extra sigma
+             d_pesada2 = ((x_map2(l)-x_c(i))**2)/(2.d0*sigma_x**2) + &
+                  ((y_map2(l)-y_c(j))**2)/(2.d0*sigma_y**2) ! added extra sigma
              if (d_pesada2 < 6.d0) then      
                 ! Gaussian beam -> /(sigma*sqrt(2*pi)), both in x and y
                 atenua = exp( -d_pesada2 ) !/ norm

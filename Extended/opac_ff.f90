@@ -105,7 +105,7 @@ module opac_ff
 
       T_w = 0.4d0*T_st      ! assume constant T in the wind (valid far from the star) 
       open(14,file='nu.dat')
-      do i=1,mE_ff
+      do i = 1,mE_ff
          read(14,*) nu(i)
          mu_ff(i) = h*nu(i)/k/T_w   ! assuming T = cte, no need for mu_ff(r)
       enddo
@@ -118,12 +118,12 @@ module opac_ff
       j_g = int( (log10(gamma2)+6.d0)/0.2d0 ) + 1
       dg = ( (log10(gamma2)+6.d0)/0.2d0+1.d0 - float(j_g) )*0.2d0
 
-      !$omp parallel do &
-      !$omp private(l,ni,ne,i,j_mu,dmu,gffinter) 
+      ! $omp parallel do &
+      ! $omp private(l,ni,ne,i,j_mu,dmu,gffinter) 
       do l=1,mr_ff
-         ni = A_ff/r_ff(l)**2./(gamma_w+1.d0)  ! mui = mu*(g_e+1)
+         ni = A_ff/r_ff(l)**2/(gamma_w+1.d0)  ! mui = mu*(g_e+1)
          ne = gamma_w*ni      
-         cte_alpha_ff = 3.7d8*Zq_w**2.*ne*ni*T_w**(-0.5_dp) ! For optimization
+         cte_alpha_ff = 3.7d8*Zq_w**2*ne*ni*T_w**(-0.5_dp) ! For optimization
          do i=1,mE_ff
        
             ! For gff: i = (value - table initial value) / (table step) + 1
@@ -136,7 +136,7 @@ module opac_ff
             alphaff(l,i) = cte_alpha_ff*nu(i)**(-3.d0)*(1.d0-exp(-h*nu(i)/k/T_w))*gffinter !1/cm
          enddo
       enddo
-      !$omp end parallel do
+      ! $omp end parallel do
 
       open(18,file='windalphaff.dat')
       do l=1,mr_ff
