@@ -2,7 +2,7 @@ set encoding iso_8859_1
 set title '' #'Thermodynamical quantities along the shocked wind'
 set key box opaque width 0.95 height 1.1 center left
 set key samplen 4. spacing 1.2 font ",20"
-set xrange [0:2.3]
+set xrange [0:]
 set yrange [0:1.05]
 set xtics 0.5; set mxtics 5; set xtics nomirror 
 set ytics 0.2; set mytics 2
