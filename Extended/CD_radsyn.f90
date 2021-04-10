@@ -89,50 +89,50 @@ contains
     ! At each position we calculate the synchrotron emission; then we sum all.
     sum_sy = 0.d0
     DO l = 1, m_theta
-       do i = 1, mE_e
-          N_e(i) = N_etot(l,i)
-       enddo
-       ni = rho(l)/mp/2.085d0  ! 2.085 = x + 4*y + 14*z  ?????????
-       ne = 1.395d0*ni         ! 1.395 = x + 2*y + 7*z   ?????????
-       nu_RT = 20.d0*ne/B(l)   ! characteristic frequency for R-T effect 
-       nuc_l = 4.22d6*B_par(l) ! to speed things up in the j loop
-       ! Loop in the photon energy (Eps), given by nu 
-       do i = 1,m_nu           ! Eps(i), nu(i)
-          dEps = Eps(i)*(Eps_int-1.d0)
-          sum = 0.d0
-          ! Lsy(Eps) = int_Emin^Emax N(E_e) P(E_e,eps) dE [erg/s/eps]
+      do i = 1, mE_e
+        N_e(i) = N_etot(l,i)
+      enddo
+      ni = rho(l)/mp/2.085d0  ! 2.085 = x + 4*y + 14*z  ?????????
+      ne = 1.395d0*ni         ! 1.395 = x + 2*y + 7*z   ?????????
+      nu_RT = 20.d0*ne/B(l)   ! characteristic frequency for R-T effect 
+      nuc_l = 4.22d6*B_par(l) ! to speed things up in the j loop
+      ! Loop in the photon energy (Eps), given by nu 
+      do i = 1,m_nu           ! Eps(i), nu(i)
+        dEps = Eps(i)*(Eps_int-1.d0)
+        sum = 0.d0
+        ! Lsy(Eps) = int_Emin^Emax N(E_e) P(E_e,eps) dE [erg/s/eps]
 
-          ! $omp parallel do private(nuc,dP_Eps,P_Eps,dE_e) &
-          ! $omp reduction(+ : sum)
-          do j = 1,mE_e         ! Ne(j), nuc(j), gamma_e(j)
-             nuc = nuc_l*gamma_e(j)**2
-             x_sy = nu(i)/nuc
-             if (x_sy > 10.d0) then
-                dP_Eps = 0.d0
-             else
-                ! P_eps [erg/s/Hz]; divide by h to transform units
-                P_Eps = ( 4.39d-22*B_par(l)*x_sy**(1.d0/3.d0)*exp(-x_sy) )/h
-                dE_e = E_e(j)*(Eint_e - 1.d0)
-                dP_Eps = N_e(j)*P_eps*dE_e
-             endif
-             sum = dP_Eps + sum
-          enddo    
-          ! $omp end parallel do 
-    
-          Lsy(l,i) = sum*mec2*exp(-nu_RT/nu(i))     !
-          Lsy_tot(i) = Lsy_tot(i) + Eps(i)*Lsy(l,i) ! [erg/s]
-          
-          sum_sy = sum_sy + Lsy(l,i)*dEps
+        ! $omp parallel do private(nuc,dP_Eps,P_Eps,dE_e) &
+        ! $omp reduction(+ : sum)
+        do j = 1,mE_e         ! Ne(j), nuc(j), gamma_e(j)
+          nuc = nuc_l*gamma_e(j)**2
+          x_sy = nu(i)/nuc
+          if (x_sy > 10.d0) then
+            dP_Eps = 0.d0
+          else
+            ! P_eps [erg/s/Hz]; divide by h to transform units
+            P_Eps = ( 4.39d-22*B_par(l)*x_sy**(1.d0/3.d0)*exp(-x_sy) )/h
+            dE_e = E_e(j)*(Eint_e - 1.d0)
+            dP_Eps = N_e(j)*P_eps*dE_e
+          endif
+          sum = dP_Eps + sum
+        enddo    
+        ! $omp end parallel do 
 
-       enddo  ! Eps(i),nu(i)
-       
+        Lsy(l,i) = sum*mec2*exp(-nu_RT/nu(i))     !
+        Lsy_tot(i) = Lsy_tot(i) + Eps(i)*Lsy(l,i) ! [erg/s]
+
+        sum_sy = sum_sy + Lsy(l,i)*dEps
+
+      enddo  ! Eps(i),nu(i)
+
     ENDDO     ! l
     
     write(*,80) 'L_syn(unabsorbed)=',sum_sy*(mphi*4.) ! mphi emitters, 4 quadrants
     
     log_nu_int = log(nu(2)/nu(1))
     i_1G = int(log(1.4d9/nu(1))/log_nu_int) + 1  
-    write(*,80) 'S_1.4GHz[mJy]=',Lsy_tot(i_1G)*(mphi*4.)/(4.*pi*distance**2*nu(i_1G))*1.d26 ! mphi emitters, 4 quadrants
+    write(*,80) 'S_1.4GHz[mJy]=', Lsy_tot(i_1G)*(mphi*4.)/(4.*pi*distance**2*nu(i_1G))*1.d26 ! mphi emitters, 4 quadrants
 
 
     !---------------------------------------
@@ -141,15 +141,15 @@ contains
 
     ! Total SED
     open(17,file='radsyn_sw.dat')
-    do i=1,m_nu
-       write(17,*) Eps(i)*mec2/eV,Lsy_tot(i)
+    do i = 1,m_nu
+      write(17,*) Eps(i)*mec2/eV,Lsy_tot(i)
     enddo
     close(17)
 
     ! 3-D emission map
     open(79,file='emisyn_sw.dat')
-    do l=1,m_theta
-       do i=1,m_nu
+    do l = 1, m_theta
+       do i = 1, m_nu
           write(79,*) l,Eps(i)*mec2/eV,Eps(i)*Lsy(l,i)
        enddo
        write(79,*) 
