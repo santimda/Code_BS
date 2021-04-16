@@ -54,6 +54,7 @@ contains
          st = sin(theta(l))
          ct = cos(theta(l))
          call A_theta(theta(l),st,ct,r_norm(l),A_z,A_omega,H_norm(l))
+         ! MODIFICAR SEGUN RS O FS
          v_perp(l) = v_w * ( -st*A_z + ct*A_omega ) !Eq 18
          v_t(l) = v_w * ( ct*A_z + st*A_omega )   
 
