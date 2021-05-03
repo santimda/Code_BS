@@ -21,7 +21,7 @@ contains
       real(dp), intent(in) :: T,Kappa
       logical, intent(in) :: aniso 
       character(LEN=*), intent(in) :: target_field
-      real(dp) :: Eps(mE_f),dEps,Eps_int,Ef_int,gamma(mE_e),x0,z,t_K
+      real(dp) :: Eps(mE_f),dEps,Eps_int,Ef_int,gamma_e(mE_e),x0,z,t_K
       real(dp) :: Ndot,sum,sum_ic,cte_Ndot,T_ad
       real(dp) :: T_ad_ang
       allocate( N_e(mE_e),E_e(mE_e), Ef(mE_f),L_ic(mE_f) )
@@ -41,7 +41,7 @@ contains
       end do
       close(14) 
       Eint_e = E_e(2)/E_e(1)
-      gamma = E_e/mec2
+      gamma_e = E_e/mec2
 
       !------------------------------------------------------------
       ! Build Ef vector for the SED
@@ -62,17 +62,17 @@ contains
       do i = 1,mE_f                 ! loop in high-energy photons energy
          dEps=Eps(i)*(Eps_int-1.d0)
          sum = 0.d0
-         do j = 1,mE_e              ! loop in electron energy distribution (Ne(j),gamma(j))
-            z = Eps(i)/gamma(j)
+         do j = 1,mE_e              ! loop in electron energy distribution (Ne(j),gamma_e(j))
+            z = Eps(i)/gamma_e(j)
             if (z < 1.d0) then      ! Ef <= Ee from energy conservation
                if (aniso) then                !anisotropic IC
-                  t_K = 4.*gamma(j)*T_ad_ang  
+                  t_K = 2.*gamma_e(j)*T_ad_ang  
                   x0 = z/( (1.-z)*t_K )
-                  Ndot = (cte_Ndot/gamma(j)**2) * ( (z**2/(2.*(1.-z)))*F_1(x0) + F_2(x0) ) 
+                  Ndot = (cte_Ndot/gamma_e(j)**2) * ( (z**2/(2.*(1.-z)))*F_1(x0) + F_2(x0) ) 
                else
-                  t_K = 4.*gamma(j)*T_ad      !isotropic IC
+                  t_K = 4.*gamma_e(j)*T_ad      !isotropic IC
                   x0 = z/( (1.-z)*t_K )
-                  Ndot = (cte_Ndot/gamma(j)**2) * ( (z**2/(2.*(1.-z)))*F_3(x0) + F_4(x0) ) 
+                  Ndot = (cte_Ndot/gamma_e(j)**2) * ( (z**2/(2.*(1.-z)))*F_3(x0) + F_4(x0) ) 
                endif
                P_eps = Eps(i)*Ndot !N^dot = nf*c*dsigmaIC
                dE_e = E_e(j)*(Eint_e-1.d0)
