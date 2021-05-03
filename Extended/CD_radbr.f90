@@ -13,10 +13,11 @@ contains
    ! The program reads as an input the electron energy distribution. 
    !============================================================================
 
-   subroutine CD_radbr_run(screened) 
+   subroutine CD_radbr_run(screened, shock) 
       use global
       Implicit none
       logical, intent(in) :: screened
+      character(LEN=*), intent(in) :: shock
       Real(dp) :: dummy,n_a(m_theta),dsigma_Br,cte_sigma,u_br
       Real(dp) :: Ef_int,dEf,sum,sum_br
       Real(dp) :: gamma_e(mE_e), Eps(mE_f), Ef(mE_f)
@@ -38,20 +39,24 @@ contains
 
       80    format(A7,X,Es10.2)
 
-      write(*,*) '\n Calculate the (unabsorbed) rel. brem. emission in the SW'
+      write(*,*) '\n Calculate the (unabsorbed) rel. brem. emission in the '//shock//''
 
       !------------------------------------------------------------------------
       !  Read information (thermodynamical quantities and relativist electrons)
 
-      open(11,file='termo_sw.dat')
+      open(11,file='termo_'//shock//'.dat')
       do l=1,m_theta
-         read(11,*) nl,rho(l),P(l),v_t(l),T(l),B(l) 
-         n_a(l) = rho(l)/mp/mu_sw
+         read(11,*) nl,rho(l),P(l),v_t(l),T(l),B(l)
+         if (shock == 'RS') then
+            n_a(l) = rho(l)/mp/mu_sw
+         else if (shock == 'FS') then
+            n_a(l) = rho(l)/mp/mu_ISM
+         end if
       end do
       close(11)
 
       ! Number of electrons at r(l) with energy E_e(i): N_etot(l,i) 
-      open (14,file='diste_sw.dat')
+      open (14,file='diste_'//shock//'.dat')
       do l=1,m_theta
          do i=1,mE_e
             read(14,*) dummy, E_e(i),N_etot(l,i)
@@ -66,9 +71,12 @@ contains
       ! Build Ef vector for the SED with Ef_min = 1 keV
       call vector_log(1.d3*eV,E_e(mE_e),Ef_int,Ef)
 
-      cte_sigma = 4.d0*alfa*re**2*Zq_sw**2*z_br  ! z_br > 1 if not pure H
-
-
+      if (shock == 'RS') then
+         cte_sigma = 4.d0*alfa*re**2*Zq_sw**2*z_br  ! z_br > 1 if not pure H
+      else if (shock == 'FS') then
+         cte_sigma = 4.d0*alfa*re**2*Zq_ISM**2*z_br
+      end if
+   
       !===========================================================
       ! Calculate the relativistic Bremsstrahlung spectra
 
@@ -117,7 +125,7 @@ contains
       !
       !   Save data
 
-      open(16,file='radbr_sw.dat')
+      open(16,file='radbr_'//shock//'.dat')
       do i=1,mE_f
          write(16,*) Ef(i)/eV,Ef(i)*Lbr_tot(i)
       end do

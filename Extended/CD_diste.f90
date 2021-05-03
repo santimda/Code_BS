@@ -15,10 +15,11 @@ module CD_diste
    !  fixed in global.
    !============================================================================
 
-   subroutine CD_diste_run  
+   subroutine CD_diste_run(shock)  
 
       use global
       implicit none
+      character(LEN=*), intent(in) :: shock
       integer :: l_min,l2
       real(dp) :: t_cell(m_theta),t_adv(m_theta),t_coole(m_theta,mE_e),t_loss(m_theta,mE_e)
       real(dp) :: t_ic_st,t_ic_IR,t_ic,t_sy,t_ac,t_br,D_diff,t_diff,t_esc,t_adi(m_theta)
@@ -54,15 +55,15 @@ module CD_diste
       allocate( P(m_theta),rho(m_theta),T(m_theta),B(m_theta),v_t(m_theta) )
       allocate( N_e(mE_e),E_e(mE_e),B_par(m_theta),N_etot(m_theta,mE_e) )
       allocate( T_IR(m_theta),T_IR_ad(m_theta) )
-      allocate( efi_ac_sw(m_theta) )
+      allocate( efi_ac_sh(m_theta) )
 
-      write(*,*) 'Calculate the non-thermal electron distribution in the SW'
+      write(*,*) 'Calculate the non-thermal electron distribution in the shock'
 
       !---------------------------------------------------------------------------------
       !  Read the position of the shock and cell size: theta, r_norm(theta), dR(theta); 
       !  the thermodynamical quantities and injected luminosity at each cell
 
-      open(12,file='Linj_sw.dat')
+      open(12,file='Linj_'//shock//'.dat')
       do l = 1, m_theta
          read(12,*) theta(l),R_theta(l),L_inj(l),dR(l)
       end do
@@ -71,15 +72,19 @@ module CD_diste
       dR = R0*dR               ! The file contained dR/R0, not dR [cm]
       L_inj_e = inj_e*L_inj    ! The cell size is already taken into account in L_inj
 
-      open(11,file='termo_sw.dat') 
+      open(11,file='termo_'//shock//'.dat') 
       do l = 1, m_theta
          read(11,*) l2,rho(l),P(l),v_t(l),T(l),B(l) ! all in CGS units
       end do
       close (11)
-      B_par = B*par        ! For synchrotron, only the parallel component of B is relevant 
-      n_a = rho/mp/mu_sw   ! Ambient number density
+      B_par = B*par        ! For synchrotron, only the parallel component of B is relevant
+      if (shock == 'RS') then
+         n_a = rho/mp/mu_sw   ! Ambient number density
+      else if (shock == 'FS') then
+         n_a = rho/mp/mu_ISM
+      end if   
 
-      open(103,file='Hnorm_sw.dat') 
+      open(103,file='Hnorm_'//shock//'.dat') 
       do l = 1, m_theta
          read(103,*) dummy,H_theta(l) ! normalized
          H_theta(l) = H_theta(l)*R_theta(l)
@@ -96,9 +101,9 @@ module CD_diste
       end do
       close(113)
 
-      open(114,file='efi_ac_sw.dat')
+      open(114,file='efi_ac_'//shock//'.dat')
       do l = 1, m_theta
-         read(114,*) dummy,efi_ac_sw(l)
+         read(114,*) dummy,efi_ac_sh(l)
       end do
       close(114)
 
@@ -107,7 +112,7 @@ module CD_diste
 
       call vector_log(Emin_e,Emax_e,Eint_e,E_e)
 
-      open(70,file='CD_tcoole.dat')
+      open(70,file='CD_tcoole_'//shock//'.dat')
       cte_IC = pi*h_bar**3*c**2/(2.*re**2*mec2**3)
       C_ic_st = (cte_IC)/(T_st_ad**2)
       do l = 1, m_theta
@@ -136,8 +141,8 @@ module CD_diste
          t_br = 1.d15/n_a(l)/z_br      ! added z_be according to Padovani+2018
          cte_sy = 6.*pi*mec2**2/(c*sigma_T*B(l)**2)   ! Valid for isotropic e- distribution
 
-         call Biseccion(cte_sy,B(l),log10Emaxl,kC_ic_st,kC_ic_IR,T_IR_ad(l),t_br,t_adv(l),efi_ac_sw(l))
-         Emax_e0(l) = MIN(10.d0**log10Emaxl,qe*B(l)*R_acel*sqrt(1.5d0/efi_ac_sw(l))) 
+         call Biseccion(cte_sy,B(l),log10Emaxl,kC_ic_st,kC_ic_IR,T_IR_ad(l),t_br,t_adv(l),efi_ac_sh(l))
+         Emax_e0(l) = MIN(10.d0**log10Emaxl,qe*B(l)*R_acel*sqrt(1.5d0/efi_ac_sh(l))) 
          if (Emax_e0(l) >= 0.5*Emax_e) write(*,*) 'Emax_e in global.f90 is too small!'
 
          log_coul = 29.7d0 + log( (T(l)/1.d6)/sqrt(n_a(l)) ) 
@@ -162,7 +167,7 @@ module CD_diste
 
             t_loss(l,i) = 1.d0/(1.d0/t_coole(l,i) + 1.d0/t_esc) ! general losses
 
-            t_ac = efi_ac_sw(l)*E_e(i)/(B(l)*c*qe)
+            t_ac = efi_ac_sh(l)*E_e(i)/(B(l)*c*qe)
 
             write(70,*) l,E_e(i)/eV,t_ic,t_sy,t_br,t_diff,t_ac,t_coole(l,i),t_adv(l),t_cell(l),t_ic_st,t_ic_IR,t_esc,t_loss(l,i),t_adi(l),t_coul
 
@@ -289,7 +294,7 @@ module CD_diste
 
       !----------------------------------------------------------------------
       ! Save the electron distribution at each position 
-      open(79,file='diste_sw.dat')
+      open(79,file='diste_'//shock//'.dat')
       do l = 1, m_theta
          do i = 1, mE_e     
             write(79,*) theta(l),E_e(i)/eV,N_etot(l,i)
@@ -299,7 +304,7 @@ module CD_diste
       close(79)
 
       sum = 0.d0
-      open(80,file='ENTe.dat')
+      open(80,file='ENTe_'//shock//'.dat')
       do l= 1, m_theta
          E_NT = 0.d0
          do i = 1, mE_e
@@ -318,12 +323,12 @@ module CD_diste
 
       !------------------------------------------------------------
       ! Group in bins according to position angle
-      call Ne_bin(E_e,N_etot,theta)
+      call Ne_bin(E_e,N_etot,theta,shock)
 
 
       deallocate( theta,R_theta,H_theta,B,B_par,rho,P,v_t,T )
       deallocate( N_e,E_e,N_etot ) 
-      deallocate( T_IR,T_IR_ad, efi_ac_sw )
+      deallocate( T_IR,T_IR_ad, efi_ac_sh )
 
    END subroutine CD_diste_run
 
@@ -339,16 +344,17 @@ END module CD_diste
 !                                                                          !
 !--------------------------------------------------------------------------!
 
-subroutine Ne_bin(Ee,Ne_tot,ang)
+subroutine Ne_bin(Ee,Ne_tot,ang,shock)
 
    use global
-   implicit none    
+   implicit none
+   character(LEN=*), intent(in) :: shock
    real(dp), intent(in) :: Ee(mE_e),Ne_tot(m_theta,mE_e),ang(m_theta)
    integer, parameter :: N_bins = 5 ! For the plot diste_sw_bins
    real(dp) :: N_bin_i(N_bins,mE_e), N_total_i
 
    N_bin_i = 0.d0
-   open(81,file='diste_sw_total.dat')
+   open(81,file='diste_'//shock//'_total.dat')
    do i=1,mE_e
       N_total_i = 0.d0
       do l=1,m_theta
@@ -370,7 +376,7 @@ subroutine Ne_bin(Ee,Ne_tot,ang)
    end do
    close(81)
 
-   open(82,file='diste_sw_bin.dat')
+   open(82,file='diste_'//shock//'_bin.dat')
    do j = 1,N_bins
       do i = 1, mE_e
          write(82,*) j,Ee(i)/eV, N_bin_i(j,i)* mphi*1.d0
@@ -460,7 +466,7 @@ Function fQ(E, Emin, Emax)
    if (E < Emin) then
       fQ = 0.d0 ! no injection
    else
-      fQ = E**(-alpha_sw)*exp(-E/Emax)
+      fQ = E**(-alpha_sh)*exp(-E/Emax)
    endif
 
 end Function fQ

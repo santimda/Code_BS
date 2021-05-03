@@ -16,11 +16,12 @@ contains
   ! CD_radsyn_run
   !============================================================================
   
-  subroutine CD_radsyn_run  
+  subroutine CD_radsyn_run(shock)  
     use global
     !$ use omp_lib
     implicit none
-    ! m_theta - CD, mE_e - electrons, m_nu - emitted photons 
+    ! m_theta - CD, mE_e - electrons, m_nu - emitted photons
+    character(LEN=*), intent(in) :: shock
     integer :: il, i_1G
     real(dp) :: Eps(m_nu),dEps,Eps_int, gamma_e(mE_e), dummy
     real(dp) :: factor,nuc,nuc_max,nuc_min,sum,sum_sy,x_sy, log_nu_int
@@ -39,7 +40,7 @@ contains
     !
     ! Read shock position (x,y) and thermodynamical quantites at each position
     
-    open(11,file='termo_sw.dat')
+    open(11,file='termo_'//shock//'.dat')
     do l = 1, m_theta
        read(11,*) il,rho(l),P(l),v_t(l),T(l),B(l) ! todo en CGS
     enddo
@@ -53,7 +54,7 @@ contains
     close(12)
 
     ! Number of electrons at r(l) with energy E_e(i): N_etot(l,i) 
-    open (14,file='diste_sw.dat')
+    open (14,file='diste_'//shock//'.dat')
     do l = 1, m_theta
        do i = 1, mE_e
           read(14,*) dummy, E_e(i),N_etot(l,i)
@@ -140,14 +141,14 @@ contains
     !   Save data
 
     ! Total SED
-    open(17,file='radsyn_sw.dat')
+    open(17,file='radsyn_'//shock//'.dat')
     do i = 1,m_nu
       write(17,*) Eps(i)*mec2/eV,Lsy_tot(i)
     enddo
     close(17)
 
     ! 3-D emission map
-    open(79,file='emisyn_sw.dat')
+    open(79,file='emisyn_'//shock//'.dat')
     do l = 1, m_theta
        do i = 1, m_nu
           write(79,*) l,Eps(i)*mec2/eV,Eps(i)*Lsy(l,i)

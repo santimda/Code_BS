@@ -15,10 +15,11 @@ module CD_distp
    !  fixed in global.
    !============================================================================
    
-   subroutine CD_distp_run 
+   subroutine CD_distp_run(shock) 
 
       use global
       implicit none
+      character(LEN=*), intent(in) :: shock
       integer :: l_min,l2
       real(dp) :: t_cell(m_theta),t_adv(m_theta),t_coolp(m_theta,mE_p)
       real(dp) :: t_ac,t_pp,t_diff,D_diff,t_esc,t_loss(m_theta,mE_p)
@@ -52,15 +53,15 @@ module CD_distp
       allocate( theta(m_theta),R_theta(m_theta),H_theta(m_theta) )
       allocate( P(m_theta),rho(m_theta),T(m_theta),B(m_theta),v_t(m_theta) )
       allocate( N_p(mE_p),E_p(mE_p),B_par(m_theta),N_ptot(m_theta,mE_p) )
-      allocate( efi_ac_sw(m_theta) )
+      allocate( efi_ac_sh(m_theta) )
       
-      write(*,*) 'Calculate the non-thermal proton distribution in the SW'
+      write(*,*) 'Calculate the non-thermal proton distribution in the Shock'
 
       !---------------------------------------------------------------------------------
       !  Read the position of the shock and cell size: theta, r_norm(theta), dR(theta); 
       !  the thermodynamical quantities and injected luminosity at each cell
       
-      open(12,file='Linj_sw.dat')
+      open(12,file='Linj_'//shock//'.dat')
       do l=1,m_theta
          read(12,*) theta(l),R_theta(l),L_inj(l),dR(l)
       end do
@@ -69,24 +70,28 @@ module CD_distp
       dR = R0*dR               ! The file contained dR/R0, not dR [cm]
       L_inj_p = inj_p*L_inj    ! The cell size is already taken into account in L_inj
       
-      open(11,file='termo_sw.dat') 
+      open(11,file='termo_'//shock//'.dat') 
       do l=1,m_theta
          read(11,*) l2,rho(l),P(l),v_t(l),T(l),B(l) ! all in CGS units
       end do
       close (11)
-      B_par = B*par        ! For synchrotron, only the parallel component of B is relevant 
-      n_a = rho/mp/mu_sw   ! Ambient number density
-
-      open(103,file='Hnorm_sw.dat') 
+      B_par = B*par        ! For synchrotron, only the parallel component of B is relevant
+      if (shock == 'RS') then
+         n_a = rho/mp/mu_sw   ! Ambient number density
+      else if (shock == 'FS') then
+         n_a = rho/mp/mu_ISM
+      end if
+      
+      open(103,file='Hnorm_'//shock//'.dat') 
       do l=1,m_theta
          read(103,*) dummy,H_theta(l) ! normalized
          H_theta(l) = H_theta(l)*R_theta(l)
       end do
       close(103)
       
-      open(114,file='efi_ac_sw.dat')
+      open(114,file='efi_ac_'//shock//'.dat')
       do l=1,m_theta
-         read(114,*) dummy,efi_ac_sw(l)
+         read(114,*) dummy,efi_ac_sh(l)
       end do
       close(114)
 
@@ -101,7 +106,7 @@ module CD_distp
       ! First calculate the cooling time at all energies and at each position 
       ! (and also the maximum energy)
 
-      open(70,file='CD_tcoolp.dat')
+      open(70,file='CD_tcoolp_'//shock//'.dat')
 
       do l = 1, m_theta
          t_cell(l) = dR(l)/v_t(l)      ! Cell advection time
@@ -118,8 +123,8 @@ module CD_distp
          R_acel = H_theta(l)           ! Accelerator size  ????????????
          !t_pp = 1.d15/n_a(l)/z_pp      ! p-p losses (approx)
 
-         call Biseccion_p(B(l),log10Emaxl,t_pp,t_adv(l),efi_ac_sw(l))
-         Emax_p0(l) = MIN(10.d0**log10Emaxl,qe*B(l)*R_acel*sqrt(1.5d0/efi_ac_sw(l)))! Pérdidas difusivas
+         call Biseccion_p(B(l),log10Emaxl,t_pp,t_adv(l),efi_ac_sh(l))
+         Emax_p0(l) = MIN(10.d0**log10Emaxl,qe*B(l)*R_acel*sqrt(1.5d0/efi_ac_sh(l)))! Pérdidas difusivas
          if (Emax_p0(l) >= 0.5*Emax_p) write(*,*) 'Emax_p in global.f90 is too small!'
 
          do i=1,mE_p
@@ -140,7 +145,7 @@ module CD_distp
 
             t_loss(l,i) = 1.d0/(1.d0/t_coolp(l,i) + 1.d0/t_esc) ! general losses
 
-            t_ac = efi_ac_sw(l)*E_p(i)/(B(l)*c*qe)
+            t_ac = efi_ac_sh(l)*E_p(i)/(B(l)*c*qe)
 
             write(70,*) l,E_p(i)/eV,t_ac,t_pp,t_adv(l),t_diff,t_coolp(l,i),t_cell(l),t_esc,t_loss(l,i),t_adi(l)
 
@@ -266,7 +271,7 @@ module CD_distp
       end do                     ! End loop in starting position (l_min = # linear-emitters)
 
       ! Save the proton distribution at each position 
-      open(79,file='distp_sw.dat')
+      open(79,file='distp_'//shock//'.dat')
       do l=1,m_theta
          do i=1,mE_p
             write(79,*) theta(l),E_p(i)/eV,N_ptot(l,i)
@@ -276,7 +281,7 @@ module CD_distp
       close(79)
 
       sum = 0.d0
-      open(80,file='ENTp.dat')
+      open(80,file='ENTp_'//shock//'.dat')
       do l=1,m_theta
          E_NT = 0.d0
          do i=1,mE_p
@@ -295,11 +300,11 @@ module CD_distp
 
       !------------------------------------------------------------
       ! Group in bins according to position angle
-      call Np_bin(E_p,N_ptot,theta)
+      call Np_bin(E_p,N_ptot,theta,shock)
 
 
       deallocate( theta,R_theta,H_theta,B,B_par,rho,P,v_t,T )
-      deallocate( N_p,E_p,N_ptot, efi_ac_sw )
+      deallocate( N_p,E_p,N_ptot, efi_ac_sh )
       
    END subroutine CD_distp_run
    
@@ -316,16 +321,17 @@ END module CD_distp
 !                                                                          !
 !--------------------------------------------------------------------------!
 
-subroutine Np_bin(Ep,Np_tot,ang)
+subroutine Np_bin(Ep,Np_tot,ang, shock)
 
    use global
-   implicit none    
+   implicit none
+   character(LEN=*), intent(in) :: shock
    real(dp), intent(in) :: Ep(mE_p),Np_tot(m_theta,mE_p),ang(m_theta)
    integer, parameter :: N_bins = 5 ! For the plot diste_sw_bins
    real(dp) :: N_bin_i(N_bins,mE_p), N_total_i
 
    N_bin_i = 0.d0
-   open(81,file='distp_sw_total.dat')
+   open(81,file='distp_'//shock//'_total.dat')
    do i=1,mE_p
       N_total_i = 0.d0
       do l=1,m_theta
@@ -347,7 +353,7 @@ subroutine Np_bin(Ep,Np_tot,ang)
    end do
    close(81)
 
-   open(82,file='distp_sw_bin.dat')
+   open(82,file='distp_'//shock//'_bin.dat')
    do j = 1,N_bins
       do i = 1, mE_p
          write(82,*) j,Ep(i)/eV, N_bin_i(j,i)* mphi*1.d0
@@ -430,7 +436,7 @@ Function fQp(E, Emax)
    real(dp) :: fQp
    real(dp),intent(in) :: E, Emax
    
-   fQp = E**(-alpha_sw)*exp(-E/Emax)
+   fQp = E**(-alpha_sh)*exp(-E/Emax)
 
 end Function fQp
 

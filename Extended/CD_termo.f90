@@ -6,7 +6,7 @@ module CD_termo
    private
    public :: CD_termo_run
 
-contains
+ contains
 
    !============================================================================
    ! CD_termo_run
@@ -18,22 +18,34 @@ contains
    ! the injected luminosity at each shock segment.
    !___________________________________________________________________________
 
-   subroutine CD_termo_run
+   subroutine CD_termo_run(shock)
 
       use global
       !$ use omp_lib
       implicit none
+      character(LEN=*), intent(in) :: shock
       real(dp) :: A_z,A_omega,st,ct
       real(dp) :: cte_P,cte_T,cte_rho
-      real(dp) :: rho_w,Beq0
+      real(dp) :: rho_med, Beq0, v_sh
       real(dp) :: dOmega,dtheta,dR(m_theta)
-      real(dp) :: L_inj(m_theta),L_wind_perp,L_inj_tot
+      real(dp) :: L_inj(m_theta),L_perp,L_inj_tot, L_sh
       allocate( theta(m_theta),r_norm(m_theta),H_norm(m_theta) )
       allocate( P(m_theta),rho(m_theta),T(m_theta),B(m_theta),v_t(m_theta),v_perp(m_theta) )
 
       80  format(A11,X,Es10.2)
 
       write(*,*) '\n Calculate thermodynamic variables in the shocks'
+
+      !-----------------------------------------------------------------
+      !Define some values first
+      if (shock == 'RS') then
+         v_sh = v_w
+         L_sh = L_wind
+      else if (shock == 'FS') then
+         v_sh = v_ISM
+         L_sh = L_ISM
+      end if
+         
 
       !-----------------------------------------------------------------
       ! Read the shock position and cell size: theta,r_norm(theta),dR(theta)
@@ -49,28 +61,26 @@ contains
       ! Calculate the normal and tangential vectors at each position
       ! using Eqs.12-16 from Christie+16; we also calculate H(theta)/R(theta)
 
-      open(18,file='Hnorm_sw.dat') ! normalized
+      open(18,file='Hnorm_'//shock//'.dat') ! normalized
       do l = 1, m_theta
          st = sin(theta(l))
          ct = cos(theta(l))
-         call A_theta(theta(l),st,ct,r_norm(l),A_z,A_omega,H_norm(l))
-         ! MODIFICAR SEGUN RS O FS
-         v_perp(l) = v_w * ( -st*A_z + ct*A_omega ) !Eq 18
-         v_t(l) = v_w * ( ct*A_z + st*A_omega )   
-
+         call A_theta(shock,theta(l),st,ct,r_norm(l),A_z,A_omega,H_norm(l))
+         v_perp(l) = v_sh * ( -st*A_z + ct*A_omega ) !Eq 18
+         v_t(l) = v_sh * ( ct*A_z + st*A_omega )
          write(18,*) theta(l),H_norm(l)
       end do
       close(18)
 
-      ! particle accel. efficiency at the sw, depending on theta
-      allocate( efi_ac_sw(m_theta) )
-      open (18,file='efi_ac_sw.dat')
+      ! particle accel. efficiency at the shock, depending on theta
+      allocate( efi_ac_sh(m_theta) )
+      open (18,file='efi_ac_'//shock//'.dat')
       do l = 1,m_theta
-         efi_ac_sw(l) = 2.d0*pi*(c/v_perp(l))**2
-         write(18,*) theta(l),efi_ac_sw(l)
+         efi_ac_sh(l) = 2.d0*pi*(c/v_perp(l))**2
+         write(18,*) theta(l), efi_ac_sh
       end do
       close(18)
-      deallocate( efi_ac_sw )
+      deallocate( efi_ac_sh )
 
 
       !-----------------------------------------------------------------
@@ -79,23 +89,27 @@ contains
 
       L_inj_tot = 0.d0
 
-      open(42,file='Linj_sw.dat')            ! stores L_inj in one quadrant
+      open(42,file='Linj_'//shock//'.dat')            ! stores L_inj in one quadrant
       do l = 1, m_theta      
-         dOmega = sin(theta(l))*dtheta*d_phi 
-         L_wind_perp = (Mdot*v_perp(l)**2)/2.d0
-         L_inj(l) = L_wind_perp*(dOmega/4.d0/pi)
-         L_inj_tot = L_inj_tot + L_inj(l)
+         dOmega = sin(theta(l))*dtheta*d_phi
+         if (shock == 'RS') then
+            L_perp = (Mdot*v_perp(l)**2)/2.d0
+         else if (shock == 'FS') then
+            L_perp = 0.5*pi*rho_ISM*(R0*r_norm(l))**2*v_perp(l)**3 
+         end if
+         L_inj(l) = L_perp*(dOmega/4.d0/pi)
+         L_inj_tot = L_inj_tot + L_inj(l)         
          write(42,*) theta(l),r_norm(l),L_inj(l),dR(l)/R0
       end do
       close(42)
 
-      write(*,80) 'L_inj(sw)=', L_inj_tot*(mphi*4.) ! It was just 1 quadrant
-      write(*,80) 'L_NT/L_W(%)=', frac_NT*(L_inj_tot*mphi*4.)/L_wind*100.d0
+      write(*,80) 'L_inj('//shock//')=', L_inj_tot*(mphi*4.) ! It was just 1 quadrant
+      write(*,80) 'L_NT/L_sh('//shock//')=', frac_NT*(L_inj_tot*mphi*4.)/L_sh*100.d0
 
 
       !-----------------------------------------------------------------
       !
-      !  Thermodynamical quantities (SSW)
+      !  Thermodynamical quantities (shock)
       !
       !-----------------------------------------------------------------
 
@@ -108,34 +122,44 @@ contains
 
       !  $omp parallel do private(l)
       do l = 1, m_theta                                ! Calculo para la mitad de arriba
-         rho_w = Mdot/(4.d0*pi*(R0*r_norm(l))**2*v_w)
-         rho(l) = (rho_ISM*cte_rho)/(r_norm(l)**2) ! Eq. 17
+         if (shock == 'RS') then
+            rho_med = Mdot/(4.d0*pi*(R0*r_norm(l))**2*v_w)
+         !rho(l) = (rho_ISM*cte_rho)/(r_norm(l)**2) ! Eq. 17
          !Equivalent: rho(l) = (g_ad+1.)/(g_ad-1.)*rho_w    !  rho(l) = 4*rho_w
-         P(l) = cte_P*rho_w*v_perp(l)**2           ! Eq. 19
+         else if (shock == 'FS') then
+            rho_med = rho_ISM
+         end if
+         rho(l) = 4*rho_med      
+         P(l) = cte_P*rho_med*v_perp(l)**2           ! Eq. 19
          T(l) = cte_T*v_perp(l)**2                 ! Eq. 20
-         Beq0 = sqrt(8.d0*pi*P(l)) !sqrt(4.d0*pi*rho(l)*v(l)**2.d0)
+         Beq0 = sqrt(8.d0*pi*P(l))     ! sqrt(4.d0*pi*rho(l)*v(l)**2.d0)
          ! If U_mag = frac*U_th -> B^2/4pi = frac*(g_ad/g_ad - 1)*P 
          ! If P_mag = frac*P_th -> B^2/8pi = frac*P 
-         B(l) = frac_sw*Beq0
+         B(l) = frac_sh*Beq0
       end do
       !  $omp end parallel do
 
       !------------------------------
       ! Write the results
 
-      open(16,file='termo_sw.dat')
-      open(17,file='termonorm_sw.dat') ! normalized
+      open(16,file='termo_'//shock//'.dat')
+      open(17,file='termonorm_'//shock//'.dat') ! normalized
       do l = 1, m_theta
-         write(16,*) l,rho(l),P(l),v_t(l),T(l),B(l) 
-         write(17,*) theta(l),rho(l)/rho(1),P(l)/P(1),v_t(l)/v_w,T(l)/T(1),B(l)/B(1) 
+         write(16,*) l,rho(l),P(l),v_t(l),T(l),B(l),v_perp(l)
+         write(17,*) theta(l),rho(l)/rho(1),P(l)/P(1),v_t(l)/v_sh,T(l)/T(1),B(l)/B(1),v_perp(l)/v_sh
       end do
       close(16)
       close(17)
 
+      
       write(*,*) 'At the stagnation point (sw):'
       write(*,41) 'R0[pc] =',R0/pc
-      write(*,41) 'rho0/rho_w =',rho(1)/(Mdot/(4.d0*pi*R0**2*v_w))
-      write(*,41) 'n_a0 =',rho(1)/mp/mu_sw 
+      if (shock == 'RS') then
+         write(*,41) 'rho0/rho_w =',rho(1)/(Mdot/(4.d0*pi*R0**2*v_w))  
+         write(*,41) 'n_a0 =',rho(1)/mp/mu_sw
+      else if (shock == 'FS') then
+         write(*,41) 'n_a0 =',rho(1)/mp/mu_ISM
+      end if     
       write(*,41) 'P0 =',P(1)
       write(*,41) 'v0_t =',v_t(1)
       write(*,41) 'T0 =',T(1)
@@ -154,9 +178,10 @@ END module CD_termo
 
 !============================================================================
 
-SUBROUTINE A_theta(theta0,st,ct,r1,A_z,A_omega,H0_norm)
+SUBROUTINE A_theta(shock,theta0,st,ct,r1,A_z,A_omega,H0_norm)
 
    use global
+   character(LEN=*), intent(in) :: shock
    real(dp), intent(in) :: theta0,st,ct,r1
    real(dp), intent(out) :: A_z,A_omega,H0_norm
    real(dp) :: f_theta,g_theta
@@ -168,8 +193,12 @@ SUBROUTINE A_theta(theta0,st,ct,r1,A_z,A_omega,H0_norm)
 
    g_theta = 2.*(v_ISM/v_w)*(1.-ct) !+ r1**2.*st**2.*(1.-lambda) ! Eq. 22
 
+   if (shock == 'RS') then
    H0_norm = 0.5*(g_ad-1.)/(g_ad+1.) * (v_w/v_ISM)**2.* (g_theta**2.)/(f_theta*st) ! Eq. 23
    !H0_norm = 0.2d0 ! + (theta0/2./pi)**2.
+   else if (shock == 'FS') then
+   H0_norm = 0.3*r1
+   end if
 
    RETURN
 

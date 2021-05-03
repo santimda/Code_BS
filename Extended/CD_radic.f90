@@ -14,9 +14,10 @@ module CD_radic
   ! CD_radic_st_run (start)
   !============================================================================
 
-  subroutine CD_radic_st_run(LIC_int)  
+  subroutine CD_radic_st_run(LIC_int,shock)  
     use global
     implicit none
+    character(LEN=*), intent(in) :: shock
     real(dp),intent(out) :: LIC_int
     real(dp) :: ang,L_unabs,L_unabs_tot,Ef(mE_f),Ef_int
     real(dp) :: dummy
@@ -55,7 +56,7 @@ module CD_radic
     z = R0*z
 
     ! Number of electrons at r(l) with energy E_e(i): N_etot(l,i) 
-    open (14,file='diste_sw.dat')
+    open (14,file='diste_'//shock//'.dat')
     do l=1,m_theta
       do i=1,mE_e
         read(14,*) dummy, E_e(i),N_etot(l,i)
@@ -117,7 +118,7 @@ module CD_radic
     LIC_int = L_unabs_tot ! To calculate the total LIC in main.f90
 
     ! Save the SED      
-    open(16,file='radic_st.dat')
+    open(16,file='radic_st_'//shock//'.dat')
     do i = 1,mE_f     
       write(16,*) Ef(i)/eV,Ef(i)*LIC_tot(i)
     enddo
@@ -142,10 +143,11 @@ module CD_radic
   ! CD_radic_IR_run (start)
   !============================================================================
 
-  subroutine CD_radic_IR_run  
+  subroutine CD_radic_IR_run(shock)  
 
     use global
     implicit none
+    character(LEN=*), intent(in) :: shock
     real(dp) :: L_unabs,L_unabs_tot,Ef(mE_f),Ef_int
     real(dp) :: dummy
 
@@ -171,7 +173,7 @@ module CD_radic
     close(13)
 
     ! Number of electrons at r(l) with energy E_e(i): N_etot(l,i) 
-    open (14,file='diste_sw.dat')
+    open (14,file='diste_'//shock//'.dat')
     do l=1,m_theta
       do i=1,mE_e
         read(14,*) dummy, E_e(i),N_etot(l,i)
@@ -216,7 +218,7 @@ module CD_radic
     write(*,80) 'L_IC_IR = ', L_unabs_tot *mphi*4.d0 ! isotropic, 4 quadrants
 
     ! Save the SED      
-    open(16,file='radic_ir.dat')
+    open(16,file='radic_ir_'//shock//'.dat')
     do i = 1,mE_f     
       write(16,*) Ef(i)/eV,Ef(i)*LIC_tot(i)
     enddo

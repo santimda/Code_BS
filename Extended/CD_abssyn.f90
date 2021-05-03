@@ -17,13 +17,14 @@ module CD_abssyn
       ! the star. The f-f absorption in the shock is negligible given the large T
     !========================================================================
   
-    subroutine CD_abssyn_run
+    subroutine CD_abssyn_run(shock)
       use global
 
       !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
       !$ use omp_lib
       Implicit none
+      character(LEN=*), intent(in) :: shock
 !      real(dp), intent(in) :: phi
       real(dp) :: dtheta, alphaffw(mr_ff,mE_ff)
       Real(dp) :: r_ff(mr_ff),dr_ff
@@ -165,7 +166,7 @@ module CD_abssyn
 
       !/////////////////////////////////////////////////////////////////////
 
-      open (31,file='emisyn_sw.dat')
+      open (31,file='emisyn_'//shock//'.dat')
       do l=1,m_theta
          do i=1,m_nu
             read(31,*) nl,Ef(i),Lsy(l,i)  ! Lsy is already multiplied by Ef(i)
@@ -217,7 +218,7 @@ module CD_abssyn
       close(71)
       close(72)
 
-      open(33,file='radsyn_abs.dat')
+      open(33,file='radsyn_abs_'//shock//'.dat')
       do i=1,m_nu
          write(33,*) Ef(i),Lsy_tot(i),Lsy_tot_abs(i)
       end do

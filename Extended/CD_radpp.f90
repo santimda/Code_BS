@@ -17,9 +17,10 @@ module CD_radpp
   ! CD_radpp_run (START)
   !============================================================================
 
-  subroutine CD_radpp_run  
+  subroutine CD_radpp_run(shock)  
     use global
     implicit none
+    character(LEN=*), intent(in) :: shock
     real(dp) :: dummy,n_a(m_theta),Q_Ef,Q_phi,dx_pp,x_pp,qpi
     real(dp) :: Ef_int,dEf,Ef(mE_f),sum_pp,Epp,L1
     real(dp) :: Epi_min,Epi_max,Epi_int,dE_pi,integral
@@ -42,21 +43,25 @@ module CD_radpp
 
     80    format(A7,X,Es10.2)
 
-    write(*,*) 'Calculate the p-p emission in the SW'
+    write(*,*) 'Calculate the p-p emission in the Shock'
 
     !------------------------------------------------------------------
     ! Read thermodynamical quantites at each position
 
-    open(11,file='termo_sw.dat')
+    open(11,file='termo_'//shock//'.dat')
     do l=1,m_theta
-      read(11,*) nl,rho(l),P(l),v_t(l),T(l),B(l) 
-      n_a(l) = rho(l)/mp/mu_sw  
+       read(11,*) nl,rho(l),P(l),v_t(l),T(l),B(l)
+      if (shock == 'RS') then 
+         n_a(l) = rho(l)/mp/mu_sw
+      else if (shock == 'FS') then
+         n_a(l) = rho(l)/mp/mu_ISM
+      end if
     end do
     close(11)
     B_par = B*par
 
     ! Number of electrons at r(l) with energy E_p(i): N_ptot(l,i) 
-    open (14,file='distp_sw.dat')
+    open (14,file='distp_'//shock//'.dat')
     do l=1,m_theta
       do i=1,mE_p
         read(14,*) dummy, E_p(i),N_ptot(l,i)
@@ -144,7 +149,7 @@ module CD_radpp
     !
     !   Save data
 
-    open(16,file='radpp_sw.dat')
+    open(16,file='radpp_'//shock//'.dat')
     do i=1,mE_f
       write(16,*) Ef(i)/eV,Ef(i)*Lpp_tot(i)
     end do
