@@ -1,9 +1,9 @@
 set encoding iso_8859_1
-set size ratio 3.1/4.1 # yrange/xrange
+set size ratio 3.6/4.6 # yrange/xrange
 set title '' #'L_{inj} in RS'
-set xrange [-1.1:3.0]
-set yrange [-0.1:3.0]
-set cbrange [:]
+set xrange [-1.1:3.5]
+set yrange [-0.1:3.5]
+set cbrange [25:29.5]
 #set cbtics 1; set mcbtics 10
 set cbtics 0.5; set mcbtics 5
 set xtics 1; set mxtics 10

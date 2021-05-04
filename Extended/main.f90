@@ -91,8 +91,7 @@ PROGRAM main
    Lsy_sh_tot = 0.d0
    Lpp_sh_tot = 0.d0
  
-   if (termo_calc) call CD_termo_run('RS')
-   if (termo_calc) call CD_termo_run('FS')
+   if (termo_calc) call CD_termo_run(shock)
 
    if (Xrad_calc) then
       call shock_thermal_run_total
@@ -339,10 +338,6 @@ PROGRAM main
 
 
    !================================================================
-
-   write(*,*) '\n============================'
-   write(*,*) ' END'
-   write(*,*) '============================\n'
 
 End Subroutine Calculate
 

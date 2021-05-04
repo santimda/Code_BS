@@ -32,7 +32,10 @@ module CD_termo
       allocate( theta(m_theta),r_norm(m_theta),H_norm(m_theta) )
       allocate( P(m_theta),rho(m_theta),T(m_theta),B(m_theta),v_t(m_theta),v_perp(m_theta) )
 
-      80  format(A11,X,Es10.2)
+      80    format(A11,X,Es10.2)
+      81    format(A13,X,Es10.2)
+      82    format(A14,X,Es10.2)
+      83    format(A16,X,Es10.2)
 
       write(*,*) '\n Calculate thermodynamic variables in the shocks'
 
@@ -104,7 +107,12 @@ module CD_termo
       close(42)
 
       write(*,80) 'L_inj('//shock//')=', L_inj_tot*(mphi*4.) ! It was just 1 quadrant
-      write(*,80) 'L_NT/L_sh('//shock//')=', frac_NT*(L_inj_tot*mphi*4.)/L_sh*100.d0
+      write(*,81) 'L_NT/L_sh('//shock//')=', frac_NT*(L_inj_tot*mphi*4.)/L_sh*100.d0
+      if (shock == 'RS') then
+         write(*,82) 'L_inj(RS)/L_w=', L_inj_tot*(mphi*4.)/L_wind
+      else if (shock == 'FS') then
+         write(*,83) 'L_inj(FS)/L_ISM=', L_inj_tot*(mphi*4.)/L_ISM
+      end if
 
 
       !-----------------------------------------------------------------
@@ -194,7 +202,7 @@ SUBROUTINE A_theta(shock,theta0,st,ct,r1,A_z,A_omega,H0_norm)
    g_theta = 2.*(v_ISM/v_w)*(1.-ct) !+ r1**2.*st**2.*(1.-lambda) ! Eq. 22
 
    if (shock == 'RS') then
-   H0_norm = 0.5*(g_ad-1.)/(g_ad+1.) * (v_w/v_ISM)**2.* (g_theta**2.)/(f_theta*st) ! Eq. 23
+   H0_norm = 0.5*(g_ad-1.)/(g_ad+1.) * (v_w/v_ISM)**2* (g_theta**2)/(f_theta*st) ! Eq. 23
    !H0_norm = 0.2d0 ! + (theta0/2./pi)**2.
    else if (shock == 'FS') then
    H0_norm = 0.3*r1
