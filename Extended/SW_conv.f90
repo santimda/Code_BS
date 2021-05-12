@@ -30,6 +30,7 @@ contains
     integer :: m_x,m_y
     integer, parameter:: m_map = mphi*mr_map
     real(dp) :: A_beam,A_cell, suma2,x_map2(m_map),y_map2(m_map),S_map2(m_map)
+    real(dp) :: w_x, w_y
 
     A_beam = 2*pi*sigma_x*sigma_y     ! = Gaussian normalization factor 
     A_cell = f_Ny**2*sigma_x*sigma_y ! cell sample size
@@ -82,6 +83,9 @@ contains
  
     !------------------------------------------
 
+    w_x = 2.d0*sigma_x**2! Weight in x distance
+    w_y = 2.d0*sigma_y**2! Weight in y distance
+
     do i=1,m_x
        x_c(i) = x_c0 + (i-0.5)*D_x  ! x-coord of the center of the i-th ellipse
        
@@ -90,8 +94,7 @@ contains
           
           suma = 0.d0  !1.d-9  ! simulate noise (?)
           do l=1,m_tot
-             d_pesada2 = ((x_map(l)-x_c(i))**2)/(2.d0*sigma_x**2) + &
-                  ((y_map(l)-y_c(j))**2)/(2.d0*sigma_y**2) ! added extra sigma
+             d_pesada2 = ((x_map(l)-x_c(i))**2)/w_x + ((y_map(l)-y_c(j))**2)/w_y
              if (d_pesada2 < 6.d0) then      
                 ! Gaussian beam -> /(sigma*sqrt(2*pi)), both in x and y
                 atenua = exp( -d_pesada2 ) !/ norm
@@ -104,8 +107,7 @@ contains
           
           suma2 = 0.d0
           do l=1,m_map
-             d_pesada2 = ((x_map2(l)-x_c(i))**2)/(2.d0*sigma_x**2) + &
-                  ((y_map2(l)-y_c(j))**2)/(2.d0*sigma_y**2) ! added extra sigma
+             d_pesada2 = ((x_map2(l)-x_c(i))**2)/w_x + ((y_map2(l)-y_c(j))**2)/w_y
              if (d_pesada2 < 6.d0) then      
                 ! Gaussian beam -> /(sigma*sqrt(2*pi)), both in x and y
                 atenua = exp( -d_pesada2 ) !/ norm
