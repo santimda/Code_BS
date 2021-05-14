@@ -316,6 +316,7 @@ module SW_conv
       integer :: m_x,m_y
       integer, parameter:: m_map = mphi*mr_map
       real(dp) :: A_beam,A_cell, suma2,x_map2(m_map),y_map2(m_map),S_map2(m_map)
+      real(dp) :: w_x, w_y
 
       A_beam = 2*pi*sigma_x*sigma_y     ! = Gaussian normalization factor 
       A_cell = f_Ny**2*sigma_x*sigma_y ! cell sample size
