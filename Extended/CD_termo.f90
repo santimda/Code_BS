@@ -102,16 +102,16 @@ module CD_termo
          end if
          L_inj(l) = L_perp*(dOmega/4.d0/pi)
          L_inj_tot = L_inj_tot + L_inj(l)         
-         write(42,*) theta(l),r_norm(l),L_inj(l),dR(l)/R0
+         write(42,*) theta(l),r_norm(l),L_inj(l),dR(l)/R0,L_inj_tot*(mphi*4.)/L_sh
       end do
       close(42)
 
       write(*,80) 'L_inj('//shock//')=', L_inj_tot*(mphi*4.) ! It was just 1 quadrant
       write(*,81) 'L_NT/L_sh('//shock//')=', frac_NT*(L_inj_tot*mphi*4.)/L_sh*100.d0
       if (shock == 'RS') then
-         write(*,82) 'L_inj(RS)/L_w=', L_inj_tot*(mphi*4.)/L_wind
+         write(*,82) 'L_inj(RS)/L_w=', L_inj_tot*(mphi*4.)/L_sh
       else if (shock == 'FS') then
-         write(*,83) 'L_inj(FS)/L_ISM=', L_inj_tot*(mphi*4.)/L_ISM
+         write(*,83) 'L_inj(FS)/L_ISM=', L_inj_tot*(mphi*4.)/L_sh
       end if
 
 
