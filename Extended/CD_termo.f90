@@ -94,11 +94,13 @@ module CD_termo
 
       open(42,file='Linj_'//shock//'.dat')            ! stores L_inj in one quadrant
       do l = 1, m_theta      
-         dOmega = sin(theta(l))*dtheta*d_phi
+         dOmega = sin(theta(l))*dtheta*d_phi ! dOmega no depende del choque?! !!!! CHECK!
+         ! THETA, dtheta?: arccos( norm * v_sh )
          if (shock == 'RS') then
             L_perp = (Mdot*v_perp(l)**2)/2.d0
          else if (shock == 'FS') then
-            L_perp = 0.5*pi*rho_ISM*(R0*r_norm(l))**2*v_perp(l)**3 
+            !L_perp = 0.5*pi*rho_ISM*(R0*r_norm(l))**2*v_perp(l)**3 
+            L_perp = 0.5*pi*rho_ISM*(R0*r_norm(l))**2*v_perp(l)**2 * v_sh ! Valentí???? 
          end if
          L_inj(l) = L_perp*(dOmega/4.d0/pi)
          L_inj_tot = L_inj_tot + L_inj(l)         
