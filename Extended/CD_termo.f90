@@ -69,8 +69,12 @@ module CD_termo
          st = sin(theta(l))
          ct = cos(theta(l))
          call A_theta(shock,theta(l),st,ct,r_norm(l),A_z,A_omega,H_norm(l))
+         if (shock == 'RS') then
          v_perp(l) = v_sh * ( -st*A_z + ct*A_omega ) !Eq 18
          v_t(l) = v_sh * ( ct*A_z + st*A_omega )
+      else if (shock == 'FS') then
+         v_perp(l) = v_sh*max(A_omega,0.)
+         v_t(l) = v_sh*max(-A_z,0.)
          write(18,*) theta(l),H_norm(l)
       end do
       close(18)

@@ -1,9 +1,9 @@
 eV=1.602176e-12
-set encoding iso_8859_1
+set encoding utf8    #iso_8859_1
 set title ''
 #'Electron distribution in FS'
 set xrange [7:14.]
-set yrange [37:]
+set yrange [30:]
 #set cbrange [1:2000]
 set xlabel 'log_{10}(E_e [eV])'; set ylabel offset 0.0,-0.1
 set ylabel 'log_{10}({E_e}^2 N_e(E_e) [erg])'; set ylabel offset 0.1,0.0

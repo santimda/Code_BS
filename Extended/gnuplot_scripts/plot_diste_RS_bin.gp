@@ -1,5 +1,5 @@
 eV=1.602176e-12
-set encoding iso_8859_1
+set encoding utf8  #iso_8859_1
 set title ''
 #'Electron distribution in RS'
 set xrange [7:14.]

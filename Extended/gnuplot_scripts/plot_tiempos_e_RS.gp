@@ -13,7 +13,7 @@ set ytics 2; set mytics 2
 
 plot "< awk '$1==100 { print $2, $7 }' ../CD_tcoole_RS.dat" u (log10($1)):(log10($2)) t 'ac' w l lw 2.5 lc 8 dt 4, \
     "< awk '$1==100 { print $2, $10 }' ../CD_tcoole_RS.dat" u (log10($1)):(log10($2)) t 'cell' w l lw 2.5 dt 3 lc 7,\
-	"< awk '$1==100 { print $2, $9 }' ../CD_tcoole_RS.dat" u (log10($1)):(log10($2)) t 'conv' w l lw 2.5 lc rgb "coral" dt 6, \
+    "< awk '$1==100 { print $2, $9 }' ../CD_tcoole_RS.dat" u (log10($1)):(log10($2)) t 'conv' w l lw 2.5 lc rgb "coral" dt 6, \
     "< awk '$1==100 { print $2, $6 }' ../CD_tcoole_RS.dat" u (log10($1)):(log10($2)) t 'diff' w l lw 2.5 lc rgb "#32CD32" dt 6, \
     "< awk '$1==100 { print $2, $15}' ../CD_tcoole_RS.dat" u (log10($1)):(log10($2)) t 'adi' w l lw 2.5 lc 3, \
     "< awk '$1==100 { print $2, $3 }' ../CD_tcoole_RS.dat" u (log10($1)):(log10($2)) t 'IC' w l lw 2.5 lc 6, \

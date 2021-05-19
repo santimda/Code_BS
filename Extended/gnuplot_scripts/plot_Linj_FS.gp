@@ -1,13 +1,13 @@
 set encoding iso_8859_1
 set size ratio 3.6/4.6 # yrange/xrange
 set title '' #'L_{inj} in FS'
-set xrange [-1.1:3.5]
-set yrange [-0.1:3.5]
-set cbrange [25:29.5]
+set xrange [-1.1:5.]
+set yrange [-0.1:]
+set cbrange [27:30.5]
 #set cbtics 1; set mcbtics 10
 set cbtics 0.5; set mcbtics 5
-set xtics 1; set mxtics 10
-set ytics 1; set mytics 10
+set xtics 1; set mxtics 2
+set ytics 1; set mytics 2
 set key off
 set xlabel 'x/R_0'; set xlabel offset 0.,0.5
 set ylabel 'y/R_0'; set ylabel offset 1.2,0.0

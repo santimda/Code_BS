@@ -21,26 +21,26 @@ module system_parameters
    ! Star
    !real(dp), parameter :: v_st = 40.d5             ! del Palacio+2018
    !real(dp), parameter :: v_st = 30.d5             ! del Palacio+2018 (generic)
-   !real(dp), parameter :: v_st = 500.d5             ! B0-05-d
-   real(dp), parameter :: v_st = 1000.d5             ! B1-1-d/B1-1-h/B1-1-nm
+   real(dp), parameter :: v_st = 500.d5             ! B0-05-d
+   !real(dp), parameter :: v_st = 1000.d5             ! B1-1-d/B1-1-h/B1-1-nm
    !real(dp), parameter :: v_st = 60000.d5             ! B2-60-d
-   !real(dp), parameter :: T_st = 2.9d4              ! B0-05-d
-   real(dp), parameter :: T_st = 2.5d4              ! B1-1-d/B1-1-h/B1-1-nm
+   real(dp), parameter :: T_st = 2.9d4              ! B0-05-d
+   !real(dp), parameter :: T_st = 2.5d4              ! B1-1-d/B1-1-h/B1-1-nm
    !real(dp), parameter :: T_st = 2.d4               ! B2-60-d
    !real(dp), parameter :: T_st = 4.07d4            ! K2017  
    real(dp), parameter :: T_st_ad = k*T_st/mec2    ! Adimensional stellar temperature
    !real(dp), parameter :: L_st = 7.d5*L_sun       ! del Valle 2012
    !real(dp), parameter :: R_st = sqrt( L_st/(4.*pi*sigma*T_st**4) )
-   !real(dp), parameter :: R_st = 5.5*R_sun         ! B0-05-d
-   real(dp), parameter :: R_st = 4.8*R_sun         ! B1-1-d/B1-1-h/B1-1-nm
+   real(dp), parameter :: R_st = 5.5*R_sun         ! B0-05-d
+   !real(dp), parameter :: R_st = 4.8*R_sun         ! B1-1-d/B1-1-h/B1-1-nm
    !real(dp), parameter :: R_st = 4.*R_sun          ! B2-60-d
    !real(dp), parameter :: R_st = 5.5*R_sun         ! K2017  
    real(dp), parameter :: L_st = 4.d0*pi*R_st**2*sigma*T_st**4 
    !real(dp), parameter :: L_st = 4.d0*pi*R_st**2*sigma*T_st**4 ! Stellar luminosity 
    !real(dp), parameter :: L_st = 5.d5*L_sun       ! del Palacio+ 2018 (generic)
    !real(dp), parameter :: L_st = 8.7d5*L_sun       ! K2018
-   !real(dp), parameter :: Mdot = 1.d-8*M_sun_yr     ! B0-05-d
-   real(dp), parameter :: Mdot = 1.d-9*M_sun_yr      ! B1-1-d/B1-1-h/B1-1-nm
+   real(dp), parameter :: Mdot = 1.d-8*M_sun_yr     ! B0-05-d
+   !real(dp), parameter :: Mdot = 1.d-9*M_sun_yr      ! B1-1-d/B1-1-h/B1-1-nm
    !real(dp), parameter :: Mdot = 1.d-10*M_sun_yr     ! B2-60-d
    !real(dp), parameter :: Mdot = 9.d-6*M_sun_yr    ! Peri 2014
    !real(dp), parameter :: Mdot = 1.d-8*M_sun_yr    ! Benaglia2020 (2.d-5 for alpha>0.3)
@@ -50,8 +50,8 @@ module system_parameters
    !real(dp), parameter :: v_w = 2300.d5            ! Brookes2016,Ben2010
    !real(dp), parameter :: v_w = 1500.d5            ! K2018
    !real(dp), parameter :: v_w = 2000.d5            ! del Palacio+2018 (generic)
-   !real(dp), parameter :: v_w = 1500.d5             ! B0-05-d
-   real(dp), parameter :: v_w = 1200.d5             ! B1-1-d/B1-1-h/B1-1-nm
+   real(dp), parameter :: v_w = 1500.d5             ! B0-05-d
+   !real(dp), parameter :: v_w = 1200.d5             ! B1-1-d/B1-1-h/B1-1-nm
    !real(dp), parameter :: v_w = 1000.d5             ! B2-60-d
    real(dp), parameter :: L_wind = 0.5d0*(Mdot*v_w**2) ! Wind kinetic power
    real(dp), parameter :: v_st_rot = 0.1d0*v_w     ! Rule-of-thumb
@@ -80,9 +80,10 @@ module system_parameters
    !real(dp), parameter :: T_ISM = 1.d4             ! warm ISM (Brookes p.136 uses T=8e3)
    real(dp), parameter :: T_ISM_ad = k*T_ISM/mec2  ! Adimensional ISM temperature 
    !real(dp), parameter :: U_ISM = 4.d0*sigma*T_ISM**4/c ! average energy density
-   real(dp), parameter :: alpha_ISM = k*T_ISM/(v_ISM**2*mp*mu_ISM)! = P_thermal_ISM/P_kin_ISM
+   real(dp), parameter :: alpha_ISM = 1.d-10
+   !real(dp), parameter :: alpha_ISM = k*T_ISM/(v_ISM**2*mp*mu_ISM)! = P_thermal_ISM/P_kin_ISM
    !real(dp), parameter :: alpha_ISM =  5.d-2      ! P_thermal_ISM = alpha*P_kin_ISM ~ kT_ISM/(mu*m_p*v_ISM**2)
-   !real(dp), parameter :: alpha_ISM = k*T_ISM/(v_ISM**2*mp*mu_ISM)
+   !real(dp), parameter :: alpha_ISM = 0.1
    real(dp), parameter :: lambda = alpha_ISM/(alpha_ISM + 1.d0)
    real(dp), parameter :: Zq_ISM = 1.0_dp           ! Z = rms ionic charge
    real(dp), parameter :: gamma_ISM = 1.0_dp        ! Pure H
