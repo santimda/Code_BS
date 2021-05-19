@@ -76,6 +76,7 @@ module CD_termo
          v_perp(l) = v_sh*max(A_omega,0.)
          v_t(l) = v_sh*max(-A_z,0.)
          write(18,*) theta(l),H_norm(l)
+         end if
       end do
       close(18)
 
@@ -98,8 +99,9 @@ module CD_termo
 
       open(42,file='Linj_'//shock//'.dat')            ! stores L_inj in one quadrant
       do l = 1, m_theta      
-         dOmega = sin(theta(l))*dtheta*d_phi ! dOmega no depende del choque?! !!!! CHECK!
+         !dOmega = sin(theta(l))*dtheta*d_phi ! dOmega no depende del choque?! !!!! CHECK!
          ! THETA, dtheta?: arccos( norm * v_sh )
+         write(*,*) dOmega
          if (shock == 'RS') then
             L_perp = (Mdot*v_perp(l)**2)/2.d0
          else if (shock == 'FS') then
