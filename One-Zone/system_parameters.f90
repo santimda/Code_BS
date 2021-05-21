@@ -20,8 +20,8 @@ module system_parameters
 
    !--------------------------------------------------------------------------------------
    ! Star
-   real(dp), parameter :: v_st = 60000.d5             ! Peri 2014 
-   real(dp), parameter :: T_st = 2.d4            ! K2017  
+   real(dp), parameter :: v_st = 600.d5             ! Peri 2014 
+   real(dp), parameter :: T_st = 2.d6            ! K2017  
    real(dp), parameter :: T_st_ad = k*T_st/mec2     ! Adimensional stellar temperature
    !real(dp), parameter :: L_st = 7.d5*L_sun        ! del Valle 2012
    !real(dp), parameter :: R_st = sqrt( L_st/(4.*pi*sigma*T_st**4.) ) 

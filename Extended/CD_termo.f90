@@ -27,15 +27,16 @@ module CD_termo
       real(dp) :: A_z,A_omega,st,ct
       real(dp) :: cte_P,cte_T,cte_rho
       real(dp) :: rho_med, Beq0, v_sh
-      real(dp) :: dOmega,dtheta,dR(m_theta)
+      real(dp) :: dOmega,dtheta,dR(m_theta),dA
       real(dp) :: L_inj(m_theta),L_perp,L_inj_tot, L_sh
+      real(dp) :: v_vec(2), n_perp(2), n_t(2)
       allocate( theta(m_theta),r_norm(m_theta),H_norm(m_theta) )
       allocate( P(m_theta),rho(m_theta),T(m_theta),B(m_theta),v_t(m_theta),v_perp(m_theta) )
 
-      80    format(A11,X,Es10.2)
-      81    format(A13,X,Es10.2)
-      82    format(A14,X,Es10.2)
-      83    format(A16,X,Es10.2)
+      80    format(A13,X,Es10.2)
+      81    format(A18,X,Es10.2)
+      82    format(A16,X,Es10.2)
+      83    format(A18,X,Es10.2)
 
       write(*,*) '\n Calculate thermodynamic variables in the shocks'
 
@@ -70,13 +71,21 @@ module CD_termo
          ct = cos(theta(l))
          call A_theta(shock,theta(l),st,ct,r_norm(l),A_z,A_omega,H_norm(l))
          if (shock == 'RS') then
-         v_perp(l) = v_sh * ( -st*A_z + ct*A_omega ) !Eq 18
-         v_t(l) = v_sh * ( ct*A_z + st*A_omega )
-      else if (shock == 'FS') then
-         v_perp(l) = v_sh*max(A_omega,0.)
-         v_t(l) = v_sh*max(-A_z,0.)
-         write(18,*) theta(l),H_norm(l)
+            n_perp =  (/ -A_omega, -A_z /)! Internal perpendicular vector to the BS surface
+            n_t = (/ -A_z, A_omega /)     ! Tangential vector to the BS surface
+            v_vec = v_sh * (/ -ct, st /)
+            !v_perp(l) = v_sh * ( -st*A_z + ct*A_omega ) !Eq 18
+            !v_t(l) = v_sh * ( ct*A_z + st*A_omega )
+         else if (shock == 'FS') then
+            n_perp =  (/ A_omega, A_z /) ! External perpendicular vector to the BS surface
+            n_t = (/ -A_z, A_omega /)    ! Tangential vector to the BS surface
+            v_vec = v_sh * (/1.d0, 0.d0/)
+            !v_t(l) = v_sh*max(-A_z,0.)
+            !print*, n_perp
          end if
+         v_perp(l) = max( DOT_PRODUCT(v_vec,n_perp), 0.d0 )
+         v_t(l) = DOT_PRODUCT(v_vec,n_t) !max( DOT_PRODUCT(v_vec,n_t), 0.d0 )
+         write(18,*) theta(l),H_norm(l)
       end do
       close(18)
 
@@ -99,27 +108,26 @@ module CD_termo
 
       open(42,file='Linj_'//shock//'.dat')            ! stores L_inj in one quadrant
       do l = 1, m_theta      
-         !dOmega = sin(theta(l))*dtheta*d_phi ! dOmega no depende del choque?! !!!! CHECK!
-         ! THETA, dtheta?: arccos( norm * v_sh )
-         write(*,*) dOmega
          if (shock == 'RS') then
+            dOmega = sin(theta(l))*dtheta*d_phi 
             L_perp = (Mdot*v_perp(l)**2)/2.d0
+            L_inj(l) = L_perp*(dOmega/4.d0/pi)
          else if (shock == 'FS') then
-            !L_perp = 0.5*pi*rho_ISM*(R0*r_norm(l))**2*v_perp(l)**3 
-            L_perp = 0.5*pi*rho_ISM*(R0*r_norm(l))**2*v_perp(l)**2 * v_sh ! Valentí???? 
+            dA = (d_phi*R0*r_norm(l)) * dR(l)
+            L_perp = 0.5*pi*rho_ISM*v_perp(l)**3!2 * v_sh ! Valentí???? v_perp(l)**3 
+            L_inj(l) = L_perp*dA 
          end if
-         L_inj(l) = L_perp*(dOmega/4.d0/pi)
          L_inj_tot = L_inj_tot + L_inj(l)         
          write(42,*) theta(l),r_norm(l),L_inj(l),dR(l)/R0,L_inj_tot*(mphi*4.)/L_sh
       end do
       close(42)
 
-      write(*,80) 'L_inj('//shock//')=', L_inj_tot*(mphi*4.) ! It was just 1 quadrant
-      write(*,81) 'L_NT/L_sh('//shock//')=', frac_NT*(L_inj_tot*mphi*4.)/L_sh*100.d0
+      write(*,80) 'L_inj('//shock//') =', L_inj_tot*(mphi*4.) ! It was just 1 quadrant
+      write(*,81) 'L_NT/L_sh('//shock//') [%] =', frac_NT*(L_inj_tot*mphi*4.)/L_sh*100.d0
       if (shock == 'RS') then
-         write(*,82) 'L_inj(RS)/L_w=', L_inj_tot*(mphi*4.)/L_sh
+         write(*,82) 'L_inj(RS)/L_w =', L_inj_tot*(mphi*4.)/L_sh
       else if (shock == 'FS') then
-         write(*,83) 'L_inj(FS)/L_ISM=', L_inj_tot*(mphi*4.)/L_sh
+         write(*,83) 'L_inj(FS)/L_ISM =', L_inj_tot*(mphi*4.)/L_sh
       end if
 
 
