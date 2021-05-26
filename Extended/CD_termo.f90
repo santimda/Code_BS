@@ -114,11 +114,11 @@ module CD_termo
             L_inj(l) = L_perp*(dOmega/4.d0/pi)
          else if (shock == 'FS') then
             dA = (d_phi*R0*r_norm(l)*sin(theta(l))) * dR(l)
-            L_perp = 0.5*pi*rho_ISM*v_perp(l)**3!2 * v_sh ! Valentí???? v_perp(l)**3 
+            L_perp = 0.5*rho_ISM*v_perp(l)**2 * v_sh ! Valentí???? v_perp(l)**3 
             L_inj(l) = L_perp*dA 
          end if
          L_inj_tot = L_inj_tot + L_inj(l)         
-         write(42,*) theta(l),r_norm(l),L_inj(l),dR(l)/R0,L_inj_tot*(mphi*4.)/L_sh
+         write(42,*) theta(l), r_norm(l), L_inj(l), dR(l)/R0, L_inj_tot*(mphi*4.)/L_sh
       end do
       close(42)
 
