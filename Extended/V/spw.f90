@@ -2,14 +2,18 @@ program main
    implicit none
    real*8 :: pi, c, Mdot, vw, bep, vp, Rorb, rhop, p0, rw0
    real*8 :: x0, l, dl, x, y, psx0, psy0, th10, th20, sum1, sum2, sum3
-   real*8 :: rst, rp, rhow, pw, th1, th2, dth1, dth2
+   real*8 :: rst, rp, rhow, pw, th1, th2, dth1, dth2, theta_max
    real*8 :: dS1, dS2, psx, psy, ang, ps, L_ISM
+   real*8 :: v_t(2), v_p(2), v_vec(2)
    integer :: i
 
    open(1,file = 'kk.dat')
    open(2,file = 'L_theta.dat')
+   open(3,file = 'v.dat')
+   open(4,file = 'S.dat')
    pi = acos(-1.d0)
    c = 3.d10      
+   theta_max = (170.d0/180.d0)*pi ! ~ extension of the BS 
 
    Mdot = 1.d-7*2.d33/3.1d7
    vw = 2.d8
@@ -19,7 +23,7 @@ program main
 
    rhop = 1.7d-24 ! = m_p [cgs]
    p0 = rhop*vp**2
-   rw0 = sqrt(Mdot*vw/4.d0/pi/p0)
+   rw0 = sqrt(Mdot*vw/4.d0/pi/p0) ! = R0
 
    Rorb = 1.d7*rw0 ! Valor exageradamente grande para simular viento plano
    
@@ -38,8 +42,9 @@ program main
    th20 = 0.d0      
    sum1 = 0.d0
    sum2 = 0.d0  
-   sum3 = 0.d0                  
-   do i = 1,10000
+   sum3 = 0.d0  
+   i = 1                
+   do while (th10 <= theta_max)
 
       rst = sqrt( x**2 + y**2 )
       rhow = Mdot/4.d0/pi/rst**2/vw
@@ -70,7 +75,6 @@ program main
       y = y + psy*dl/ps
       l = l + dl
 
-      !write(1,*) x,y
       write(1,*) x/rw0, y/rw0
 
       psx0 = psx
@@ -80,12 +84,21 @@ program main
       sum2 = sum2 + 2.d0*pi*y*dl*sin(ang)**2*rhop*vp**3/2.d0
       sum3 = sum3 + 2.d0*pi*y*dl*sin(ang)**3*rhop*vp**3/2.d0
 
-      write(2,*) th1, sum1/L_ISM, sum2/L_ISM, sum3/L_ISM
-   enddo
+      v_t = (/ psx/ps, psy/ps /)
+      v_p = (/ -psy/ps, psx/ps /)
+      v_vec = vp * (/ cos(th2),sin(th2) /)
 
-   print *, 'L:', sum1/L_ISM, sum2/L_ISM, sum3/L_ISM
+      write(2,*) th1, sum1/L_ISM, sum2/L_ISM, sum3/L_ISM
+      write(3,*) th1, abs(DOT_PRODUCT(v_t,v_vec)/vp), abs(DOT_PRODUCT(v_p,v_vec)/vp)
+      write(4,*) th1, dS1/dl, dS2/dl
+      i = i + 1
+   enddo
+   print*, 'i_max = ', i
+   print*, 'L:', sum1/L_ISM, sum2/L_ISM, sum3/L_ISM
 
    close(1)
    close(2)
+   close(3)
+   close(4)
 end
 
