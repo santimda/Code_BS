@@ -91,7 +91,7 @@ module system_parameters
    real(dp), parameter :: rho_ISM = n_ISM*mp*mu_ISM ! CHECK
    real(dp), parameter :: P_kin_ISM = rho_ISM*v_ISM**2 ! ISM ram pressure
    real(dp), parameter :: P_th_ISM = alpha_ISM*P_kin_ISM ! ISM thermal pressure 
-   real(dp), parameter :: C_s_ISM = sqrt(g_ad*rho_ISM/P_th_ISM) ! ISM sound speed
+   real(dp), parameter :: C_s_ISM = sqrt(g_ad*P_th_ISM/rho_ISM) ! ISM sound speed
    real(dp), parameter :: R0 = sqrt( (Mdot*v_w)/(4.*pi*(1.+alpha_ISM)*rho_ISM*v_ISM**2) ) 
    real(dp), parameter :: R0_proj = (R0/AU)/(distance/pc)*abs(cos(incli)) ! angular distance ["] to the BS stagnation point
    ! Peri 2014: R0_proj ~ 3.5 arcmin; K2018: R0_proj ~ 193" ~ 3.2 arcmin; Ben2020: ~3.9 arcmin
