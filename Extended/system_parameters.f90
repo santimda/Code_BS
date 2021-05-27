@@ -80,8 +80,8 @@ module system_parameters
    !real(dp), parameter :: T_ISM = 1.d4             ! warm ISM (Brookes p.136 uses T=8e3)
    real(dp), parameter :: T_ISM_ad = k*T_ISM/mec2  ! Adimensional ISM temperature 
    !real(dp), parameter :: U_ISM = 4.d0*sigma*T_ISM**4/c ! average energy density
-   real(dp), parameter :: alpha_ISM = 1.d-10
-   !real(dp), parameter :: alpha_ISM = k*T_ISM/(v_ISM**2*mp*mu_ISM)! = P_thermal_ISM/P_kin_ISM
+   !real(dp), parameter :: alpha_ISM = 1.d-10
+   real(dp), parameter :: alpha_ISM = k*T_ISM/(v_ISM**2*mp*mu_ISM)! = P_thermal_ISM/P_kin_ISM
    !real(dp), parameter :: alpha_ISM =  5.d-2      ! P_thermal_ISM = alpha*P_kin_ISM ~ kT_ISM/(mu*m_p*v_ISM**2)
    !real(dp), parameter :: alpha_ISM = 0.1
    real(dp), parameter :: lambda = alpha_ISM/(alpha_ISM + 1.d0)
@@ -89,6 +89,9 @@ module system_parameters
    real(dp), parameter :: gamma_ISM = 1.0_dp        ! Pure H
 
    real(dp), parameter :: rho_ISM = n_ISM*mp*mu_ISM ! CHECK
+   real(dp), parameter :: P_kin_ISM = rho_ISM*v_ISM**2 ! ISM ram pressure
+   real(dp), parameter :: P_th_ISM = alpha_ISM*P_kin_ISM ! ISM thermal pressure 
+   real(dp), parameter :: C_s_ISM = sqrt(g_ad*rho_ISM/P_th_ISM) ! ISM sound speed
    real(dp), parameter :: R0 = sqrt( (Mdot*v_w)/(4.*pi*(1.+alpha_ISM)*rho_ISM*v_ISM**2) ) 
    real(dp), parameter :: R0_proj = (R0/AU)/(distance/pc)*abs(cos(incli)) ! angular distance ["] to the BS stagnation point
    ! Peri 2014: R0_proj ~ 3.5 arcmin; K2018: R0_proj ~ 193" ~ 3.2 arcmin; Ben2020: ~3.9 arcmin
