@@ -86,7 +86,7 @@ module CD_termo
          end if
          v_perp(l) = max( DOT_PRODUCT(v_vec,n_perp), 0.d0 )
          v_t(l) = DOT_PRODUCT(v_vec,n_t) !max( DOT_PRODUCT(v_vec,n_t), 0.d0 )
-         dV_cell(l) = (r_norm(l)*R0)*sin(theta(l))*dR(l)*(H_norm(l)*R0) ! Volume of the cell
+         dV_cell(l) = (r_norm(l)*R0)*sin(theta(l))*dR(l)*(H_norm(l)*r_norm(l)*R0) ! Volume of the cell
          write(18,*) theta(l),H_norm(l)
       end do
       close(18)
