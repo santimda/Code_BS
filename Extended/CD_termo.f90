@@ -154,10 +154,10 @@ module CD_termo
          rho_med = rho_ISM    
       end if
 
-      rho(1) = 4.d0*rho_med
-      P(1) = cte_P*rho_med*v_perp(1)**2
       Mach(1) = v_perp(1)/C_s_ISM
       r(1) = (g_ad+1.)*Mach(1)**2/((g_ad-1.)*Mach(1)**2+2.)
+      rho(1) = r(1)*rho_med
+      P(1) = cte_P*rho_med*v_perp(1)**2
       T(1) = cte_T*v_perp(1)**2
       Beq0 = sqrt(8.d0*pi*P(1))
       B(1) = frac_sh*Beq0
