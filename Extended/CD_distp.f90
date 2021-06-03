@@ -42,11 +42,11 @@ module CD_distp
       end interface
       
       interface
-      function fQp(E,Emax) ! function Q(E)
+      function fQp(E,Emax,alpha) ! function Q(E)
          use iso_fortran_env, only: dp => real64
          implicit none
          real(dp) :: fQp
-         real(dp), intent(in) :: E,Emax
+         real(dp), intent(in) :: E,Emax,alpha
       end function fQp
       end interface
 
@@ -54,6 +54,7 @@ module CD_distp
       allocate( P(m_theta),rho(m_theta),T(m_theta),B(m_theta),v_t(m_theta) )
       allocate( N_p(mE_p),E_p(mE_p),B_par(m_theta),N_ptot(m_theta,mE_p) )
       allocate( efi_ac_sh(m_theta) )
+      allocate( alpha_sh(m_theta) )
       
       write(*,*) 'Calculate the non-thermal proton distribution in the Shock'
 
@@ -94,6 +95,12 @@ module CD_distp
          read(114,*) dummy,efi_ac_sh(l)
       end do
       close(114)
+
+      open(20,file='alpha_'//shock//'.dat')
+      do l = 1, m_theta
+         read(20,*) dummy,alpha_sh
+      end do
+      close(20)
 
       
       !--------------------------------------------------------------------
@@ -173,9 +180,9 @@ module CD_distp
          ! The integral is solved with the trapezoid method; Q(E) is obtained from fQp
          integral = 0.d0
          i = 1
-         f1 = E_p(1) * fQp(E_p(1), Emax_p0(l_min))
+         f1 = E_p(1) * fQp(E_p(1), Emax_p0(l_min), alpha_sh(1))
          do while (i < mE_p .and. E_p(i+1) < 10.d0*Emax_p0(l_min))
-           f2 = E_p(i+1) * fQp(E_p(i+1), Emax_p0(l_min))
+           f2 = E_p(i+1) * fQp(E_p(i+1), Emax_p0(l_min), alpha_sh(i+1))
            f = (f1 + f2)/2.d0
            dE_p = E_p(i)*(Eint_p-1.d0)
            integral = integral + f*dE_p
@@ -193,7 +200,7 @@ module CD_distp
             ! N(E)=1/|dE/dt|*int_E^Emax Q(E')dE' = Q(E)*dt, with |dE/dt|= E/t_cool 
             ! in [erg/seg], dt = min(t_cell,t_cool) so that [N(E)]=erg/erg**2
 
-            Q = Ka * fQp(E_p(i), Emax_p0(l_min))
+            Q = Ka * fQp(E_p(i), Emax_p0(l_min), alpha_sh(i))
             N_p0(i) = Q*min(t_cell(l_min),t_coolp(l_min,i))
             N_ptot(l_min,i) = N_ptot(l_min,i) + N_p0(i)
 
@@ -304,7 +311,7 @@ module CD_distp
 
 
       deallocate( theta,R_theta,H_theta,B,B_par,rho,P,v_t,T )
-      deallocate( N_p,E_p,N_ptot, efi_ac_sh )
+      deallocate( N_p,E_p,N_ptot, efi_ac_sh, alpha_sh )
       
    END subroutine CD_distp_run
    
@@ -431,12 +438,12 @@ end Function resta_p
 
 !=========================================================================
 
-Function fQp(E, Emax)
+Function fQp(E, Emax, alpha)
    use global  
    real(dp) :: fQp
-   real(dp),intent(in) :: E, Emax
+   real(dp),intent(in) :: E, Emax, alpha
    
-   fQp = E**(-alpha_sh)*exp(-E/Emax)
+   fQp = E**(-alpha)*exp(-E/Emax)
 
 end Function fQp
 

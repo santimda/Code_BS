@@ -43,11 +43,11 @@ module CD_diste
       end interface
 
       interface
-      function fQ(E,Emin,Emax) ! function Q(E)
+      function fQ(E,Emin,Emax,alpha) ! function Q(E)
          use iso_fortran_env, only: dp => real64
          implicit none
          real(dp) :: fQ
-         real(dp), intent(in) :: E,Emin,Emax
+         real(dp), intent(in) :: E,Emin,Emax,alpha
       end function fQ
       end interface
 
@@ -56,6 +56,7 @@ module CD_diste
       allocate( N_e(mE_e),E_e(mE_e),B_par(m_theta),N_etot(m_theta,mE_e) )
       allocate( T_IR(m_theta),T_IR_ad(m_theta) )
       allocate( efi_ac_sh(m_theta) )
+      allocate( alpha_sh(m_theta) )
 
       write(*,*) 'Calculate the non-thermal electron distribution in the shock'
 
@@ -106,6 +107,12 @@ module CD_diste
          read(114,*) dummy,efi_ac_sh(l)
       end do
       close(114)
+
+      open(20,file='alpha_'//shock//'.dat')
+      do l = 1, m_theta
+         read(20,*) dummy,alpha_sh
+      end do
+      close(20)
 
       !--------------------------------------------------------------------
       ! Build an energy vector that is common for all linear-emitters: 
@@ -195,9 +202,9 @@ module CD_diste
          ! The integral is solved with the trapezoid method; Q(E) is obtained from fQ
          integral = 0.d0
          i = 1
-         f1 = E_e(1) * fQ(E_e(1), Emin_e_inj, Emax_e0(l_min))
+         f1 = E_e(1) * fQ(E_e(1), Emin_e_inj, Emax_e0(l_min),alpha_sh(1))
          do while (i < mE_e .and. E_e(i+1) < 10.d0*Emax_e0(l_min))
-           f2 = E_e(i+1) * fQ(E_e(i+1), Emin_e_inj, Emax_e0(l_min))
+           f2 = E_e(i+1) * fQ(E_e(i+1), Emin_e_inj, Emax_e0(l_min),alpha_sh(i+1))
            f = (f1 + f2)/2.d0
            dE_e = E_e(i)*(Eint_e-1.d0)
            integral = integral + f*dE_e
@@ -216,7 +223,7 @@ module CD_diste
             ! N(E)=1/|dE/dt|*int_E^Emax Q(E')dE' = Q(E)*dt, with |dE/dt|= E/t_cool 
             ! in [erg/seg], dt = min(t_cell,t_cool) so that [N(E)]=1/erg
    
-            Q = Ka * fQ(E_e(i), Emin_e_inj, Emax_e0(l_min))
+            Q = Ka * fQ(E_e(i), Emin_e_inj, Emax_e0(l_min),alpha_sh(i))
             N_e0(i) = Q * min(t_cell(l_min),t_coole(l_min,i))
             N_etot(l_min,i) = N_etot(l_min,i) + N_e0(i)  
 
@@ -328,7 +335,7 @@ module CD_diste
 
       deallocate( theta,R_theta,H_theta,B,B_par,rho,P,v_t,T )
       deallocate( N_e,E_e,N_etot ) 
-      deallocate( T_IR,T_IR_ad, efi_ac_sh )
+      deallocate( T_IR,T_IR_ad, efi_ac_sh, alpha_sh )
 
    END subroutine CD_diste_run
 
@@ -459,14 +466,14 @@ end Function resta
 
 !=========================================================================
 
-Function fQ(E, Emin, Emax)
+Function fQ(E, Emin, Emax, alpha)
    use global  
    real(dp) :: fQ
-   real(dp),intent(in) :: E, Emin, Emax
+   real(dp),intent(in) :: E, Emin, Emax, alpha
    if (E < Emin) then
       fQ = 0.d0 ! no injection
    else
-      fQ = E**(-alpha_sh)*exp(-E/Emax)
+      fQ = E**(-alpha)*exp(-E/Emax)
    endif
 
 end Function fQ
