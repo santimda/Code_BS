@@ -110,7 +110,7 @@ module CD_diste
 
       open(20,file='alpha_'//shock//'.dat')
       do l = 1, m_theta
-         read(20,*) dummy,alpha_sh
+         read(20,*) dummy,alpha_sh(l)
       end do
       close(20)
 
@@ -135,6 +135,7 @@ module CD_diste
          t_adv(l) = R_theta(l)/v_t(l)  ! Characteristic advection time
          if (l < m_theta) then
             t_adi(l) = 3.*dR(l)/(v_t(l)*log(rho(l)/rho(l+1))) ! Characteristic adiabatic losses time
+            if (t_adi(l) <= 0.d0) t_adi(l) = 1.d30
          else if (l == m_theta) then
             t_adi(l) = t_adi(l-1)
          end if

@@ -16,8 +16,8 @@ module global
    !===========================================================
    ! Simulation grid/vectors size
 
-   integer, parameter :: m_theta = 300 ! angular resolution in the CD/shock
-   integer, parameter :: mE_e = 256    ! energy resolution for electrons
+   integer, parameter :: m_theta = 150 ! angular resolution in the CD/shock
+   integer, parameter :: mE_e = 200    ! energy resolution for electrons
    integer, parameter :: mE_p = 200    ! energy resolution for protons < mE_f 
    integer, parameter :: mE_f = 300    ! it is the same for br, p-p and IC
    integer, parameter :: mphi = 4      ! amount of linear-emitters
