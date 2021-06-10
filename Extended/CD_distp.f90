@@ -120,8 +120,7 @@ module CD_distp
          t_adv(l) = R_theta(l)/v_t(l)  ! Characteristic advection time
          if (l < m_theta) then
             t_adi(l) = 3.*dR(l)/(v_t(l)*log(rho(l)/rho(l+1))) ! Characteristic adiabatic losses time
-            if (t_adi(l) <= 0.d0) t_adi(l) = 1.d30
-            if (t_adi(l) >= 1.d35) t_adi(l) = 1.d30
+            if (t_adi(l) <= 0.d0 .or. t_adi(l) > 1.d20) t_adi(l) = 1.d20   ! To avoid numerical errors
          else if (l == m_theta) then
             t_adi(l) = t_adi(l-1)
          end if
@@ -183,7 +182,7 @@ module CD_distp
          i = 1
          f1 = E_p(1) * fQp(E_p(1), Emax_p0(l_min), alpha_sh(1))
          do while (i < mE_p .and. E_p(i+1) < 10.d0*Emax_p0(l_min))
-           f2 = E_p(i+1) * fQp(E_p(i+1), Emax_p0(l_min), alpha_sh(i+1))
+           f2 = E_p(i+1) * fQp(E_p(i+1), Emax_p0(l_min), alpha_sh(l_min))
            f = (f1 + f2)/2.d0
            dE_p = E_p(i)*(Eint_p-1.d0)
            integral = integral + f*dE_p
@@ -201,7 +200,7 @@ module CD_distp
             ! N(E)=1/|dE/dt|*int_E^Emax Q(E')dE' = Q(E)*dt, with |dE/dt|= E/t_cool 
             ! in [erg/seg], dt = min(t_cell,t_cool) so that [N(E)]=erg/erg**2
 
-            Q = Ka * fQp(E_p(i), Emax_p0(l_min), alpha_sh(i))
+            Q = Ka * fQp(E_p(i), Emax_p0(l_min), alpha_sh(l_min))
             N_p0(i) = Q*min(t_cell(l_min),t_coolp(l_min,i))
             N_ptot(l_min,i) = N_ptot(l_min,i) + N_p0(i)
 
@@ -312,7 +311,7 @@ module CD_distp
 
 
       deallocate( theta,R_theta,H_theta,B,B_par,rho,P,v_t,T )
-      deallocate( N_p,E_p,N_ptot, efi_ac_sh, alpha_sh )
+      deallocate( N_p,E_p, N_ptot, efi_ac_sh, alpha_sh )
       
    END subroutine CD_distp_run
    

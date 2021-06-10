@@ -205,7 +205,7 @@ module CD_diste
          i = 1
          f1 = E_e(1) * fQ(E_e(1), Emin_e_inj, Emax_e0(l_min),alpha_sh(1))
          do while (i < mE_e .and. E_e(i+1) < 10.d0*Emax_e0(l_min))
-           f2 = E_e(i+1) * fQ(E_e(i+1), Emin_e_inj, Emax_e0(l_min),alpha_sh(i+1))
+           f2 = E_e(i+1) * fQ(E_e(i+1), Emin_e_inj, Emax_e0(l_min),alpha_sh(l_min))
            f = (f1 + f2)/2.d0
            dE_e = E_e(i)*(Eint_e-1.d0)
            integral = integral + f*dE_e
@@ -224,7 +224,7 @@ module CD_diste
             ! N(E)=1/|dE/dt|*int_E^Emax Q(E')dE' = Q(E)*dt, with |dE/dt|= E/t_cool 
             ! in [erg/seg], dt = min(t_cell,t_cool) so that [N(E)]=1/erg
    
-            Q = Ka * fQ(E_e(i), Emin_e_inj, Emax_e0(l_min),alpha_sh(i))
+            Q = Ka * fQ(E_e(i), Emin_e_inj, Emax_e0(l_min),alpha_sh(l_min))
             N_e0(i) = Q * min(t_cell(l_min),t_coole(l_min,i))
             N_etot(l_min,i) = N_etot(l_min,i) + N_e0(i)  
 
@@ -337,7 +337,7 @@ module CD_diste
 
       deallocate( theta,R_theta,H_theta,B,B_par,rho,P,v_t,T )
       deallocate( N_e,E_e,N_etot ) 
-      deallocate( T_IR,T_IR_ad, efi_ac_sh, alpha_sh )
+      deallocate( T_IR, T_IR_ad, efi_ac_sh, alpha_sh )
 
    END subroutine CD_diste_run
 
