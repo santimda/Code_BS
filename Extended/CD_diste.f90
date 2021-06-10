@@ -150,7 +150,7 @@ module CD_diste
          cte_sy = 6.*pi*mec2**2/(c*sigma_T*B(l)**2)   ! Valid for isotropic e- distribution
 
          call Biseccion(cte_sy,B(l),log10Emaxl,kC_ic_st,kC_ic_IR,T_IR_ad(l),t_br,t_adv(l),efi_ac_sh(l))
-         Emax_e0(l) = MIN(10.d0**log10Emaxl,qe*B(l)*R_acel*sqrt(1.5d0/efi_ac_sh(l))) 
+         Emax_e0(l) = MIN(10.d0**log10Emaxl,qe*B(l)*R_acel*sqrt(1.5d0/efi_ac_sh(l)))
          if (Emax_e0(l) >= 0.5*Emax_e) write(*,*) 'Emax_e in global.f90 is too small!'
 
          log_coul = 29.7d0 + log( (T(l)/1.d6)/sqrt(n_a(l)) ) 
@@ -307,7 +307,7 @@ module CD_diste
          do i = 1, mE_e     
             write(79,*) theta(l),E_e(i)/eV,N_etot(l,i)
          end do
-         write(79,*) 
+         write(79,*)
       end do
       close(79)
 
@@ -332,6 +332,7 @@ module CD_diste
       !------------------------------------------------------------
       ! Group in bins according to position angle
       call Ne_bin(E_e,N_etot,theta,shock)
+
 
 
       deallocate( theta,R_theta,H_theta,B,B_par,rho,P,v_t,T )
@@ -416,7 +417,7 @@ Subroutine Biseccion(csy,Bl,x3,c1,c2,T1,t_br,t_adv,xi)
    end interface
 
    ! Error in nth step < |a-b|/2**n
-   a_ = log10(2.d10*eV)    ! log10(Emin [CGS]) ~ 20 GeV
+   a_ = log10(1.d9*eV)    ! log10(Emin [CGS]) ~ 1 GeV
    b_ = log10(Emax_e)   
    i = 0
    do while ( abs(b_ - a_) > err )
@@ -476,7 +477,6 @@ Function fQ(E, Emin, Emax, alpha)
    else
       fQ = E**(-alpha)*exp(-E/Emax)
    endif
-
 end Function fQ
 
 !=====================================================================
