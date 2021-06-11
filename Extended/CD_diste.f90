@@ -368,15 +368,15 @@ subroutine Ne_bin(Ee,Ne_tot,ang,shock)
       N_total_i = 0.d0
       do l=1,m_theta
          ! Make some distributions binned in intervals of 0.1*D
-         if (ang(l) < 0.15*pi) then
+         if (ang(l) < theta_max/5.) then
             N_bin_i(1,i) = N_bin_i(1,i) + Ne_tot(l,i)
-         elseif (ang(l) >= 0.15*pi .and. ang(l) < 0.30*pi) then
+         elseif (ang(l) >= theta_max/5. .and. ang(l) < 2.*theta_max/5.) then
             N_bin_i(2,i) = N_bin_i(2,i) + Ne_tot(l,i)
-         elseif (ang(l) >= 0.30*pi .and. ang(l) < 0.45*pi) then
+         elseif (ang(l) >= 2.*theta_max/5. .and. ang(l) < 3.*theta_max/5.) then
             N_bin_i(3,i) = N_bin_i(3,i) + Ne_tot(l,i)
-         elseif (ang(l) >= 0.45*pi .and. ang(l) < 0.60*pi) then
+         elseif (ang(l) >= 3.*theta_max/5. .and. ang(l) < 4.*theta_max/5.) then
             N_bin_i(4,i) = N_bin_i(4,i) + Ne_tot(l,i)
-         elseif (ang(l) >= 0.60*pi .and. ang(l) < 0.75*pi) then
+         elseif (ang(l) >= 4.*theta_max/5. .and. ang(l) < theta_max) then
             N_bin_i(5,i) = N_bin_i(5,i) + Ne_tot(l,i)
          end if  
          N_total_i = N_total_i + Ne_tot(l,i)
