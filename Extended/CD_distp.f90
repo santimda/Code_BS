@@ -157,6 +157,7 @@ module CD_distp
 
             write(70,*) l,E_p(i)/eV,t_ac,t_pp,t_adv(l),t_diff,t_coolp(l,i),t_cell(l),t_esc,t_loss(l,i),t_adi(l)
 
+            E_dot(l,i) = E_p(i)/t_coolp(l,i)
 
          end do
 
@@ -180,7 +181,7 @@ module CD_distp
          ! The integral is solved with the trapezoid method; Q(E) is obtained from fQp
          integral = 0.d0
          i = 1
-         f1 = E_p(1) * fQp(E_p(1), Emax_p0(l_min), alpha_sh(1))
+         f1 = E_p(1) * fQp(E_p(1), Emax_p0(l_min), alpha_sh(l_min))
          do while (i < mE_p .and. E_p(i+1) < 10.d0*Emax_p0(l_min))
            f2 = E_p(i+1) * fQp(E_p(i+1), Emax_p0(l_min), alpha_sh(l_min))
            f = (f1 + f2)/2.d0
@@ -203,7 +204,7 @@ module CD_distp
             Q = Ka * fQp(E_p(i), Emax_p0(l_min), alpha_sh(l_min))
             N_p0(i) = Q*min(t_cell(l_min),t_coolp(l_min,i))
             N_ptot(l_min,i) = N_ptot(l_min,i) + N_p0(i)
-
+            
             ! We calculate the evolved version of the injected electron distribution at each
             ! position "l" as: N_l(l) = N_l-1* (Edot_l-1/Edot_l), where the energy also evolves
             ! as E0(l) given by: t_cell(l) = int_E0^El Edot * dE
@@ -392,7 +393,7 @@ Subroutine Biseccion_p(Be,x3,t_pp,t_adv,xi)
    end interface
 
    ! Error in nth step < |a-b|/2**n
-   a_ = log10(1.d12*eV) ! log10(Emin [CGS]) ~ 100 GeV
+   a_ = log10(1.d10*eV) ! log10(Emin [CGS]) ~ 10 GeV
    b_ = log10(1.d15*eV) ! log10(Emax [CGS]) ~ 1 PeV
    i = 0
    do while ( abs(b_ - a_) > err )
