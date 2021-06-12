@@ -14,8 +14,9 @@
       rhop=1.7d-24
       zp0=rhop*vp**2.d0
       Rorb=(2.d0*zLp/bep/c/4.d0/pi/zp0)**0.5d0
-      rw0=(zMdot*vw/4.d0/pi/zp0)**0.5d0
-        
+      rw0=(zMdot*vw/4.d0/pi/zp0)**0.5d0  
+      print*, 'R_0 [pc] =  ', rw0/3.08d18
+      
       zx0=rw0 
       zl=0.d0
       dl=rw0/100.d0 

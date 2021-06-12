@@ -59,11 +59,7 @@ program main
 
       dS1 = 2.d0*pi*rst**2*sin(th1)*dth1
       dS2 = 2.d0*pi*Rorb**2*sin(th2)*dth2
-      ! DUDA: COMO ESCRIBIR dS2
-
-      !print*, dS2/(2.d0*pi*rst*dl*cos(th1))
-
-      !print*, th2
+      
       !psx = pw*cos(th1)*dS1 - pd*cos(th2)*dS2 + psx0
       !psy = pw*sin(th1)*dS1 + pd*sin(th2)*dS2 + psy0
       psx = pw*cos(th1)*dS1 - p0*dS2 + psx0
