@@ -15,7 +15,7 @@ module system_parameters
    ! incli = 90° is BS in front of the star, incli = 0° is edge-on,  incli = -90° is BS behind the star
    !real(dp), parameter :: R0_proj = 5.d0*60.d3          ! projected BS distance to the star (5') in mas  
    !real(dp), parameter :: R0 = R0_proj*(distance/kpc)*UA/abs(cos(incli)) ! linear distance to the BS stagnation point
-   real(dp), parameter :: theta_max = (170.d0/180.d0)*pi ! ~ extension of the BS modelled ~ pi/2
+   real(dp), parameter :: theta_max = (179.d0/180.d0)*pi ! ~ extension of the BS modelled ~ pi/2
 
    !--------------------------------------------------------------------------------------
    ! Star
@@ -54,6 +54,7 @@ module system_parameters
    !real(dp), parameter :: v_w = 1200.d5             ! B1-1-d/B1-1-h/B1-1-nm
    !real(dp), parameter :: v_w = 1000.d5             ! B2-60-d
    real(dp), parameter :: L_wind = 0.5d0*(Mdot*v_w**2) ! Wind kinetic power
+   real(dp), parameter :: T_wind = 0.3*T_st        ! Drew1990
    real(dp), parameter :: v_st_rot = 0.1d0*v_w     ! Rule-of-thumb
    real(dp), parameter :: mu_w = 1.5_dp
    !real(dp), parameter :: mu_w = 1.5_dp            ! Leitherer 1995 
@@ -73,12 +74,12 @@ module system_parameters
    real(dp), parameter :: n_ISM = 10.d0            ! Ben2020
    !real(dp), parameter :: n_ISM = 0.1d0            ! Galactic halo 
    !real(dp), parameter :: n_ISM = 100.d0           ! Molecular cloud
-   !real(dp), parameter :: mu_ISM = 1.28_dp         ! K2018; 0.5 for pure H ionized
-   real(dp), parameter :: mu_ISM = 2.35_dp         ! Molecular cloud 
-   !real(dp), parameter :: T_ISM = 1.d4             ! 10000 K = warm ISM
+   real(dp), parameter :: mu_ISM = 1.28_dp         ! K2018; 0.5 for pure H ionized
+   !real(dp), parameter :: mu_ISM = 2.35_dp         ! Molecular cloud 
+   real(dp), parameter :: T_ISM = 1.d4             ! 10000 K = warm ISM
    !real(dp), parameter :: T_ISM = 1.d2             ! Cold ISM
    !real(dp), parameter :: T_ISM = 1.d0             ! del Palacio+2018 (generic)
-   real(dp), parameter :: T_ISM = 1.d4             ! warm ISM (Brookes p.136 uses T=8e3)
+   !real(dp), parameter :: T_ISM = 1.d4             ! warm ISM (Brookes p.136 uses T=8e3)
    real(dp), parameter :: T_ISM_ad = k*T_ISM/mec2  ! Adimensional ISM temperature 
    !real(dp), parameter :: U_ISM = 4.d0*sigma*T_ISM**4/c ! average energy density
    !real(dp), parameter :: alpha_ISM = 1.d-10
