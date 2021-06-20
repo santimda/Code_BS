@@ -10,10 +10,11 @@ program main
 
    open(1,file = 'kk1.dat')
    open(2,file = 'kk2.dat')
+   open(3,file = 'hydro.dat')
 
    pi = acos(-1.d0)
    c = 2.99792458d10 
-   theta_max = (160.d0/180.d0)*pi ! ~ extension of the BS 
+   theta_max = (179.d0/180.d0)*pi ! ~ extension of the BS 
 
    Mdot = 1.d-8*1.989d33/31556926.d0 ! Stellar mass-loss rate
    vw = 2.d8                         ! Stellar wind velocity
@@ -37,7 +38,7 @@ program main
 
    x0 = rw0 
    l = 0.d0
-   dl = rw0/100.d0 
+   dl = rw0/300.d0 
    x = x0
    y = dl
 
@@ -115,6 +116,7 @@ program main
 
       write(1,*) x/rw0, y/rw0
       write(2,*) yp,xp
+      write(3,*) th1,n/n0,p/p0,vs/v_st,cs/v_st
 
       sum = sum + 2.d0*pi*dy*rhop*v_st**3*y/2.d0
       sum2 = sum2 + 2.d0*pi*dy*sin(ang)*rhop*v_st**3*y/2.d0
@@ -132,6 +134,9 @@ program main
    print*, y,x
    print*, sqrt(1.d-8*2.d33*2.d8/4.d0/pi/1.7d-24/3.d7**2/3.2d7)
 
+   print*, 'rho(0)/rho_ISM =', n0/rhop
+
+   close(3)
    close(2)      
    close(1)
 end
