@@ -32,7 +32,7 @@ module CD_termo
       real(dp) :: v_vec(2), n_perp(2), n_t(2)
       real(dp) :: r(m_theta),dV_cell(m_theta)
       allocate( theta(m_theta),r_norm(m_theta),H_norm(m_theta) )
-      allocate( Mach(m_theta),P_th_w(m_theta),C_s_w(m_theta) )
+      allocate( Mach(m_theta),P_th_w(m_theta),C_s_w(m_theta),C_s_sh(m_theta) )
       allocate( P(m_theta),rho(m_theta),T(m_theta),B(m_theta),v_t(m_theta),v_perp(m_theta) )
 
       80    format(A13,X,Es10.2)
@@ -162,6 +162,7 @@ module CD_termo
       r(1) = (g_ad+1.)*Mach(1)**2/((g_ad-1.)*Mach(1)**2+2.)
       rho(1) = r(1)*rho_med
       P(1) = cte_P*rho_med*v_perp(1)**2
+      C_s_sh(1) = sqrt(g_ad*P(1)/rho(1))               ! Speed of sound in shocked fluid
       T(1) = cte_T*v_perp(1)**2
       Beq0 = sqrt(8.d0*pi*P(1))
       B(1) = frac_sh*Beq0
@@ -182,6 +183,7 @@ module CD_termo
          r(l) = (g_ad+1.)*Mach(l)**2/((g_ad-1.)*Mach(l)**2+2.) ! Compression factor (Caprioli 2014, Eq. 1)
          rho(l) = r(l)*rho_med !+ rho(l-1) * v_t(l-1)/v_t(l) * dV_cell(l-1)/dV_cell(l) * dR(l)/dR(l-1) !Compressed fluid + mass flux conservation     
          P(l) = cte_P*rho_med*v_perp(l)**2           ! Eq. 19
+         c_s_sh(l) = sqrt(g_ad*P(l)/rho(l))        
          T(l) = cte_T*v_perp(l)**2                 ! Eq. 20
          Beq0 = sqrt(8.d0*pi*P(l))     ! sqrt(4.d0*pi*rho(l)*v(l)**2.d0)
          ! If U_mag = frac*U_th -> B^2/4pi = frac*(g_ad/g_ad - 1)*P 
@@ -233,7 +235,7 @@ module CD_termo
       write(*,41) 'B_st <',(B(1)/4.d0)*(R0/R_st)*(v_w/v_st_rot)*r_A_st 
       41  format (A12,ES9.2)
 
-      deallocate( P,rho,T,B,v_t,v_perp,theta,r_norm,H_norm,Mach,P_th_w,C_s_w )
+      deallocate( P,rho,T,B,v_t,v_perp,theta,r_norm,H_norm,Mach,P_th_w,C_s_w,C_s_sh )
       
    END subroutine CD_termo_run
 
