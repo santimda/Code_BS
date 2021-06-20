@@ -30,8 +30,9 @@ module CD_termo
       real(dp) :: dOmega,dtheta,dR(m_theta),dA
       real(dp) :: L_inj(m_theta),L_perp,L_inj_tot, L_sh
       real(dp) :: v_vec(2), n_perp(2), n_t(2)
-      real(dp) :: Mach(m_theta),r(m_theta),dV_cell(m_theta)
+      real(dp) :: r(m_theta),dV_cell(m_theta)
       allocate( theta(m_theta),r_norm(m_theta),H_norm(m_theta) )
+      allocate( Mach(m_theta),P_th_w(m_theta),C_s_w(m_theta) )
       allocate( P(m_theta),rho(m_theta),T(m_theta),B(m_theta),v_t(m_theta),v_perp(m_theta) )
 
       80    format(A13,X,Es10.2)
@@ -140,7 +141,8 @@ module CD_termo
       !-----------------------------------------------------------------
 
       ! set omp threads number
-      ! $ call omp_set_num_threads(nth)   
+      ! $ call omp_set_num_threads(nth)
+
 
       cte_P = 2./(g_ad+1.)
       cte_T = ( (g_ad-1.)/(g_ad+1.)**2 ) * (mp/k)
@@ -150,11 +152,13 @@ module CD_termo
 
       if (shock == 'RS') then
          rho_med = Mdot/(4.d0*pi*(R0*r_norm(1))**2*v_w)
+         P_th_w(1) = rho_med*k*T_wind/mu_w/mp             ! SW thermal pressure at R0
+         c_s_w(1) = sqrt(g_ad*P_th_w(1)/rho_med)
+         Mach(1) = v_perp(1)/C_s_w(1)
       else if (shock == 'FS') then
          rho_med = rho_ISM    
+         Mach(1) = v_perp(1)/C_s_ISM
       end if
-
-      Mach(1) = v_perp(1)/C_s_ISM
       r(1) = (g_ad+1.)*Mach(1)**2/((g_ad-1.)*Mach(1)**2+2.)
       rho(1) = r(1)*rho_med
       P(1) = cte_P*rho_med*v_perp(1)**2
@@ -166,14 +170,17 @@ module CD_termo
       do l = 2, m_theta                                ! Calculo para la mitad de arriba
          if (shock == 'RS') then
             rho_med = Mdot/(4.d0*pi*(R0*r_norm(l))**2*v_w)
+            P_th_w(l) = rho_med*k*T_wind/mu_w/mp             ! SW thermal pressure at R0
+            c_s_w(l) = sqrt(g_ad*P_th_w(l)/rho_med)
+            Mach(l) = v_perp(l)/C_s_w(l)
          !rho(l) = (rho_ISM*cte_rho)/(r_norm(l)**2) ! Eq. 17
          !Equivalent: rho(l) = (g_ad+1.)/(g_ad-1.)*rho_w    !  rho(l) = 4*rho_w
          else if (shock == 'FS') then
             rho_med = rho_ISM
+            Mach(l) = v_perp(l)/C_s_ISM
          end if
-         Mach(l) = v_perp(l)/C_s_ISM
          r(l) = (g_ad+1.)*Mach(l)**2/((g_ad-1.)*Mach(l)**2+2.) ! Compression factor (Caprioli 2014, Eq. 1)
-         rho(l) = r(l)*rho_med + rho(l-1) * v_t(l-1)/v_t(l) * dV_cell(l-1)/dV_cell(l) * dR(l)/dR(l-1) !Compressed fluid + mass flux conservation     
+         rho(l) = r(l)*rho_med !+ rho(l-1) * v_t(l-1)/v_t(l) * dV_cell(l-1)/dV_cell(l) * dR(l)/dR(l-1) !Compressed fluid + mass flux conservation     
          P(l) = cte_P*rho_med*v_perp(l)**2           ! Eq. 19
          T(l) = cte_T*v_perp(l)**2                 ! Eq. 20
          Beq0 = sqrt(8.d0*pi*P(l))     ! sqrt(4.d0*pi*rho(l)*v(l)**2.d0)
@@ -215,6 +222,7 @@ module CD_termo
          write(*,41) 'rho0/rho_w =',rho(1)/(Mdot/(4.d0*pi*R0**2*v_w))  
          write(*,41) 'n_a0 =',rho(1)/mp/mu_sw
       else if (shock == 'FS') then
+         write(*,41) 'rho0/rho_FS =',rho(1)/rho_ISM 
          write(*,41) 'n_a0 =',rho(1)/mp/mu_ISM
       end if     
       write(*,41) 'P0 =',P(1)
@@ -225,7 +233,7 @@ module CD_termo
       write(*,41) 'B_st <',(B(1)/4.d0)*(R0/R_st)*(v_w/v_st_rot)*r_A_st 
       41  format (A12,ES9.2)
 
-      deallocate( P,rho,T,B,v_t,v_perp,theta,r_norm,H_norm )
+      deallocate( P,rho,T,B,v_t,v_perp,theta,r_norm,H_norm,Mach,P_th_w,C_s_w )
       
    END subroutine CD_termo_run
 

@@ -16,7 +16,7 @@ module global
    !===========================================================
    ! Simulation grid/vectors size
 
-   integer, parameter :: m_theta = 150 ! angular resolution in the CD/shock
+   integer, parameter :: m_theta = 200 ! angular resolution in the CD/shock
    integer, parameter :: mE_e = 200    ! energy resolution for electrons
    integer, parameter :: mE_p = 200    ! energy resolution for protons < mE_f 
    integer, parameter :: mE_f = 300    ! it is the same for br, p-p and IC
@@ -36,7 +36,7 @@ module global
    real(dp), dimension(:), allocatable :: theta,r_norm,R_theta,H_norm,H_theta
 
    ! termo
-   real(dp), dimension(:), allocatable :: P,rho,T,v_t,v_perp,B,B_par,alpha_sh
+   real(dp), dimension(:), allocatable :: P,rho,T,v_t,v_perp,B,B_par,alpha_sh,P_th_w,C_s_w,Mach
 
    ! dist
    real(dp), parameter :: Emin_e = 2.d0*mec2   ! ~1 MeV
