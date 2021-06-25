@@ -15,32 +15,32 @@ module system_parameters
    ! incli = 90° is BS in front of the star, incli = 0° is edge-on,  incli = -90° is BS behind the star
    !real(dp), parameter :: R0_proj = 5.d0*60.d3          ! projected BS distance to the star (5') in mas  
    !real(dp), parameter :: R0 = R0_proj*(distance/kpc)*UA/abs(cos(incli)) ! linear distance to the BS stagnation point
-   real(dp), parameter :: theta_max = (179.d0/180.d0)*pi ! ~ extension of the BS modelled ~ pi/2
+   real(dp), parameter :: theta_max = (170.d0/180.d0)*pi ! ~ extension of the BS modelled ~ pi/2
 
    !--------------------------------------------------------------------------------------
    ! Star
    !real(dp), parameter :: v_st = 40.d5             ! del Palacio+2018
    !real(dp), parameter :: v_st = 30.d5             ! del Palacio+2018 (generic)
-   real(dp), parameter :: v_st = 500.d5             ! B0-05-d
-   !real(dp), parameter :: v_st = 1000.d5             ! B1-1-d/B1-1-h/B1-1-nm
+   !real(dp), parameter :: v_st = 500.d5             ! B0-05-d
+   real(dp), parameter :: v_st = 1000.d5             ! B1-1-d/B1-1-h/B1-1-nm
    !real(dp), parameter :: v_st = 60000.d5             ! B2-60-d
-   real(dp), parameter :: T_st = 2.9d4              ! B0-05-d
-   !real(dp), parameter :: T_st = 2.5d4              ! B1-1-d/B1-1-h/B1-1-nm
+   !real(dp), parameter :: T_st = 2.9d4              ! B0-05-d
+   real(dp), parameter :: T_st = 2.5d4              ! B1-1-d/B1-1-h/B1-1-nm
    !real(dp), parameter :: T_st = 2.d4               ! B2-60-d
    !real(dp), parameter :: T_st = 4.07d4            ! K2017  
    real(dp), parameter :: T_st_ad = k*T_st/mec2    ! Adimensional stellar temperature
    !real(dp), parameter :: L_st = 7.d5*L_sun       ! del Valle 2012
    !real(dp), parameter :: R_st = sqrt( L_st/(4.*pi*sigma*T_st**4) )
-   real(dp), parameter :: R_st = 5.5*R_sun         ! B0-05-d
-   !real(dp), parameter :: R_st = 4.8*R_sun         ! B1-1-d/B1-1-h/B1-1-nm
+   !real(dp), parameter :: R_st = 5.5*R_sun         ! B0-05-d
+   real(dp), parameter :: R_st = 4.8*R_sun         ! B1-1-d/B1-1-h/B1-1-nm
    !real(dp), parameter :: R_st = 4.*R_sun          ! B2-60-d
    !real(dp), parameter :: R_st = 5.5*R_sun         ! K2017  
    real(dp), parameter :: L_st = 4.d0*pi*R_st**2*sigma*T_st**4 
    !real(dp), parameter :: L_st = 4.d0*pi*R_st**2*sigma*T_st**4 ! Stellar luminosity 
    !real(dp), parameter :: L_st = 5.d5*L_sun       ! del Palacio+ 2018 (generic)
    !real(dp), parameter :: L_st = 8.7d5*L_sun       ! K2018
-   real(dp), parameter :: Mdot = 1.d-8*M_sun_yr     ! B0-05-d
-   !real(dp), parameter :: Mdot = 1.d-9*M_sun_yr      ! B1-1-d/B1-1-h/B1-1-nm
+   !real(dp), parameter :: Mdot = 1.d-8*M_sun_yr     ! B0-05-d
+   real(dp), parameter :: Mdot = 1.d-9*M_sun_yr      ! B1-1-d/B1-1-h/B1-1-nm
    !real(dp), parameter :: Mdot = 1.d-10*M_sun_yr     ! B2-60-d
    !real(dp), parameter :: Mdot = 9.d-6*M_sun_yr    ! Peri 2014
    !real(dp), parameter :: Mdot = 1.d-8*M_sun_yr    ! Benaglia2020 (2.d-5 for alpha>0.3)
@@ -50,8 +50,8 @@ module system_parameters
    !real(dp), parameter :: v_w = 2300.d5            ! Brookes2016,Ben2010
    !real(dp), parameter :: v_w = 1500.d5            ! K2018
    !real(dp), parameter :: v_w = 2000.d5            ! del Palacio+2018 (generic)
-   real(dp), parameter :: v_w = 1500.d5             ! B0-05-d
-   !real(dp), parameter :: v_w = 1200.d5             ! B1-1-d/B1-1-h/B1-1-nm
+   !real(dp), parameter :: v_w = 1500.d5             ! B0-05-d
+   real(dp), parameter :: v_w = 1200.d5             ! B1-1-d/B1-1-h/B1-1-nm
    !real(dp), parameter :: v_w = 1000.d5             ! B2-60-d
    real(dp), parameter :: L_wind = 0.5d0*(Mdot*v_w**2) ! Wind kinetic power
    real(dp), parameter :: T_wind = 0.3*T_st        ! Drew1990
@@ -93,7 +93,7 @@ module system_parameters
    real(dp), parameter :: rho_ISM = n_ISM*mp*mu_ISM ! CHECK
    real(dp), parameter :: P_kin_ISM = rho_ISM*v_ISM**2 ! ISM ram pressure
    real(dp), parameter :: P_th_ISM = alpha_ISM*P_kin_ISM ! ISM thermal pressure 
-   real(dp), parameter :: C_s_ISM = sqrt(g_ad*P_th_ISM/rho_ISM) ! ISM sound speed
+   !real(dp), parameter :: C_s_ISM = sqrt(g_ad*P_th_ISM/rho_ISM) ! ISM sound speed
    real(dp), parameter :: R0 = sqrt( (Mdot*v_w)/(4.*pi*(1.+alpha_ISM)*rho_ISM*v_ISM**2) ) 
    real(dp), parameter :: R0_proj = (R0/AU)/(distance/pc)*abs(cos(incli)) ! angular distance ["] to the BS stagnation point
    ! Peri 2014: R0_proj ~ 3.5 arcmin; K2018: R0_proj ~ 193" ~ 3.2 arcmin; Ben2020: ~3.9 arcmin

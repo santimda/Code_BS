@@ -36,7 +36,7 @@ module global
    real(dp), dimension(:), allocatable :: theta,r_norm,R_theta,H_norm,H_theta
 
    ! termo
-   real(dp), dimension(:), allocatable :: P,rho,T,v_t,v_perp,B,B_par,alpha_sh,P_th_w,C_s_w,Mach,C_s_sh
+   real(dp), dimension(:), allocatable :: P,rho,T,v_t,v_perp,B,B_par,alpha_sh,P_th_w,P_med,C_s_med,Mach,C_s_sh,r,v_s
 
    ! dist
    real(dp), parameter :: Emin_e = 2.d0*mec2   ! ~1 MeV
