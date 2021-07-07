@@ -163,7 +163,7 @@ module CD_termo
       end if
       Mach(1) = v_perp(1)/C_s_med(1)
       r(1) = (g_ad+1.)*Mach(1)**2/((g_ad-1.)*Mach(1)**2+2.)
-      H0 = 1./sqrt(1-(v_sh/c)**2)                      ! Enthalpy at the apex
+      H0 = 1. + 0.5*(v_sh/c)**2                           !1./sqrt(1-(v_sh/c)**2) Enthalpy at the apex
       rho(1) = g_ad/(g_ad-1)*P(1)/((H0-1.)*c**2)
       T(1) = cte_T*v_perp(1)**2
       Beq0 = sqrt(8.d0*pi*P(1))
