@@ -32,7 +32,7 @@ module CD_termo
       real(dp) :: v_vec(2), n_perp(2), n_t(2)
       real(dp) :: l_crit
       allocate( theta(m_theta),r_norm(m_theta),H_norm(m_theta) )
-      allocate( Mach(m_theta),P_th_w(m_theta),C_s_med(m_theta),C_s_sh(m_theta),r(m_theta),v_s(m_theta) )
+      allocate( Mach(m_theta),P_th_w(m_theta),C_s_med(m_theta),C_s_sh(m_theta),r(m_theta) )
       allocate( P_med(m_theta) )
       allocate( P(m_theta),rho(m_theta),T(m_theta),B(m_theta),v_t(m_theta),v_perp(m_theta) )
 
@@ -84,10 +84,9 @@ module CD_termo
             n_t = (/ -A_z, A_omega /)    ! Tangential vector to the BS surface
             v_vec = v_sh * (/1.d0, 0.d0/)
             !v_t(l) = v_sh*max(-A_z,0.)
-            !print*, n_perp
          end if
          v_perp(l) = max( DOT_PRODUCT(v_vec,n_perp), 0.d0 )
-         v_t(l) = max( DOT_PRODUCT(v_vec,n_t), 1.d-10 ) ! Just so we don't get a zero value in l=1
+         !v_t(l) = max( DOT_PRODUCT(v_vec,n_t), 1.d-10 ) ! Just so we don't get a zero value in l=1
          dV_cell(l) = (r_norm(l)*R0)*sin(theta(l))*dR(l)*(H_norm(l)*r_norm(l)*R0) ! Volume of the cell
          write(18,*) theta(l),H_norm(l)
       end do
@@ -154,7 +153,7 @@ module CD_termo
       if (shock == 'RS') then
          rho_med = Mdot/(4.d0*pi*(R0*r_norm(1))**2*v_w)
          P_th_w(1) = rho_med*k*T_wind/mu_w/mp             ! SW thermal pressure at R0
-         c_s_med(1) = sqrt(g_ad*P_th_w(1)/rho_med)
+         c_s_med(1) = sqrt(g_ad*P_th_w(1)/rho_med)       
          P(1) = rho_med*v_sh*v_perp(1)
       else if (shock == 'FS') then
          rho_med = rho_ISM    
@@ -163,35 +162,35 @@ module CD_termo
       end if
       Mach(1) = v_perp(1)/C_s_med(1)
       r(1) = (g_ad+1.)*Mach(1)**2/((g_ad-1.)*Mach(1)**2+2.)
-      H0 = 1. + 0.5*(v_sh/c)**2                           !1./sqrt(1-(v_sh/c)**2) Enthalpy at the apex
+      H0 = 1. + 0.5*(v_sh/c)**2                           !~1./sqrt(1-(v_sh/c)**2) Enthalpy at the apex
       rho(1) = g_ad/(g_ad-1)*P(1)/((H0-1.)*c**2)
       T(1) = cte_T*v_perp(1)**2
       Beq0 = sqrt(8.d0*pi*P(1))
       B(1) = frac_sh*Beq0
 
       C_s_sh(1) = sqrt(g_ad*P(1)/rho(1))
-      v_s(1) = 0.d0
+      v_t(1) = 0.d0
 
       !  $omp parallel do private(l)
       do l = 2, m_theta                                ! Calculo para la mitad de arriba
          if (shock == 'RS') then
             rho_med = Mdot/(4.d0*pi*(R0*r_norm(l))**2*v_w)
             P_th_w(l) = rho_med*k*T_wind/mu_w/mp             ! SW thermal pressure at R0
-            c_s_med(l) = sqrt(g_ad*P_th_w(l)/rho_med)
+            c_s_med(l) = sqrt(g_ad*P_th_w(l)/rho_med)        ! Speed of sound along the stellar wind
          else if (shock == 'FS') then
-            c_s_med(l) = sqrt(g_ad*P_th_ISM/rho_med)
+            c_s_med(l) = sqrt(g_ad*P_th_ISM/rho_med)         ! Speed of sound in the ISM
          end if
 
          Mach(l) = v_perp(l)/C_s_med(l)
          r(l) = (g_ad+1.)*Mach(l)**2/((g_ad-1.)*Mach(l)**2+2.) ! Compression factor (Caprioli 2014, Eq. 1)
 
-         if ( v_s(l-1) <= C_s_sh(l-1) ) then
+         if ( v_t(l-1) <= C_s_sh(l-1) ) then                 ! Check whether the shocked fluid is subsonic or not
              if (shock == 'RS') then
              P(l) = rho_med*r_norm(l)**2*v_sh*v_perp(l)
              else if (shock == 'FS') then
              P(l) = (1.+alpha_ISM)*rho_med*v_sh*v_perp(l)
              end if
-             l_crit = l                          ! l for which shocked fluid becomes supersonic
+             l_crit = l                                      ! l for which shocked fluid becomes supersonic
              
          else
              if (shock == 'RS') then
@@ -200,17 +199,19 @@ module CD_termo
              P(l) = (1.+alpha_ISM)*rho_med*v_perp(l)**2/(v_perp(l_crit)/v_sh)
              end if
          end if
-         rho(l) = rho(1)*(P(l)/P(1))**(1./g_ad)
-         C_s_sh(l) = sqrt(g_ad*P(l)/rho(l))             ! Sound speed in the shocked fluid     
+         rho(l) = rho(1)*(P(l)/P(1))**(1./g_ad)              ! Adiabatic relation
+         C_s_sh(l) = sqrt(g_ad*P(l)/rho(l))                  ! Sound speed in the shocked fluid     
          T(l) = cte_T*v_perp(l)**2                 ! Eq. 20
          Beq0 = sqrt(8.d0*pi*P(l))     ! sqrt(4.d0*pi*rho(l)*v(l)**2.d0)
          ! If U_mag = frac*U_th -> B^2/4pi = frac*(g_ad/g_ad - 1)*P 
          ! If P_mag = frac*P_th -> B^2/8pi = frac*P 
          B(l) = frac_sh*Beq0
+
+         ! Kinetic energy in the upstream region = Kinetic + thermal energy in the downstream region
          if ( shock == 'RS' ) then
-            v_s(l) = sqrt( 2.d0 * (0.5d0*v_w**2-g_ad*P(l)/(rho(l)*(g_ad-1.))) )
+            v_t(l) = sqrt( 2.d0 * (0.5d0*v_w**2-g_ad*P(l)/(rho(l)*(g_ad-1.))) )   
          else if ( shock == 'FS' ) then   
-            v_s(l) = sqrt( 2.d0 * (0.5d0*v_ISM**2-g_ad*P(l)/(rho(l)*(g_ad-1.))) )
+            v_t(l) = sqrt( 2.d0 * (0.5d0*v_ISM**2-g_ad*P(l)/(rho(l)*(g_ad-1.))) )
          end if
       end do
       !  $omp end parallel do
@@ -258,7 +259,7 @@ module CD_termo
       write(*,41) 'B_st <',(B(1)/4.d0)*(R0/R_st)*(v_w/v_st_rot)*r_A_st 
       41  format (A12,ES9.2)
 
-      deallocate( P,rho,T,B,v_t,v_perp,theta,r_norm,H_norm,Mach,r,P_med,P_th_w,C_s_med,C_s_sh,v_s )
+      deallocate( P,rho,T,B,v_t,v_perp,theta,r_norm,H_norm,Mach,r,P_med,P_th_w,C_s_med,C_s_sh )
       
    END subroutine CD_termo_run
 

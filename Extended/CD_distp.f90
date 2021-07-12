@@ -189,7 +189,8 @@ module CD_distp
            integral = integral + f*dE_p
            f1 = f2
            i = i + 1
-         end do
+        end do
+
          Ka = L_inj_p(l_min)/integral ! Injected at the starting point of the line   
 
          !------------------------------------------------------------------------
