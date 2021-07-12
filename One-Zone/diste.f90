@@ -87,8 +87,13 @@ module diste
       C_ic_IR = const_ic/(T_IR_ad**2*Kappa_IR)
       C_ic_CMB = const_ic/(T_CMB_ad**2*Kappa_CMB)
 
-      t_adv = R0/c_s 
-      t_adi = 3.d0*R0/c_s*5.d0! adiabatic losses: dE/dt = 1/3*d(log(rho))/dl *E*v, delta_rho/rho ~ 0.2 
+      if (shock == 'RS') then
+         t_adv = R0/c_s
+         t_adi = 3.d0*R0/c_s*5.d0! adiabatic losses: dE/dt = 1/3*d(log(rho))/dl *E*v, delta_rho/rho ~ 0.2 
+      else if (shock == 'FS') then
+         t_adv = R_eff/c_s
+         t_adi = 3.d0*R_eff/c_s*5.d0
+      end if
 
       cte_br = 4.*n_a*z_br*re**2*alfa*c   
       if (screened) p_br = log(183./z_br**(1./6)) - 1./18. ! for screened nuclei

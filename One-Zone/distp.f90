@@ -69,8 +69,14 @@ contains
       
       cte_ac = efi_ac/(B_par*c*qe)
 
-      t_adv = R0/c_s 
-      t_adi = 3.d0*R0/c_s*5.d0! adiabatic losses: dE/dt = 1/3*d(log(rho))/dl *E*v, delta_rho/rho ~ 0.2 
+      if (shock == 'RS') then
+         t_adv = R0/c_s 
+         t_adi = 3.d0*R0/c_s*5.d0! adiabatic losses: dE/dt = 1/3*d(log(rho))/dl *E*v, delta_rho/rho ~ 0.2
+      else if (shock == 'FS') then
+         t_adv = R_eff/c_s
+         t_adi = 3.d0*R_eff/c_s*5.d0
+      end if
+   
       t_pp = 1.d15/n_a/z_pp   ! approx expression for p-p losses, used only to calculate Emax_p
 
       if (screened) then   ! interactions with neutral matter
