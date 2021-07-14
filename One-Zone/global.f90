@@ -25,7 +25,7 @@ module global
    integer :: i,j,l
 
    ! dist
-   real(dp), parameter :: Emin_e = 2.d3*mec2   ! ~1 MeV
+   real(dp), parameter :: Emin_e = 1.d6*ev   ! ~1 MeV
    real(dp) :: Eint_e,dE_e
    real(dp), dimension(:), allocatable :: E_e,N_e 
 
