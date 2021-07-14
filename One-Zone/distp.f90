@@ -143,7 +143,7 @@ contains
          t_ion = E_p(i)/b_ion
          t_cool_p = 1./(1./t_pp + 1./t_adi)
 
-         t_diff = R_acel**2/(D_diff(E_p(i),B)) ! Romero & Muller 2018
+         t_diff = H0**2/(D_diff(E_p(i),B)) ! Romero & Muller 2018
          t_esc = 1./( 1./t_adv + 1.d0/t_diff ) ! escape
 
          t_loss = 1.d0/(1.d0/t_cool_p + 1.d0/t_esc)     ! general losses

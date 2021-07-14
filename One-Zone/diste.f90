@@ -159,7 +159,7 @@ module diste
          t_coole = 1./(1.d0/t_sy + 1.d0/t_ic + 1.d0/t_br + 1.d0/t_adi + 1.d0/t_coul) 
 
          D_Bohm = E_e(i)*cte_Bohm
-         t_diff = R_acel**2/D_diff(E_e(i),B) ! del Valle 2012
+         t_diff = H0**2/D_diff(E_e(i),B) ! del Valle 2012
 
          t_esc(i) = 1./(1./t_adv + 1.d0/t_diff) ! escape
   
