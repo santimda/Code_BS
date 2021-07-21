@@ -149,10 +149,9 @@ module CD_termo
       cte_rho = (g_ad+1.)/(g_ad-1.)*(v_ISM/v_w)**2/(1.-lambda)
 
       
-
       if (shock == 'RS') then
          rho_med = Mdot/(4.d0*pi*(R0*r_norm(1))**2*v_w)
-         P_th_w(1) = rho_med*k*T_wind/mu_w/mp             ! SW thermal pressure at R0
+         P_th_w(1) = rho_med*k*T_wind/mu_w/mp             ! Stellar wind thermal pressure at R0
          c_s_med(1) = sqrt(g_ad*P_th_w(1)/rho_med)       
          P(1) = rho_med*v_sh*v_perp(1)
       else if (shock == 'FS') then
@@ -160,14 +159,12 @@ module CD_termo
          P(1) = (1.+alpha_ISM)*rho_med*v_sh*v_perp(1)
          C_s_med(1) = sqrt(g_ad*P_th_ISM/rho_med)
       end if
+      rho(1) = (g_ad/(g_ad-1.))*2*P(1)/v_sh**2            ! 0.5*v_sh**2 = 0.5*v_t(l)**2 + (g_ad/(g_ad-1.))*P(l)/rho(l), v_t(1) = 0.
+      T(1) = cte_T*v_perp(1)**2
       Mach(1) = v_perp(1)/C_s_med(1)
       r(1) = (g_ad+1.)*Mach(1)**2/((g_ad-1.)*Mach(1)**2+2.)
-      H0 = 1. + 0.5*(v_sh/c)**2                           !~1./sqrt(1-(v_sh/c)**2) Enthalpy at the apex
-      rho(1) = g_ad/(g_ad-1)*P(1)/((H0-1.)*c**2)
-      T(1) = cte_T*v_perp(1)**2
       Beq0 = sqrt(8.d0*pi*P(1))
       B(1) = frac_sh*Beq0
-
       C_s_sh(1) = sqrt(g_ad*P(1)/rho(1))
       v_t(1) = 0.d0
 
@@ -207,12 +204,9 @@ module CD_termo
          ! If P_mag = frac*P_th -> B^2/8pi = frac*P 
          B(l) = frac_sh*Beq0
 
-         ! Kinetic energy in the upstream region = Kinetic + thermal energy in the downstream region
-         if ( shock == 'RS' ) then
-            v_t(l) = sqrt( 2.d0 * (0.5d0*v_w**2-g_ad*P(l)/(rho(l)*(g_ad-1.))) )   
-         else if ( shock == 'FS' ) then   
-            v_t(l) = sqrt( 2.d0 * (0.5d0*v_ISM**2-g_ad*P(l)/(rho(l)*(g_ad-1.))) )
-         end if
+         ! Kinetic energy p/ unit mass in the upstream region = Kinetic p/ unit mass + specific enthalpy in the downstream region
+         v_t(l) = sqrt( 2.d0 * (0.5d0*v_sh**2-g_ad*P(l)/(rho(l)*(g_ad-1.))) )
+         
       end do
       !  $omp end parallel do
 
