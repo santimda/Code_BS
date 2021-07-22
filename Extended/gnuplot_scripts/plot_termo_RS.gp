@@ -4,20 +4,17 @@ set key box opaque width 0.4 height 0.5 center left
 set key samplen 0.7 spacing 1. font ",18" 
 set xrange [0:3.14]
 set yrange [0:1.05]
-set y2range [1.:]
 set xtics 0.5; set mxtics 5; set xtics nomirror font ",16"
 set ytics 0.2; set mytics 2; set ytics font ",16"
-set y2tics 5; set my2tics 2; set y2tics font ",16"
 set xlabel '{/Symbol q} [rad]'; set xlabel offset 0,0.25 font ",18"
 set ylabel ''
-set y2label '{/Symbol r}/{/Symbol r}_{0}'; set y2label offset 1.2,0 font ",18"
 set x2label '{/Symbol D}s/R_0'; set x2label offset 0.0,-0.2 font ",18"
 #set x2tics ('0' 0, '' 0.49, '1' 0.92, '' 1.27, '2' 1.54, '' 1.75, '3' 1.91, '' 2.04, '4' 2.15, '' 2.23, '5' 2.3)
 set x2tics ('0' 0, '1' 0.92, '2' 1.54, '3' 1.91, '4' 2.15, '5' 2.3) font ",16"
 
 plot '../termonorm_RS.dat' u 1:5 t 'T/T_0' w l lw 2.4 dt 1,\
      '../termonorm_RS.dat' u 1:6 t 'B/B_0' w l lw 2.4 lc 7 dt 2,\
-     '../termonorm_RS.dat' u 1:2 axis x1y2 t '{/Symbol r}/{/Symbol r}_{0}' w l lw 2.4 dt 3,\
+     '../termonorm_RS.dat' u 1:2 t '{/Symbol r}/{/Symbol r}_{0}' w l lw 2.4 dt 3,\
      '../termonorm_RS.dat' u 1:3 t 'P/P_0' w l lw 2.4 dt 4,\
      '../termonorm_RS.dat' u 1:4 t 'v_t /v_w' w l lw 2.4 lc rgb "coral" dt 5,\
      '../termonorm_FS.dat' u 1:7 t 'v_{p} /v_*' w l lw 2.4 lc rgb "green" dt 5
