@@ -3,7 +3,7 @@ set encoding utf8 #iso_8859_1
 set title ''
 #'Proton distribution in FS'
 set xrange [9:14.9]
-set yrange [35.5:]
+set yrange [30:]
 #set cbrange [1:2000]
 set ylabel 'log_{10}({E_p}^2 N_p(E_p) [erg])'; set ylabel offset 0.1,0.0
 set xlabel 'log_{10}(E_p [eV])'; set ylabel offset 0.0,-0.1

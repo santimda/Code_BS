@@ -180,7 +180,7 @@ Function F(x,L)
   B = 1.30d0 + 0.14d0*L + 0.011d0*L2
   beta = 1.d0/(1.79d0 + 0.11d0*L + 0.008d0*L2)
   k = 1.d0/(0.801d0 + 0.049d0*L + 0.014d0*L2)
-  F = B*log(x)/x*((1.d0-x**beta)/(1.d0+k*x**beta*(1.d0-x**beta)))**4.d0* &
+  F = B*log(x)/x*((1.d0-x**beta)/(1.d0+k*x**beta*(1.d0-x**beta)))**4* &
     (1.d0/log(x)-(4.d0*beta*x**beta)/(1.d0-x**beta)- &
     (4.d0*k*beta*x**beta*(1.d0-2.d0*x**beta)/(1.d0+k*x**beta*(1.d0-x**beta))))
 

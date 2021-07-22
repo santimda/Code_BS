@@ -10,7 +10,7 @@ module CD_distp
    !============================================================================
    !  This program calculates the proton energy distribution at each position
    !  of the CD using CD.dat and termo_sw.dat. The program generates distp_sw.dat, 
-   !  in which Np(l,E(i)) is saved, with m_theta*mE_e data; distp_sw_total.dat, 
+   !  in which Np(l,E(i)) is saved, with m_theta*mE_p data; distp_sw_total.dat, 
    !  which stores Np(E(i)), and ENTp.dat, with E_NT(l). Emin_p and Emax_p are 
    !  fixed in global.
    !============================================================================
@@ -21,14 +21,14 @@ module CD_distp
       implicit none
       character(LEN=*), intent(in) :: shock
       integer :: l_min,l2
-      real(dp) :: t_cell(m_theta),t_adv(m_theta),t_coolp(m_theta,mE_p)
+      real(dp) :: t_cell(m_theta),t_adv(m_theta),t_coolp(m_theta,mE_p),t_adi_pp
       real(dp) :: t_ac,t_pp,t_diff,D_diff,t_esc,t_loss(m_theta,mE_p)
       real(dp) :: log10Emaxl,R_acel,integral,Q
       real(dp) :: E_dot(m_theta,mE_p),Emax_p0(m_theta),Ka,E_NT,dVol,U_NT
       real(dp) :: N_p0(mE_p),n_a(m_theta),L_inj(m_theta),dR(m_theta)
       real(dp) :: L_inj_p(m_theta), sum,dummy,b_pp,L1, f1, f2, f
       real(dp) :: dE_aprox ,cool,t_adi(m_theta)
-      real(dp), parameter :: kappa_pp=0.5d0
+      real(dp), parameter :: k_pp = 0.5d0
       integer :: index1,index2,count,steps 
       logical :: new_count
       
@@ -52,7 +52,7 @@ module CD_distp
 
       allocate( theta(m_theta),R_theta(m_theta),H_theta(m_theta) )
       allocate( P(m_theta),rho(m_theta),T(m_theta),B(m_theta),v_t(m_theta) )
-      allocate( N_p(mE_p),E_p(mE_p),B_par(m_theta),N_ptot(m_theta,mE_p) )
+      allocate( N_p(mE_p),E_p(mE_p),N_ptot(m_theta,mE_p) )
       allocate( efi_ac_sh(m_theta) )
       allocate( alpha_sh(m_theta) )
       
@@ -76,16 +76,15 @@ module CD_distp
          read(11,*) l2,rho(l),P(l),v_t(l),T(l),B(l) ! all in CGS units
       end do
       close (11)
-      B_par = B*par        ! For synchrotron, only the parallel component of B is relevant
       if (shock == 'RS') then
          n_a = rho/mp/mu_sw   ! Ambient number density
       else if (shock == 'FS') then
-         n_a = rho/mp/mu_ISM
+         n_a = rho/mp/mu_SISM
       end if
       
       open(103,file='Hnorm_'//shock//'.dat') 
       do l=1,m_theta
-         read(103,*) dummy,H_theta(l) ! normalized
+         read(103,*) dummy, H_theta(l) ! normalized
          H_theta(l) = H_theta(l)*R_theta(l)
       end do
       close(103)
@@ -114,6 +113,7 @@ module CD_distp
       ! (and also the maximum energy)
 
       open(70,file='CD_tcoolp_'//shock//'.dat')
+      open(78,file='Emax'//shock//'.dat') 
 
       do l = 1, m_theta
          t_cell(l) = dR(l)/v_t(l)      ! Cell advection time
@@ -126,22 +126,21 @@ module CD_distp
          end if
       end do
 
-      do l=1,m_theta
-
+      do l = 1,m_theta
          R_acel = H_theta(l)           ! Accelerator size  ????????????
-         !t_pp = 1.d15/n_a(l)/z_pp      ! p-p losses (approx)
+         t_pp = 1.d15/n_a(l)/z_pp      ! p-p losses (very approxm just to calculate E_max)
+         t_adi_pp = 1.d0/(1.d0/t_adi(l) + 1.d0/t_pp)   
 
-         call Biseccion_p(B(l),log10Emaxl,t_pp,t_adv(l),efi_ac_sh(l))
-         Emax_p0(l) = MIN(10.d0**log10Emaxl,qe*B(l)*R_acel*sqrt(1.5d0/efi_ac_sh(l)))! Pérdidas difusivas
+         call Biseccion_p(B(l),log10Emaxl,t_adi_pp,t_adv(l),efi_ac_sh(l))
+         Emax_p0(l) = MIN( 10.d0**log10Emaxl, qe*B(l)*R_acel*sqrt(1.5d0/efi_ac_sh(l)) )! Hillas
          if (Emax_p0(l) >= 0.5*Emax_p) write(*,*) 'Emax_p in global.f90 is too small!'
 
-         do i=1,mE_p
-
+         do i = 1, mE_p
             if (E_p(i) <= E_th) then    ! E_th= 1.22 GeV
                b_pp = 1.d-30        ! just not to divide by zero
             else            
                L1 = log(E_p(i)/TeV)     ! L = ln(Ep/1TeV)
-               b_pp = c*kappa_pp*n_a(l)*sigma_pp(L1,E_p(i))*E_p(i)
+               b_pp = c*k_pp*n_a(l)*sigma_pp(L1,E_p(i))*E_p(i)
             endif
             t_pp = E_p(i)/(b_pp*z_pp)
 
@@ -149,7 +148,7 @@ module CD_distp
             t_diff = H_theta(l)**2/(2.d0*D_diff)      ! Diffusion losses
             t_esc = 1./( 1./t_adv(l) + 1.d0/t_diff )  ! escape
 
-            t_coolp(l,i) = 1./(1.d0/t_pp + 1./t_adi(l))
+            t_coolp(l,i) = 1./(1.d0/t_pp + 1./t_adi(l)) ! Cooling losses
 
             t_loss(l,i) = 1.d0/(1.d0/t_coolp(l,i) + 1.d0/t_esc) ! general losses
 
@@ -158,17 +157,18 @@ module CD_distp
             write(70,*) l,E_p(i)/eV,t_ac,t_pp,t_adv(l),t_diff,t_coolp(l,i),t_cell(l),t_esc,t_loss(l,i),t_adi(l)
 
             E_dot(l,i) = E_p(i)/t_coolp(l,i)
-
          end do
 
+         write(78,*) l, Emax_p0(l)/eV
       end do
       close(70)
+      close(78)
 
       !========================================================================
 
       ! Consider different starting points for each linear emitter
       
-      N_ptot = 0.d0
+      N_ptot = 0.d0 ! Array containing N_p(l,i) with all the contributions at a cell "l"
       
       ! At the starting point of the line we calculate the distribution 
       ! Np_0(E_0), the cooling rate Edot0, and we sum it to Np_tot(l,i)
@@ -189,8 +189,7 @@ module CD_distp
            integral = integral + f*dE_p
            f1 = f2
            i = i + 1
-        end do
-
+         end do
          Ka = L_inj_p(l_min)/integral ! Injected at the starting point of the line   
 
          !------------------------------------------------------------------------
@@ -203,7 +202,7 @@ module CD_distp
             ! in [erg/seg], dt = min(t_cell,t_cool) so that [N(E)]=erg/erg**2
 
             Q = Ka * fQp(E_p(i), Emax_p0(l_min), alpha_sh(l_min))
-            N_p0(i) = Q*min(t_cell(l_min),t_coolp(l_min,i))
+            N_p0(i) = Q * min(t_cell(l_min),t_loss(l_min,i))
             N_ptot(l_min,i) = N_ptot(l_min,i) + N_p0(i)
             
             ! We calculate the evolved version of the injected electron distribution at each
@@ -215,7 +214,7 @@ module CD_distp
             N_p = 0.d0            ! Initialize to zero at each loop in l_min
             N_p(index1) = N_p0(i) ! This will be evolved
             l = l_min + 1  
-            count = 0
+            count = 0             ! Counter for when to change the index if losses are small
             cool = 0.d0
             new_count = .true.     
 
@@ -223,11 +222,12 @@ module CD_distp
                ! At the position l, the particle has E_p(index1) instead of E_p(i)
                ! We find index1 <= i according to the cooling time:
 
-               if (l == l_min+1) then
-                  do l2=l,m_theta
+               ! The cooling parameter "cool" determines whether particles cool efficiently or not
+               if (l == l_min+1) then ! The total cooling parameter from l_min to m_theta
+                  do l2 = l, m_theta
                      cool = cool + t_cell(l2)/t_coolp(l2,index1)
                   end do
-               else
+               else                    ! The cooling parameter from l > l_min to m_theta
                   cool = cool - t_cell(l-1)/t_coolp(l-1,index1)
                end if
                dE_aprox = (1.-t_cell(l)/t_coolp(l,index1))
@@ -238,7 +238,7 @@ module CD_distp
                elseif ( 1.-cool <= 0.99/Eint_p .and. dE_aprox > 1./Eint_p ) then
                   if (new_count) then
                      sum = 1.d0
-                     steps = 0 ! number of steps until it changes E(index1) -> E(index-1)
+                     steps = 0 ! number of steps until it changes E(index1) -> E(index1-1)
                      l2 = l
                      do while (sum > 1./Eint_p .and. l2 <= m_theta)
                         steps = steps + 1
@@ -249,7 +249,7 @@ module CD_distp
                      new_count = .false.
                   end if
                   count = count + 1
-                  !                write(*,*) 'hola2',i,l,int(1./(Eint_p*dE_aprox)),steps
+                  
                   if (count >= steps) then
                      count = 0
                      index1 = index1 - 1
@@ -266,9 +266,9 @@ module CD_distp
 
                end if
 
-               N_p(index1) = N_p(index2) * ( E_dot(l,index2)/E_dot(l,index1) )
+               N_p(index1) = N_p(index2) * ( E_dot(l-1,index2)/E_dot(l,index1) )
 
-               N_ptot(l,index1) = N_ptot(l,index1)+N_p(index1)  ! The energies match by construction
+               N_ptot(l,index1) = N_ptot(l,index1) + N_p(index1)  ! The energies match by construction
 
                index2 = index1
 
@@ -281,8 +281,8 @@ module CD_distp
 
       ! Save the proton distribution at each position 
       open(79,file='distp_'//shock//'.dat')
-      do l=1,m_theta
-         do i=1,mE_p
+      do l = 1,m_theta
+         do i = 1,mE_p
             write(79,*) theta(l),E_p(i)/eV,N_ptot(l,i)
          end do
          write(79,*) 
@@ -291,7 +291,7 @@ module CD_distp
 
       sum = 0.d0
       open(80,file='ENTp_'//shock//'.dat')
-      do l=1,m_theta
+      do l = 1,m_theta
          E_NT = 0.d0
          do i=1,mE_p
             dE_p = E_p(i)*(Eint_p - 1.d0)  
@@ -311,8 +311,9 @@ module CD_distp
       ! Group in bins according to position angle
       call Np_bin(E_p,N_ptot,theta,shock)
 
+      !------------------------------------------------------------
 
-      deallocate( theta,R_theta,H_theta,B,B_par,rho,P,v_t,T )
+      deallocate( theta,R_theta,H_theta,B,rho,P,v_t,T )
       deallocate( N_p,E_p, N_ptot, efi_ac_sh, alpha_sh )
       
    END subroutine CD_distp_run
@@ -337,23 +338,24 @@ subroutine Np_bin(Ep,Np_tot,ang, shock)
    character(LEN=*), intent(in) :: shock
    real(dp), intent(in) :: Ep(mE_p),Np_tot(m_theta,mE_p),ang(m_theta)
    integer, parameter :: N_bins = 5 ! For the plot diste_sw_bins
-   real(dp) :: N_bin_i(N_bins,mE_p), N_total_i
+   real(dp) :: N_bin_i(N_bins,mE_p), N_total_i, ang_step
 
    N_bin_i = 0.d0
+   ang_step = theta_max/5.
    open(81,file='distp_'//shock//'_total.dat')
    do i=1,mE_p
       N_total_i = 0.d0
       do l=1,m_theta
          ! Make some distributions binned in intervals of 0.1*D
-         if (ang(l) < 0.15*pi) then
+         if (ang(l) < ang_step) then
             N_bin_i(1,i) = N_bin_i(1,i) + Np_tot(l,i)
-         elseif (ang(l) >= 0.15*pi .and. ang(l) < 0.30*pi) then
+         elseif (ang(l) >= ang_step .and. ang(l) < 2.d0*ang_step) then
             N_bin_i(2,i) = N_bin_i(2,i) + Np_tot(l,i)
-         elseif (ang(l) >= 0.30*pi .and. ang(l) < 0.45*pi) then
+         elseif (ang(l) >= 2.d0*ang_step .and. ang(l) < 3.d0*ang_step) then
             N_bin_i(3,i) = N_bin_i(3,i) + Np_tot(l,i)
-         elseif (ang(l) >= 0.45*pi .and. ang(l) < 0.60*pi) then
+         elseif (ang(l) >= 3.d0*ang_step .and. ang(l) < 4.d0*ang_step) then
             N_bin_i(4,i) = N_bin_i(4,i) + Np_tot(l,i)
-         elseif (ang(l) >= 0.60*pi .and. ang(l) < 0.75*pi) then
+         elseif (ang(l) >= 4.d0*ang_step .and. ang(l) < 5.d0*ang_step) then
             N_bin_i(5,i) = N_bin_i(5,i) + Np_tot(l,i)
          end if  
          N_total_i = N_total_i + Np_tot(l,i)

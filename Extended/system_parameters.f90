@@ -56,8 +56,7 @@ module system_parameters
    real(dp), parameter :: L_wind = 0.5d0*(Mdot*v_w**2) ! Wind kinetic power
    real(dp), parameter :: T_wind = 0.3*T_st        ! Drew1990
    real(dp), parameter :: v_st_rot = 0.1d0*v_w     ! Rule-of-thumb
-   real(dp), parameter :: mu_w = 1.5_dp
-   !real(dp), parameter :: mu_w = 1.5_dp            ! Leitherer 1995 
+   real(dp), parameter :: mu_w = 1.3_dp            ! Leitherer 1995 / solar abundance (?)
    real(dp), parameter :: Zq_w = 1.0_dp            ! Z = rms ionic charge
    real(dp), parameter :: gamma_w = 1.0_dp         ! Leitherer 1995
    real(dp), parameter :: filling = 1.d-1          ! ..... 10% ?
@@ -101,20 +100,21 @@ module system_parameters
 
    !--------------------------------------------------------------------------------------
    ! Shocked stellar-wind (sw)
-   real(dp), parameter :: mu_sw = 0.615_dp         ! mean atomic weight = 4/(6x+y+2) for complete ionization 
-   real(dp), parameter :: mu_e_sw = 1.173_dp       ! mu_e = 2/(1+x)
+   real(dp), parameter :: mu_sw = 0.615_dp          ! mean atomic weight = 4/(6x+y+2) for complete ionization 
+   real(dp), parameter :: mu_e_sw = 1.173_dp        ! mu_e = 2/(1+x)
    real(dp), parameter :: mu_i_sw = 1.d0/(1/mu_sw-1/mu_e_sw)  
    real(dp), parameter :: Zq_sw = 1.23_dp        
    real(dp), parameter :: gamma_sw = 1.34_dp
-   real(dp), parameter :: T_6 = 1.d0               ! temperature in MK, should scale with v_w?
+   real(dp), parameter :: T_6 = 1.d0                ! temperature in MK, should scale with v_w?
 
    real(dp), parameter :: z_br = 2.24               ! Padovani+2018 for Wiilms+2000 abundances
    real(dp), parameter :: z_pp = 2.17               ! Padovani+2018 for Wiilms+2000 abundances
 
    !--------------------------------------------------------------------------------------
-   ! Heated dust (IR)   
-   !real(dp), parameter :: L_IR = 5.7d36 ! Dust luminosity, observed ?????
-   real(dp), parameter :: L_IR = L_st/350.d0     ! Dust luminosity, K2017
+   ! Heated dust (IR)/shocked ISM   
+   !real(dp), parameter :: L_IR = 5.7d36           ! Dust luminosity, observed ?????
+   real(dp), parameter :: L_IR = L_st/350.d0       ! Dust luminosity, K2017
+   real(dp), parameter :: mu_SISM = 0.615d0        ! Assume solar abundance (?)
    real(dp), dimension(:), allocatable :: T_IR,T_IR_ad
 
    !--------------------------------------------------------------------------------------

@@ -74,7 +74,7 @@ module CD_termo
          ct = cos(theta(l))
          call A_theta(shock,theta(l),st,ct,r_norm(l),A_z,A_omega,H_norm(l))
          if (shock == 'RS') then
-            n_perp =  (/ -A_omega, -A_z /)! Internal perpendicular vector to the BS surface
+            n_perp = (/ -A_omega, -A_z /)! Internal perpendicular vector to the BS surface
             n_t = (/ -A_z, A_omega /)     ! Tangential vector to the BS surface
             v_vec = v_sh * (/ -ct, st /)
             !v_perp(l) = v_sh * ( -st*A_z + ct*A_omega ) !Eq 18
@@ -279,10 +279,10 @@ SUBROUTINE A_theta(shock,theta0,st,ct,r1,A_z,A_omega,H0_norm)
    g_theta = 2.*(v_ISM/v_w)*(1.-ct) !+ r1**2.*st**2.*(1.-lambda) ! Eq. 22
 
    if (shock == 'RS') then
-   H0_norm = 0.5*(g_ad-1.)/(g_ad+1.) * (v_w/v_ISM)**2* (g_theta**2)/(f_theta*st) ! Eq. 23
-   !H0_norm = 0.2d0 ! + (theta0/2./pi)**2.
+      H0_norm = 0.5*(g_ad-1.)/(g_ad+1.) * (v_w/v_ISM)**2* (g_theta**2)/(f_theta*st) ! Eq. 23
+      !H0_norm = 0.2d0 ! + (theta0/2./pi)**2.
    else if (shock == 'FS') then
-   H0_norm = 0.3*r1
+      H0_norm = 0.3
    end if
 
    RETURN

@@ -24,7 +24,7 @@ logical, parameter :: rotate = yes
 
 !----------
 
-logical, parameter :: electrons = yes
+logical, parameter :: electrons = no!yes
 
 logical, parameter :: diste_calc = yes
 logical, parameter :: radsyn_sw_calc = yes
