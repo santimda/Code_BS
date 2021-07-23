@@ -21,23 +21,23 @@ module CD_distp
       implicit none
       character(LEN=*), intent(in) :: shock
       integer :: l_min,l2,m_theta_inj_max
-      real(dp) :: t_cell(m_theta),t_adv(m_theta),t_coolp(m_theta,mE_p),t_adi_pp
-      real(dp) :: t_ac,t_pp,t_diff,D_diff,t_esc,t_loss(m_theta,mE_p)
-      real(dp) :: log10Emaxl,R_acel,integral,Q
+      real(dp) :: t_cell(m_theta),t_adv(m_theta),t_adi(m_theta),t_adi_pp
+      real(dp) :: t_ac,t_pp,t_diff,t_esc,t_loss(m_theta,mE_p),t_coolp(m_theta,mE_p)
+      real(dp) :: log10Emaxl,R_acel,D_diff,integral,Q
       real(dp) :: E_dot(m_theta,mE_p),Emax_p0(m_theta),Ka,E_NT,dVol,U_NT
       real(dp) :: N_p0(mE_p),n_a(m_theta),L_inj(m_theta),dR(m_theta)
-      real(dp) :: L_inj_p(m_theta), sum,dummy,b_pp,L1, f1, f2, f
-      real(dp) :: dE_aprox ,cool,t_adi(m_theta)
+      real(dp) :: L_inj_p(m_theta), sum, dummy, b_pp, L1, f1, f2, f
+      real(dp) :: dE_aprox, cool
       real(dp), parameter :: k_pp = 0.5d0
       integer :: index1,index2,count,steps
       logical :: new_count
       logical :: search_Emax
       
       interface
-      subroutine Biseccion_p(Be,logEmax,tpp,tadv,xi)
+      subroutine Biseccion_p(Be,logEmax,tpp,tadv,xi,Rdiff)
          use iso_fortran_env, only: dp => real64
          implicit none
-         real(dp), intent(in) :: Be,tpp,tadv,xi
+         real(dp), intent(in) :: Be,tpp,tadv,xi,Rdiff
          real(dp), intent(out) :: logEmax
       end subroutine Biseccion_p
       end interface
@@ -84,7 +84,7 @@ module CD_distp
       end if
       
       open(103,file='Hnorm_'//shock//'.dat') 
-      do l=1,m_theta
+      do l = 1, m_theta
          read(103,*) dummy,H_theta(l) ! normalized
          H_theta(l) = H_theta(l)*R_theta(l)
       end do
@@ -111,7 +111,7 @@ module CD_distp
       ! (and also the maximum energy)
 
       open(70,file='CD_tcoolp_'//shock//'.dat')
-      open(78,file='Emax'//shock//'.dat') 
+      open(78,file='Emaxp'//shock//'.dat') 
 
       do l = 1, m_theta
          t_cell(l) = dR(l)/v_t(l)      ! Cell advection time
@@ -127,12 +127,12 @@ module CD_distp
       search_Emax = .TRUE.
       m_theta_inj_max = m_theta ! Default value is to inject up to m_theta
       do l = 1,m_theta
-         R_acel = R_theta(l) !H_theta(l)           ! Accelerator size  ????????????
+         R_acel = H_theta(l)           ! Accelerator size  ????????????
          t_pp = 1.d15/n_a(l)/z_pp      ! p-p losses (very approx just to calculate E_max)
          t_adi_pp = 1.d0/(1.d0/t_adi(l) + 1.d0/t_pp)   
 
          if (search_Emax) then
-            call Biseccion_p(B(l),log10Emaxl,t_adi_pp,t_adv(l),efi_ac_sh(l))
+            call Biseccion_p(B(l),log10Emaxl,t_adi_pp,t_adv(l),efi_ac_sh(l),R_acel)
             ! The subroutine returns log10Emaxl < 0.5*log10(1.5*Emin_p*Emax_p) when Emax < 1.5*Emin_p
             if ( log10(1.5*Emin_p*Emax_p)/2.d0  - log10Emaxl < 1.d-3) then 
                log10Emaxl = log10(1.0001d0*Emin_p)
@@ -281,7 +281,7 @@ module CD_distp
 
                N_ptot(l,index1) = N_ptot(l,index1) + N_p(index1)  ! The energies match by construction
 
-               index2 = index1
+               index2 = index1   ! index2 keeps the value of the previous step
 
                l = l + 1 
             end do               ! End loop in shock position (l) 
@@ -390,19 +390,19 @@ end subroutine Np_bin
 !=========================================================================
 
 
-Subroutine Biseccion_p(Be,x3,t_pp,t_adv,xi)
+Subroutine Biseccion_p(Be,x3,t_pp,t_adv,xi,Rdiff)
    use global
    implicit none
    real(dp) :: a_,b_,c_
-   real(dp), intent(in) :: Be,t_pp,t_adv,xi
+   real(dp), intent(in) :: Be,t_pp,t_adv,xi,Rdiff
    real(dp), intent(out) :: x3
    real(dp), parameter :: err = 1.d-3  ! error in Emax < err
    interface
-   function resta_p(a,B,t_pp,t_adv,efi)
+   function resta_p(a,B,t_pp,t_adv,efi,Rd)
       use iso_fortran_env, only: dp => real64
       implicit none
       real(dp) :: resta_p
-      real(dp), intent(in) :: a,B,t_pp,t_adv,efi
+      real(dp), intent(in) :: a,B,t_pp,t_adv,efi,Rd
    end function resta_p
    end interface
 
@@ -413,33 +413,33 @@ Subroutine Biseccion_p(Be,x3,t_pp,t_adv,xi)
    do while ( abs(b_ - a_) > err )
       i = i+1
       c_ = (a_+b_)/2.
-      if ( abs(resta_p(c_,Be,t_pp,t_adv,xi)) < 0.1*err ) then 
+      if ( abs(resta_p(c_,Be,t_pp,t_adv,xi,Rdiff)) < 0.1*err ) then 
          b_ = c_
-      elseif (resta_p(a_,Be,t_pp,t_adv,xi)*resta_p(c_,Be,t_pp,t_adv,xi) < 0) then
+      elseif (resta_p(a_,Be,t_pp,t_adv,xi,Rdiff)*resta_p(c_,Be,t_pp,t_adv,xi,Rdiff) < 0) then
          b_ = c_
-      elseif (resta_p(a_,Be,t_pp,t_adv,xi)*resta_p(c_,Be,t_pp,t_adv,xi) > 0) then 
+      elseif (resta_p(a_,Be,t_pp,t_adv,xi,Rdiff)*resta_p(c_,Be,t_pp,t_adv,xi,Rdiff) > 0) then 
          a_ = c_
       end if
    end do
    x3=b_
-   if ( log10(1.5*Emin_p*Emax_p)/2.d0 - x3 < err) write(*,*) 'ACAAAA'
+
    return
 
 end Subroutine Biseccion_p
 
 !=========================================================================
 
-Function resta_p(log10E,B_l,t_pp,t_adv,xi)
+Function resta_p(log10E,B_l,t_pp,t_adv,xi,Rdiff)
    use global
    implicit none
-   real(dp), intent(in) :: log10E,B_l,t_pp,t_adv,xi
+   real(dp), intent(in) :: log10E,B_l,t_pp,t_adv,xi,Rdiff
    real(dp) :: resta_p,E_l,t_diff,t_ac,t_coolp
    real(dp) :: D_diff,t_loss,t_esc
    
    E_l = 10.d0**log10E
 
    D_diff = E_l*c/(3.d0*qe*B_l)        ! Bohm
-   t_diff = (0.2*R0)**2/(2.d0*D_diff)  ! Diffusion losses APPROX
+   t_diff = Rdiff**2/(2.d0*D_diff)     ! Diffusion losses 
    t_esc = 1./(1./t_adv + 1.d0/t_diff) ! escape
    
    t_coolp = t_pp

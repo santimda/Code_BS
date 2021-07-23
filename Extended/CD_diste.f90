@@ -20,7 +20,7 @@ module CD_diste
       use global
       implicit none
       character(LEN=*), intent(in) :: shock
-      integer :: l_min,l2
+      integer :: l_min,l2,m_theta_inj_max
       real(dp) :: t_cell(m_theta),t_adv(m_theta),t_coole(m_theta,mE_e),t_loss(m_theta,mE_e)
       real(dp) :: t_ic_st,t_ic_IR,t_ic,t_sy,t_ac,t_br,D_diff,t_diff,t_esc,t_adi(m_theta)
       real(dp) :: cte_sy, gamm, cte_IC, C_ic_st,kC_ic_st, C_ic_IR(m_theta),kC_ic_IR
@@ -32,12 +32,13 @@ module CD_diste
       real(dp) :: dE_aprox, cool
       integer :: index1,index2,count,steps
       logical :: new_count
+      logical :: search_Emax
 
       interface
-      subroutine Biseccion(c_sy,Bl,logEmax,c1,c2,T1,tbr,tad,xi)
+      subroutine Biseccion(c_sy,Bl,logEmax,c1,c2,T1,tbr,tad,xi,Rdiff)
          use iso_fortran_env, only: dp => real64
          implicit none
-         real(dp), intent(in) :: c_sy,Bl,c1,c2,T1,tbr,tad,xi
+         real(dp), intent(in) :: c_sy,Bl,c1,c2,T1,tbr,tad,xi,Rdiff
          real(dp), intent(out) :: logEmax
       end subroutine Biseccion
       end interface
@@ -82,7 +83,7 @@ module CD_diste
       if (shock == 'RS') then
          n_a = rho/mp/mu_sw   ! Ambient number density
       else if (shock == 'FS') then
-         n_a = rho/mp/mu_ISM
+         n_a = rho/mp/mu_SISM
       end if   
 
       open(103,file='Hnorm_'//shock//'.dat') 
@@ -103,54 +104,67 @@ module CD_diste
       close(113)
 
       open(114,file='efi_ac_'//shock//'.dat')
-      do l = 1, m_theta
-         read(114,*) dummy,efi_ac_sh(l)
-      end do
-      close(114)
-
       open(20,file='alpha_'//shock//'.dat')
       do l = 1, m_theta
+         read(114,*) dummy,efi_ac_sh(l)
          read(20,*) dummy,alpha_sh(l)
       end do
+      close(114)
       close(20)
+
 
       !--------------------------------------------------------------------
       ! Build an energy vector that is common for all linear-emitters: 
 
       call vector_log(Emin_e,Emax_e,Eint_e,E_e)
 
+      !========================================================================
+      ! First calculate the cooling time at all energies and at each position 
+      ! (and also the maximum energy)
+
       open(70,file='CD_tcoole_'//shock//'.dat')
+      open(78,file='Emaxe'//shock//'.dat') 
+
       cte_IC = pi*h_bar**3*c**2/(2.*re**2*mec2**3)
       C_ic_st = (cte_IC)/(T_st_ad**2)
       do l = 1, m_theta
          C_ic_IR(l) = (cte_IC)/(T_IR_ad(l)**2)
       end do
 
-      !========================================================================
-      ! First calculate the cooling time at all energies and at each position 
-      ! (and also the maximum energy)
-
       do l = 1, m_theta
          t_cell(l) = dR(l)/v_t(l)      ! Cell advection time
          t_adv(l) = R_theta(l)/v_t(l)  ! Characteristic advection time
          if (l < m_theta) then
             t_adi(l) = 3.*dR(l)/(v_t(l)*log(rho(l)/rho(l+1))) ! Characteristic adiabatic losses time
-            if (t_adi(l) <= 0.d0) t_adi(l) = 1.d30
+            if (t_adi(l) <= 0.d0) t_adi(l) = 1.d20   ! To avoid numerical errors
          else if (l == m_theta) then
             t_adi(l) = t_adi(l-1)
          end if
       end do
 
+      search_Emax = .TRUE.
+      m_theta_inj_max = m_theta ! Default value is to inject up to m_theta
       do l = 1, m_theta
          Kappa_st = ( R_st/(2.*R_theta(l)) )**2
          kC_ic_st = C_ic_st/Kappa_st
          kC_ic_IR = C_ic_IR(l)/Kappa_IR(l)
-         R_acel = R_theta(l) !H_theta(l)           ! Accelerator size  ????????????
+         R_acel = H_theta(l)           ! Accelerator size  ????????????
          t_br = 1.d15/n_a(l)/z_br      ! added z_be according to Padovani+2018
          cte_sy = 6.*pi*mec2**2/(c*sigma_T*B(l)**2)   ! Valid for isotropic e- distribution
 
-         call Biseccion(cte_sy,B(l),log10Emaxl,kC_ic_st,kC_ic_IR,T_IR_ad(l),t_br,t_adv(l),efi_ac_sh(l))
-         Emax_e0(l) = MIN(10.d0**log10Emaxl,qe*B(l)*R_acel*sqrt(1.5d0/efi_ac_sh(l)))
+         if (search_Emax) then
+            call Biseccion(cte_sy,B(l),log10Emaxl,kC_ic_st,kC_ic_IR,T_IR_ad(l),t_br,t_adv(l),efi_ac_sh(l),R_acel)
+            ! The subroutine returns log10Emaxl < 0.5*log10(Emin_e_inj*Emax_e) when Emax < Emin_e_inj
+            if ( log10Emaxl < log10(Emin_e_inj) ) then  ! THIS NEEDS TESTING!
+               log10Emaxl = log10(1.001d0*Emin_e)
+               m_theta_inj_max = l  ! Particle acceleration stops here
+               search_Emax = .FALSE.
+            endif
+            Emax_e0(l) = MIN( 10.d0**log10Emaxl, qe*B(l)*R_acel*sqrt(1.5d0/efi_ac_sh(l)) )
+         else
+            Emax_e0(l) = 1.001d0*Emin_e ! Dummy value, no particle acceleration
+         endif
+
          if (Emax_e0(l) >= 0.5*Emax_e) write(*,*) 'Emax_e in global.f90 is too small!'
 
          log_coul = 29.7d0 + log( (T(l)/1.d6)/sqrt(n_a(l)) ) 
@@ -183,8 +197,10 @@ module CD_diste
 
          end do
 
+         write(78,*) l, Emax_e0(l)/eV
       end do
       close(70)
+      close(78)
 
       !========================================================================
 
@@ -195,7 +211,7 @@ module CD_diste
       ! At the starting point of the line we calculate the distribution 
       ! Ne_0(E_0), the cooling rate Edot0, and we sum it to Ne_tot(l,i)
 
-      Do l_min = 1, m_theta
+      Do l_min = 1, m_theta_inj_max ! After m_theta_inj_max, particles are no longer accelerated
 
          ! Q = Ka*E**-alpha*e^(-E/Emax), alpha=2. The normalization constant Ka is obtained 
          ! by the condition: integral Q(E')*E'dE' = Linj. [Linj]=erg/s, [Ka]=erg/s, [Q]=1/erg/seg
@@ -237,7 +253,7 @@ module CD_diste
             N_e = 0.d0            ! Initialize to zero at each loop in l_min
             N_e(index1) = N_e0(i) ! This will be evolved
             l = l_min + 1  
-            count = 0
+            count = 0.d0          ! Counter for when to change the index if losses are small
             cool = 0.d0
             new_count = .true.     
 
@@ -245,7 +261,8 @@ module CD_diste
                ! At the position l, the particle has E_e(index1) instead of E_e(i)
                ! We find index1 <= i according to the cooling time:
 
-               if (l == l_min+1) then
+               ! The cooling parameter "cool" determines whether particles cool efficiently or not
+               if (l == l_min+1) then ! The total cooling parameter from l_min to m_theta
                   do l2 = l, m_theta
                      cool = cool + t_cell(l2)/t_coole(l2,index1)
                   end do
@@ -289,7 +306,7 @@ module CD_diste
 
                N_e(index1) = N_e(index2) * ( E_dot(l-1,index2)/E_dot(l,index1) ) 
 
-               N_etot(l,index1) = N_etot(l,index1)+N_e(index1)  ! The energies match by construction
+               N_etot(l,index1) = N_etot(l,index1) + N_e(index1)  ! The energies match by construction
 
                index2 = index1  ! index2 keeps the value of the previous step
 
@@ -333,7 +350,7 @@ module CD_diste
       ! Group in bins according to position angle
       call Ne_bin(E_e,N_etot,theta,shock)
 
-
+      !------------------------------------------------------------
 
       deallocate( theta,R_theta,H_theta,B,B_par,rho,P,v_t,T )
       deallocate( N_e,E_e,N_etot ) 
@@ -360,23 +377,24 @@ subroutine Ne_bin(Ee,Ne_tot,ang,shock)
    character(LEN=*), intent(in) :: shock
    real(dp), intent(in) :: Ee(mE_e),Ne_tot(m_theta,mE_e),ang(m_theta)
    integer, parameter :: N_bins = 5 ! For the plot diste_sw_bins
-   real(dp) :: N_bin_i(N_bins,mE_e), N_total_i
+   real(dp) :: N_bin_i(N_bins,mE_e), N_total_i, ang_step
 
    N_bin_i = 0.d0
+   ang_step = theta_max/5.
    open(81,file='diste_'//shock//'_total.dat')
    do i=1,mE_e
       N_total_i = 0.d0
       do l=1,m_theta
          ! Make some distributions binned in intervals of 0.1*D
-         if (ang(l) < theta_max/5.) then
+         if (ang(l) < ang_step) then
             N_bin_i(1,i) = N_bin_i(1,i) + Ne_tot(l,i)
-         elseif (ang(l) >= theta_max/5. .and. ang(l) < 2.*theta_max/5.) then
+         elseif (ang(l) >= ang_step .and. ang(l) < 2.*ang_step) then
             N_bin_i(2,i) = N_bin_i(2,i) + Ne_tot(l,i)
-         elseif (ang(l) >= 2.*theta_max/5. .and. ang(l) < 3.*theta_max/5.) then
+         elseif (ang(l) >= 2.*ang_step .and. ang(l) < 3.*ang_step) then
             N_bin_i(3,i) = N_bin_i(3,i) + Ne_tot(l,i)
-         elseif (ang(l) >= 3.*theta_max/5. .and. ang(l) < 4.*theta_max/5.) then
+         elseif (ang(l) >= 3.*ang_step .and. ang(l) < 4.*ang_step) then
             N_bin_i(4,i) = N_bin_i(4,i) + Ne_tot(l,i)
-         elseif (ang(l) >= 4.*theta_max/5. .and. ang(l) < theta_max) then
+         elseif (ang(l) >= 4.*ang_step .and. ang(l) < theta_max) then
             N_bin_i(5,i) = N_bin_i(5,i) + Ne_tot(l,i)
          end if  
          N_total_i = N_total_i + Ne_tot(l,i)
@@ -400,34 +418,34 @@ end subroutine Ne_bin
 !=========================================================================
 
 
-Subroutine Biseccion(csy,Bl,x3,c1,c2,T1,t_br,t_adv,xi)
+Subroutine Biseccion(csy,Bl,x3,c1,c2,T1,t_br,t_adv,xi,Rdiff)
    use global
    implicit none
    real(dp) :: a_,b_,c_
-   real(dp), intent(in) :: csy,Bl,c1,c2,T1,t_br,t_adv,xi
+   real(dp), intent(in) :: csy,Bl,c1,c2,T1,t_br,t_adv,xi,Rdiff
    real(dp), intent(out) :: x3
    real(dp), parameter :: err = 1.d-3  ! error in Emax < err
    interface
-   function resta(a,csy,Bl,ic1,ic2,T1,t_br,t_adv,efi)
+   function resta(a,csy,Bl,ic1,ic2,T1,t_br,t_adv,efi,Rd)
       use iso_fortran_env, only: dp => real64
       implicit none
       real(dp) :: resta
-      real(dp), intent(in) :: a,csy,Bl,ic1,ic2,T1,t_br,t_adv,efi
+      real(dp), intent(in) :: a,csy,Bl,ic1,ic2,T1,t_br,t_adv,efi,Rd
    end function resta
    end interface
 
    ! Error in nth step < |a-b|/2**n
-   a_ = log10(1.d9*eV)    ! log10(Emin [CGS]) ~ 1 GeV
+   a_ = log10(Emin_e_inj)
    b_ = log10(Emax_e)   
    i = 0
    do while ( abs(b_ - a_) > err )
       i = i+1
       c_ = (a_+b_)/2.
-      if (resta(c_,csy,Bl,c1,c2,T1,t_br,t_adv,xi) < 1.d-8 ) then 
+      if (resta(c_,csy,Bl,c1,c2,T1,t_br,t_adv,xi,Rdiff) < 0.1*err ) then 
          b_ = c_
-      elseif (resta(a_,csy,Bl,c1,c2,T1,t_br,t_adv,xi)*resta(c_,csy,Bl,c1,c2,T1,t_br,t_adv,xi) < 0) then 
+      elseif (resta(a_,csy,Bl,c1,c2,T1,t_br,t_adv,xi,Rdiff)*resta(c_,csy,Bl,c1,c2,T1,t_br,t_adv,xi,Rdiff) < 0) then 
          b_ = c_
-      elseif (resta(a_,csy,Bl,c1,c2,T1,t_br,t_adv,xi)*resta(c_,csy,Bl,c1,c2,T1,t_br,t_adv,xi) > 0) then 
+      elseif (resta(a_,csy,Bl,c1,c2,T1,t_br,t_adv,xi,Rdiff)*resta(c_,csy,Bl,c1,c2,T1,t_br,t_adv,xi,Rdiff) > 0) then 
          a_ = c_          
       end if
    end do
@@ -438,10 +456,10 @@ end Subroutine Biseccion
 
 !=========================================================================
 
-Function resta(log10E,csy,Bl,c1,c2,T1,t_br,t_adv,xi)
+Function resta(log10E,csy,Bl,c1,c2,T1,t_br,t_adv,xi,Rdiff)
    use global
    implicit none
-   real(dp), intent(in) :: log10E,csy,Bl,c1,c2,T1,t_br,t_adv,xi
+   real(dp), intent(in) :: log10E,csy,Bl,c1,c2,T1,t_br,t_adv,xi,Rdiff
    real(dp) :: resta
    real(dp) :: E_l,gamm,t_sy,t_ic_st,t_ic_IR,t_ac,t_coole
    real(dp) :: D_diff,t_diff,t_loss,t_esc
@@ -449,7 +467,7 @@ Function resta(log10E,csy,Bl,c1,c2,T1,t_br,t_adv,xi)
    E_l = 10.d0**log10E
 
    D_diff = E_l*c/(3.d0*qe*Bl)         ! Bohm
-   t_diff = (0.2*R0)**2/(2.d0*D_diff)  ! Diffusion losses APPROX
+   t_diff = Rdiff**2/(2.d0*D_diff)     ! Diffusion losses 
    t_esc = 1./(1./t_adv + 1.d0/t_diff) ! escape
 
    gamm = E_l/mec2
