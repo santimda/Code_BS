@@ -22,8 +22,8 @@ module system_parameters
    !real(dp), parameter :: v_st = 40.d5             ! del Palacio+2018
    !real(dp), parameter :: v_st = 30.d5             ! del Palacio+2018 (generic)
    !real(dp), parameter :: v_st = 500.d5             ! B0-05-d
-   !real(dp), parameter :: v_st = 1000.d5             ! B1-1-d/B1-1-h/B1-1-nm
-   real(dp), parameter :: v_st = 60000.d5             ! B2-60-d
+   real(dp), parameter :: v_st = 1000.d5             ! B1-1-d/B1-1-h/B1-1-nm
+   !real(dp), parameter :: v_st = 60000.d5             ! B2-60-d
    !real(dp), parameter :: T_st = 2.9d4              ! B0-05-d
    !real(dp), parameter :: T_st = 2.5d4              ! B1-1-d/B1-1-h/B1-1-nm
    real(dp), parameter :: T_st = 2.d4               ! B2-60-d

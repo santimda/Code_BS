@@ -97,7 +97,7 @@ module CD_termo
       open (18,file='efi_ac_'//shock//'.dat')
       do l = 1,m_theta
          efi_ac_sh(l) = 2.d0*pi*(c/v_perp(l))**2
-         write(18,*) theta(l), efi_ac_sh
+         write(18,*) theta(l), efi_ac_sh(l)
       end do
       close(18)
       deallocate( efi_ac_sh )

@@ -145,7 +145,7 @@ module CD_diste
          Kappa_st = ( R_st/(2.*R_theta(l)) )**2
          kC_ic_st = C_ic_st/Kappa_st
          kC_ic_IR = C_ic_IR(l)/Kappa_IR(l)
-         R_acel = H_theta(l)           ! Accelerator size  ????????????
+         R_acel = R_theta(l) !H_theta(l)           ! Accelerator size  ????????????
          t_br = 1.d15/n_a(l)/z_br      ! added z_be according to Padovani+2018
          cte_sy = 6.*pi*mec2**2/(c*sigma_T*B(l)**2)   ! Valid for isotropic e- distribution
 
@@ -159,7 +159,7 @@ module CD_diste
          do i = 1, mE_e
 
             D_diff = E_e(i)*c/(3.d0*qe*B(l)) ! Bohm
-            t_diff = H_theta(l)**2/(2.d0*D_diff) ! Diffusion losses
+            t_diff = R_acel**2/(2.d0*D_diff) ! Diffusion losses
             t_esc = 1./( 1./t_adv(l) + 1.d0/t_diff ) ! escape
 
             t_sy = cte_sy/E_e(i) 
