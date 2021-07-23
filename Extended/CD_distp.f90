@@ -20,7 +20,7 @@ module CD_distp
       use global
       implicit none
       character(LEN=*), intent(in) :: shock
-      integer :: l_min,l2
+      integer :: l_min,l2,m_theta_inj_max
       real(dp) :: t_cell(m_theta),t_adv(m_theta),t_coolp(m_theta,mE_p),t_adi_pp
       real(dp) :: t_ac,t_pp,t_diff,D_diff,t_esc,t_loss(m_theta,mE_p)
       real(dp) :: log10Emaxl,R_acel,integral,Q
@@ -29,8 +29,9 @@ module CD_distp
       real(dp) :: L_inj_p(m_theta), sum,dummy,b_pp,L1, f1, f2, f
       real(dp) :: dE_aprox ,cool,t_adi(m_theta)
       real(dp), parameter :: k_pp = 0.5d0
-      integer :: index1,index2,count,steps 
+      integer :: index1,index2,count,steps
       logical :: new_count
+      logical :: search_Emax
       
       interface
       subroutine Biseccion_p(Be,logEmax,tpp,tadv,xi)
@@ -84,21 +85,18 @@ module CD_distp
       
       open(103,file='Hnorm_'//shock//'.dat') 
       do l=1,m_theta
-         read(103,*) dummy, H_theta(l) ! normalized
+         read(103,*) dummy,H_theta(l) ! normalized
          H_theta(l) = H_theta(l)*R_theta(l)
       end do
       close(103)
       
       open(114,file='efi_ac_'//shock//'.dat')
-      do l=1,m_theta
-         read(114,*) dummy,efi_ac_sh(l)
-      end do
-      close(114)
-
       open(20,file='alpha_'//shock//'.dat')
-      do l = 1, m_theta
+      do l = 1,m_theta
+         read(114,*) dummy,efi_ac_sh(l)
          read(20,*) dummy,alpha_sh(l)
       end do
+      close(114)
       close(20)
 
       
@@ -126,15 +124,28 @@ module CD_distp
          end if
       end do
 
+      search_Emax = .TRUE.
+      m_theta_inj_max = m_theta ! Default value is to inject up to m_theta
       do l = 1,m_theta
-         R_acel = H_theta(l)           ! Accelerator size  ????????????
-         t_pp = 1.d15/n_a(l)/z_pp      ! p-p losses (very approxm just to calculate E_max)
+         R_acel = R_theta(l) !H_theta(l)           ! Accelerator size  ????????????
+         t_pp = 1.d15/n_a(l)/z_pp      ! p-p losses (very approx just to calculate E_max)
          t_adi_pp = 1.d0/(1.d0/t_adi(l) + 1.d0/t_pp)   
 
-         call Biseccion_p(B(l),log10Emaxl,t_adi_pp,t_adv(l),efi_ac_sh(l))
-         Emax_p0(l) = MIN( 10.d0**log10Emaxl, qe*B(l)*R_acel*sqrt(1.5d0/efi_ac_sh(l)) )! Hillas
-         if (Emax_p0(l) >= 0.5*Emax_p) write(*,*) 'Emax_p in global.f90 is too small!'
+         if (search_Emax) then
+            call Biseccion_p(B(l),log10Emaxl,t_adi_pp,t_adv(l),efi_ac_sh(l))
+            ! The subroutine returns log10Emaxl < 0.5*log10(1.5*Emin_p*Emax_p) when Emax < 1.5*Emin_p
+            if ( log10(1.5*Emin_p*Emax_p)/2.d0  - log10Emaxl < 1.d-3) then 
+               log10Emaxl = log10(1.0001d0*Emin_p)
+               m_theta_inj_max = l  ! Particle acceleration stops here
+               search_Emax = .FALSE.
+            endif
+            Emax_p0(l) = MIN( 10.d0**log10Emaxl, qe*B(l)*R_acel*sqrt(1.5d0/efi_ac_sh(l)) )! Hillas
+         else
+            Emax_p0(l) = 1.0001d0*Emin_p ! Dummy value, no particle acceleration
+         endif
 
+         if (Emax_p0(l) >= 0.5*Emax_p) write(*,*) 'Emax_p in global.f90 is too small!'
+         
          do i = 1, mE_p
             if (E_p(i) <= E_th) then    ! E_th= 1.22 GeV
                b_pp = 1.d-30        ! just not to divide by zero
@@ -145,7 +156,7 @@ module CD_distp
             t_pp = E_p(i)/(b_pp*z_pp)
 
             D_diff = E_p(i)*c/(3.d0*qe*B(l))
-            t_diff = H_theta(l)**2/(2.d0*D_diff)      ! Diffusion losses
+            t_diff = R_acel**2/(2.d0*D_diff)      ! Diffusion losses
             t_esc = 1./( 1./t_adv(l) + 1.d0/t_diff )  ! escape
 
             t_coolp(l,i) = 1./(1.d0/t_pp + 1./t_adi(l)) ! Cooling losses
@@ -173,7 +184,7 @@ module CD_distp
       ! At the starting point of the line we calculate the distribution 
       ! Np_0(E_0), the cooling rate Edot0, and we sum it to Np_tot(l,i)
 
-      Do l_min = 1, m_theta
+      Do l_min = 1, m_theta_inj_max ! After m_theta_inj_max, particles are no longer accelerated
 
          ! Q = Ka*E**-alpha*e^(-E/Emax), alpha=2. The normalization constant Ka is obtained 
          ! by the condition: int Q(E')*E'dE' = Linj. [Linj]=erg/s, [Ka]=erg/s, [Q]=1/erg/seg
@@ -396,13 +407,13 @@ Subroutine Biseccion_p(Be,x3,t_pp,t_adv,xi)
    end interface
 
    ! Error in nth step < |a-b|/2**n
-   a_ = log10(1.d10*eV) ! log10(Emin [CGS]) ~ 10 GeV
-   b_ = log10(1.d15*eV) ! log10(Emax [CGS]) ~ 1 PeV
+   a_ = log10(1.5*Emin_p) 
+   b_ = log10(Emax_p) 
    i = 0
    do while ( abs(b_ - a_) > err )
       i = i+1
       c_ = (a_+b_)/2.
-      if ( abs(resta_p(c_,Be,t_pp,t_adv,xi)) < 1.d-8 ) then 
+      if ( abs(resta_p(c_,Be,t_pp,t_adv,xi)) < 0.1*err ) then 
          b_ = c_
       elseif (resta_p(a_,Be,t_pp,t_adv,xi)*resta_p(c_,Be,t_pp,t_adv,xi) < 0) then
          b_ = c_
@@ -411,6 +422,7 @@ Subroutine Biseccion_p(Be,x3,t_pp,t_adv,xi)
       end if
    end do
    x3=b_
+   if ( log10(1.5*Emin_p*Emax_p)/2.d0 - x3 < err) write(*,*) 'ACAAAA'
    return
 
 end Subroutine Biseccion_p
