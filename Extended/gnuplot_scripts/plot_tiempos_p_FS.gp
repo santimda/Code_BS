@@ -4,13 +4,13 @@ set title ''#'Proton cooling time (FS)'
 set key out 
 set key box opaque height 1.01 width 1.0 
 set key horiz samplen 2. spacing 1.01 font ",20"
-set xrange [9:13.]
-set yrange [3:16.]
+set xrange [9.:13.]
+set yrange [4.:18.]
 set ylabel 'log_{10}(t [s])'; set ylabel offset 0.9,0
 set xlabel 'log_{10}(E_p [eV])'; set xlabel offset 0,0.2
 set ytics 2; set mytics 2
 set xtics 1; set mxtics 2
-set label "NAME" at graph 0.6,0.95 font "Helvetica,18"
+set label "NAME" at graph 0.65,0.95 font "Helvetica,18"
 
 plot "< awk '$1==20 { print $2, $3  }' ../CD_tcoolp_FS.dat" u (log10($1)):(log10($2)) t 'ac' w l lw 2.5 lc 8 dt 4,\
     "< awk '$1==20 { print $2, $8  }' ../CD_tcoolp_FS.dat" u (log10($1)):(log10($2)) t 'cell' w l lw 2.5 dt 3 lc 7,\

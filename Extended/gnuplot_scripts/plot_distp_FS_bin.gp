@@ -1,8 +1,8 @@
 eV=1.602176e-12
 set encoding iso_8859_1
 set title '' #'Proton distribution in FS'
-set xrange [9:14.9]
-set yrange [34.:42.]
+set xrange [9.:14.]
+set yrange [32.:44.]
 set xlabel 'log_{10}(E_p [eV])'; set ylabel offset 0.0,-0.1
 set ylabel 'log_{10}({E_p}^2 N_p(E_p) [erg])'; set ylabel offset 0.1,0.0
 set ytics 1 ; set mytics 2
