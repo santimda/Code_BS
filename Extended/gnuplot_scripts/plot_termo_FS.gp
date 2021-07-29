@@ -10,6 +10,7 @@ set xlabel '{/Symbol q} [rad]'; set xlabel offset 0,0.25 font ",18"
 set ylabel ''
 #set x2tics ('0' 0, '' 0.49, '1' 0.92, '' 1.27, '2' 1.54, '' 1.75, '3' 1.91, '' 2.04, '4' 2.15, '' 2.23, '5' 2.3)Creo que Zeemann
 set x2tics ('0' 0, '1' 0.92, '2' 1.54, '3' 1.91, '4' 2.15, '5' 2.3) font ",16"
+set label "NAME" at graph 0.4,0.95 font "Helvetica,18"
 
 plot '../termonorm_FS.dat' u 1:5 t 'T/T_0' w l lw 2.4 dt 1,\
      '../termonorm_FS.dat' u 1:6 t 'B/B_0' w l lw 2.4 lc 7 dt 2,\
@@ -23,4 +24,4 @@ set terminal postscript color solid enhanced dl 1.25 lw 2.4 "Helvetica" 21
 set output 'termo_FS.eps'
 replot
 !./fixbb termo_FS.eps
-s
+!epstopdf termo_FS.eps

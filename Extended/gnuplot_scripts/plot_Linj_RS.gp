@@ -1,18 +1,19 @@
 set encoding iso_8859_1
 set size ratio 3.6/4.6 # yrange/xrange
 set title '' #'L_{inj} in RS'
-set xrange [-1.1:5]
+set xrange [-2.5:35.]
 set yrange [-0.1:]
-set cbrange [27:30.5]
+set cbrange [27.5:31.5]
 #set cbtics 1; set mcbtics 10
 set cbtics 0.5; set mcbtics 5
-set xtics 1; set mxtics 2
+set xtics 5; set mxtics 2
 set ytics 1; set mytics 2
 set key off
 set xlabel 'x/R_0'; set xlabel offset 0.,0.5
 set ylabel 'y/R_0'; set ylabel offset 1.2,0.0
 set cblabel 'log(L_{inj} [erg s^{-1}])'; set cblabel offset -0.4,0.0
 set key off
+set label "NAME" at graph 0.05,0.95 font "Helvetica,18"
 
 pc = 3.0856e18     
 R0 = 6.93E-02*pc
@@ -35,3 +36,4 @@ set terminal postscript color solid enhanced dl 6.5 lw 2.7 "Helvetica,22"
 set output 'Linj_RS.eps'
 replot
 !./fixbb Linj_RS.eps
+!epstopdf Linj_RS.eps

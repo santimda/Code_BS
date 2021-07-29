@@ -12,6 +12,7 @@ set key off
 set ytics 1 ; set mytics 2
 set mxtics 2
 set datafile missing
+set label "NAME" at graph 0.05,0.95 font "Helvetica,18"
 
 plot '../distp_RS.dat' u (log10($2)):(log10((($2)*eV)**2*($3))):($1/pi) w l lw 2.0 lc palette,\
      '../distp_RS_total.dat' u (log10($1)):(log10(($1*eV)**2*($2))) w l lw 3.0 dt 2	 
@@ -22,3 +23,4 @@ set terminal postscript color solid enhanced dl 1.5 lw 2.5 "Helvetica" 22
 set output 'distp_RS.eps'
 replot
 !./fixbb distp_RS.eps
+!epstopdf distp_RS.eps
