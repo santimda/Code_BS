@@ -87,3 +87,4 @@ mv *.pdf ../Results/"$name"/
 mv *.eps ../Results/"$name"/
 
 cd ..
+
