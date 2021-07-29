@@ -309,7 +309,7 @@ module CD_distp
             E_NT = E_NT + E_p(i)*N_ptot(l,i)*dE_p
          end do
          E_NT = E_NT * 4.d0*mphi ! Total NT energy in each BS "ring"
-         dVol = 2.d0*pi*R_theta(m_theta)*sin(theta(l))*dR(m_theta)*H_theta(m_theta) ! Volume of the "ring"
+         dVol = 2.d0*pi*R_theta(l)*sin(theta(l))*dR(l)*H_theta(l) ! Volume of the "ring"
          U_NT = E_NT/dVol
          write(80,*) l, E_NT, U_NT, U_NT/(8.d0*pi*B(l)**2)! Store the energy density as well
          sum = sum + E_NT
