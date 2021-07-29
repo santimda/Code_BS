@@ -25,6 +25,7 @@ module system_parameters
    real(dp), parameter :: R_st = 4.*R_sun          ! B2-60-d
    real(dp), parameter :: L_st = 4.d0*pi*R_st**2*sigma*T_st**4 
    real(dp), parameter :: Mdot = 1.d-10*M_sun_yr     ! B2-60-d
+   real(dp), parameter :: v_w = 1000.d5             ! B2-60-d
    real(dp), parameter :: L_wind = 0.5d0*(Mdot*v_w**2) ! Wind kinetic power
    real(dp), parameter :: T_wind = 0.3*T_st        ! Drew1990
    real(dp), parameter :: v_st_rot = 0.1d0*v_w     ! Rule-of-thumb

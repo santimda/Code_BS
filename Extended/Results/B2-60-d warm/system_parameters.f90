@@ -20,7 +20,6 @@ module system_parameters
    !--------------------------------------------------------------------------------------
    ! Star
    real(dp), parameter :: v_st = 60000.d5             ! B2-60-d
-   real(dp), parameter :: T_st = 2.9d4              ! B0-05-d
    real(dp), parameter :: T_st = 2.d4               ! B2-60-d  
    real(dp), parameter :: T_st_ad = k*T_st/mec2    ! Adimensional stellar temperature
    real(dp), parameter :: R_st = 4.*R_sun          ! B2-60-d 
