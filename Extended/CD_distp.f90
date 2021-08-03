@@ -130,12 +130,10 @@ module CD_distp
          R_acel = H_theta(l)           ! Accelerator size  ????????????
          t_pp = 1.d15/n_a(l)/z_pp      ! p-p losses (very approx just to calculate E_max)
          t_adi_pp = 1.d0/(1.d0/t_adi(l) + 1.d0/t_pp)   
-
          if (search_Emax) then
             call Biseccion_p(B(l),log10Emaxl,t_adi_pp,t_adv(l),efi_ac_sh(l),R_acel)
-            ! The subroutine returns log10Emaxl < 0.5*log10(1.5*Emin_p*Emax_p) when Emax < 1.5*Emin_p
-            if ( log10(1.5*Emin_p*Emax_p)/2.d0  - log10Emaxl < 1.d-3) then 
-               log10Emaxl = log10(1.0001d0*Emin_p)
+            if ( log10Emaxl < log10(1.5*Emin_p) ) then 
+               log10Emaxl = log10(1.001d0*Emin_p)
                m_theta_inj_max = l  ! Particle acceleration stops here
                search_Emax = .FALSE.
             endif
