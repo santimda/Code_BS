@@ -18,7 +18,7 @@ contains
       Implicit none
       logical, intent(in) :: screened
       character(LEN=*), intent(in) :: shock
-      Real(dp) :: dummy,n_a(m_theta),dsigma_Br,cte_sigma,u_br
+      Real(dp) :: n_a(m_theta),dsigma_Br,cte_sigma,u_br
       Real(dp) :: Ef_int,dEf,sum,sum_br
       Real(dp) :: gamma_e(mE_e), Eps(mE_f), Ef(mE_f)
       Integer :: nl

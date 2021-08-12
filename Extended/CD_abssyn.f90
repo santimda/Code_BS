@@ -33,7 +33,6 @@ module CD_abssyn
       Real(dp) :: Ef(m_nu),log_nu_int,flux,flux1,flux2,flux3
       Real(dp) :: u_proj,v_proj  ! coords in the plane of the sky 
       Real(dp) :: emision1,emision2,emision3,emision1_abs,emision2_abs,emision3_abs,convert
-      Real(dp) :: dummy
       Integer :: ir,nl,inu_max,i_1G,i_3G,i_5G,i_ff,i_theta
       integer, parameter :: m_l = 2*m_theta  ! CD position, both sides
       Logical :: integra

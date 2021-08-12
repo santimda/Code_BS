@@ -25,10 +25,10 @@ module CD_diste
       real(dp) :: t_ic_st,t_ic_IR,t_ic,t_sy,t_ac,t_br,D_diff,t_diff,t_esc,t_adi(m_theta)
       real(dp) :: cte_sy, gamm, cte_IC, C_ic_st,kC_ic_st, C_ic_IR(m_theta),kC_ic_IR
       real(dp) :: log_coul,gdot_coul,cte_coul,t_coul
-      real(dp) :: log10Emaxl,R_acel,Q,integral
+      real(dp) :: log10Emaxl,R_acel(m_theta),Q,integral
       real(dp) :: E_dot(m_theta,mE_e),Emax_e0(m_theta),Ka,E_NT,dVol,U_NT
       real(dp) :: N_e0(mE_e),n_a(m_theta),L_inj(m_theta),dR(m_theta)
-      real(dp) :: L_inj_e(m_theta), sum,dummy, f1, f2, f
+      real(dp) :: L_inj_e(m_theta), sum, f1, f2, f
       real(dp) :: dE_aprox, cool
       integer :: index1,index2,count,steps
       logical :: new_count
@@ -88,8 +88,7 @@ module CD_diste
 
       open(103,file='Hnorm_'//shock//'.dat') 
       do l = 1, m_theta
-         read(103,*) dummy,H_theta(l) ! normalized
-         H_theta(l) = H_theta(l)*R_theta(l)
+         read(103,*) dummy,H_theta(l), R_acel(l) 
       end do
       close(103)
 
@@ -148,19 +147,18 @@ module CD_diste
          Kappa_st = ( R_st/(2.*R_theta(l)) )**2
          kC_ic_st = C_ic_st/Kappa_st
          kC_ic_IR = C_ic_IR(l)/Kappa_IR(l)
-         R_acel = H_theta(l)           ! Accelerator size  ????????????
          t_br = 1.d15/n_a(l)/z_br      ! added z_be according to Padovani+2018
          cte_sy = 6.*pi*mec2**2/(c*sigma_T*B(l)**2)   ! Valid for isotropic e- distribution
 
          if (search_Emax) then
-            call Biseccion(cte_sy,B(l),log10Emaxl,kC_ic_st,kC_ic_IR,T_IR_ad(l),t_br,t_adv(l),efi_ac_sh(l),R_acel)
+            call Biseccion(cte_sy,B(l),log10Emaxl,kC_ic_st,kC_ic_IR,T_IR_ad(l),t_br,t_adv(l),efi_ac_sh(l),R_acel(l))
             ! The subroutine returns log10Emaxl < 0.5*log10(Emin_e_inj*Emax_e) when Emax < Emin_e_inj
             if ( log10Emaxl < log10(Emin_e_inj) ) then  ! THIS NEEDS TESTING!
                log10Emaxl = log10(1.001d0*Emin_e)
                m_theta_inj_max = l  ! Particle acceleration stops here
                search_Emax = .FALSE.
             endif
-            Emax_e0(l) = MIN( 10.d0**log10Emaxl, qe*B(l)*R_acel*sqrt(1.5d0/efi_ac_sh(l)) )
+            Emax_e0(l) = MIN( 10.d0**log10Emaxl, qe*B(l)*R_acel(l)*sqrt(1.5d0/efi_ac_sh(l)) )
          else
             Emax_e0(l) = 1.001d0*Emin_e ! Dummy value, no particle acceleration
          endif
@@ -173,7 +171,7 @@ module CD_diste
          do i = 1, mE_e
 
             D_diff = E_e(i)*c/(3.d0*qe*B(l)) ! Bohm
-            t_diff = R_acel**2/(2.d0*D_diff) ! Diffusion losses
+            t_diff = R_acel(l)**2/(2.d0*D_diff) ! Diffusion losses
             t_esc = 1./( 1./t_adv(l) + 1.d0/t_diff ) ! escape
 
             t_sy = cte_sy/E_e(i) 

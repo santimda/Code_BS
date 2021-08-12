@@ -23,10 +23,10 @@ module CD_distp
       integer :: l_min,l2,m_theta_inj_max
       real(dp) :: t_cell(m_theta),t_adv(m_theta),t_adi(m_theta),t_adi_pp
       real(dp) :: t_ac,t_pp,t_diff,t_esc,t_loss(m_theta,mE_p),t_coolp(m_theta,mE_p)
-      real(dp) :: log10Emaxl,R_acel,D_diff,integral,Q
+      real(dp) :: log10Emaxl,R_acel(m_theta),D_diff,integral,Q
       real(dp) :: E_dot(m_theta,mE_p),Emax_p0(m_theta),Ka,E_NT,dVol,U_NT
       real(dp) :: N_p0(mE_p),n_a(m_theta),L_inj(m_theta),dR(m_theta)
-      real(dp) :: L_inj_p(m_theta), sum, dummy, b_pp, L1, f1, f2, f
+      real(dp) :: L_inj_p(m_theta), sum, b_pp, L1, f1, f2, f
       real(dp) :: dE_aprox, cool
       real(dp), parameter :: k_pp = 0.5d0
       integer :: index1,index2,count,steps
@@ -85,8 +85,7 @@ module CD_distp
       
       open(103,file='Hnorm_'//shock//'.dat') 
       do l = 1, m_theta
-         read(103,*) dummy,H_theta(l) ! normalized
-         H_theta(l) = H_theta(l)*R_theta(l)
+         read(103,*) dummy, H_theta(l), R_acel(l)
       end do
       close(103)
       
@@ -127,17 +126,16 @@ module CD_distp
       search_Emax = .TRUE.
       m_theta_inj_max = m_theta ! Default value is to inject up to m_theta
       do l = 1,m_theta
-         R_acel = H_theta(l)           ! Accelerator size  ????????????
          t_pp = 1.d15/n_a(l)/z_pp      ! p-p losses (very approx just to calculate E_max)
          t_adi_pp = 1.d0/(1.d0/t_adi(l) + 1.d0/t_pp)   
          if (search_Emax) then
-            call Biseccion_p(B(l),log10Emaxl,t_adi_pp,t_adv(l),efi_ac_sh(l),R_acel)
+            call Biseccion_p(B(l),log10Emaxl,t_adi_pp,t_adv(l),efi_ac_sh(l),R_acel(l))
             if ( log10Emaxl < log10(1.5*Emin_p) ) then 
                log10Emaxl = log10(1.001d0*Emin_p)
                m_theta_inj_max = l  ! Particle acceleration stops here
                search_Emax = .FALSE.
             endif
-            Emax_p0(l) = MIN( 10.d0**log10Emaxl, qe*B(l)*R_acel*sqrt(1.5d0/efi_ac_sh(l)) )! Hillas
+            Emax_p0(l) = MIN( 10.d0**log10Emaxl, qe*B(l)*R_acel(l)*sqrt(1.5d0/efi_ac_sh(l)) )! Hillas
          else
             Emax_p0(l) = 1.0001d0*Emin_p ! Dummy value, no particle acceleration
          endif
@@ -154,7 +152,7 @@ module CD_distp
             t_pp = E_p(i)/(b_pp*z_pp)
 
             D_diff = E_p(i)*c/(3.d0*qe*B(l))
-            t_diff = R_acel**2/(2.d0*D_diff)      ! Diffusion losses
+            t_diff = R_acel(l)**2/(2.d0*D_diff)      ! Diffusion losses
             t_esc = 1./( 1./t_adv(l) + 1.d0/t_diff )  ! escape
 
             t_coolp(l,i) = 1./(1.d0/t_pp + 1./t_adi(l)) ! Cooling losses

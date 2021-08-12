@@ -20,7 +20,6 @@ module CD_radic
     character(LEN=*), intent(in) :: shock
     real(dp),intent(out) :: LIC_int
     real(dp) :: ang,L_unabs,L_unabs_tot,Ef(mE_f),Ef_int
-    real(dp) :: dummy
     integer, parameter :: m_l = 2*m_theta  ! CD position, both sides
     integer :: l2
 
@@ -149,7 +148,6 @@ module CD_radic
     implicit none
     character(LEN=*), intent(in) :: shock
     real(dp) :: L_unabs,L_unabs_tot,Ef(mE_f),Ef_int
-    real(dp) :: dummy
 
     allocate ( LIC(mE_f),LIC_tot(mE_f) )
     allocate ( E_e(mE_e),N_etot(m_theta,mE_e),N_e(mE_e) )

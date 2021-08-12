@@ -15,7 +15,7 @@ contains
   subroutine shock_thermal_run_total  
     use global
     implicit none
-    real(dp) :: dummy,ne,ni,n_a(m_theta),emi_ff
+    real(dp) :: ne,ni,n_a(m_theta),emi_ff
     real(dp) :: f_R,f_int(m_theta),R_max,dtheta,integral, L_tot
     integer :: nl
     real(dp), parameter :: g_average = 1.2 ! Rybicki, Eq. 5.15 b
@@ -98,7 +98,7 @@ contains
     use global
     implicit none
     integer, parameter :: mE_ph = 256
-    real(dp) :: dummy,n_a(m_theta),emi_ff_nu, cte_l(m_theta)
+    real(dp) :: n_a(m_theta),emi_ff_nu, cte_l(m_theta)
     real(dp) :: Eph_0, Eph_min, Eph_max, Eph_int, Eph(mE_ph), dEph
     real(dp) :: f_R,f_int(m_theta),R_max,dtheta,integral
     real(dp) :: LX_sw(mE_ph), L_tot

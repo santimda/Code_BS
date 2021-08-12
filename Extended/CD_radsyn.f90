@@ -23,7 +23,7 @@ contains
     ! m_theta - CD, mE_e - electrons, m_nu - emitted photons
     character(LEN=*), intent(in) :: shock
     integer :: il, i_1G
-    real(dp) :: Eps(m_nu),dEps,Eps_int, gamma_e(mE_e), dummy
+    real(dp) :: Eps(m_nu),dEps,Eps_int, gamma_e(mE_e)
     real(dp) :: factor,nuc,nuc_max,nuc_min,sum,sum_sy,x_sy, log_nu_int
     real(dp) :: ni,ne,nu_RT,nuc_l
     allocate( x(m_theta),y(m_theta),B(m_theta),rho(m_theta),P(m_theta),v_t(m_theta),T(m_theta) )

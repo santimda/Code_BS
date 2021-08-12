@@ -28,8 +28,8 @@ module global
 
    !===========================================================
 
-
    integer :: i,j,l
+   real(dp) :: dummy
 
    ! CD
    real(dp), dimension(:), allocatable :: x,y,z

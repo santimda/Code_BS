@@ -21,7 +21,7 @@ module CD_radpp
     use global
     implicit none
     character(LEN=*), intent(in) :: shock
-    real(dp) :: dummy,n_a(m_theta),Q_Ef,Q_phi,dx_pp,x_pp,qpi
+    real(dp) :: n_a(m_theta),Q_Ef,Q_phi,dx_pp,x_pp,qpi
     real(dp) :: Ef_int,dEf,Ef(mE_f),sum_pp,Epp,L1
     real(dp) :: Epi_min,Epi_max,Epi_int,dE_pi,integral
     real(dp), parameter :: K_pi=0.17d0, n_pp=0.86d0, kappa_pp=K_pi*n_pp! n_pp=1.1 for alfa=2, n_pp=0.86 for alpha=2.5

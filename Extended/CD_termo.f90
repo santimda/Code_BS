@@ -28,10 +28,10 @@ module CD_termo
       real(dp) :: cte_P,cte_T,cte_rho
       real(dp) :: Beq0,v_sh,H0,rho_med
       real(dp) :: dOmega,dtheta,dR(m_theta),dA,dV_cell(m_theta)
-      real(dp) :: L_inj(m_theta),L_perp,L_inj_tot, L_sh
+      real(dp) :: L_inj(m_theta),L_perp,L_inj_tot, L_sh, R_acel(m_theta)
       real(dp) :: v_vec(2), n_perp(2), n_t(2)
       real(dp) :: l_crit
-      allocate( theta(m_theta),r_norm(m_theta),H_norm(m_theta) )
+      allocate( theta(m_theta),r_norm(m_theta),H_norm(m_theta),R_theta(m_theta) )
       allocate( Mach(m_theta),P_th_w(m_theta),C_s_med(m_theta),C_s_sh(m_theta),r(m_theta) )
       allocate( P_med(m_theta) )
       allocate( P(m_theta),rho(m_theta),T(m_theta),B(m_theta),v_t(m_theta),v_perp(m_theta) )
@@ -53,13 +53,13 @@ module CD_termo
          L_sh = L_ISM
       end if
          
-
       !-----------------------------------------------------------------
       ! Read the shock position and cell size: theta,r_norm(theta),dR(theta)
 
       open(11,file='CD.dat')
       do l = 1, m_theta
-         read(11,*) theta(l),r_norm(l),dR(l) 
+         read(11,*) theta(l), r_norm(l), dR(l), dummy, R_acel(l)
+         R_theta(l) = r_norm(l) * R0
       end do
       close(11)
       dtheta = theta(2)-theta(1)    ! Constant step in theta    
@@ -87,8 +87,8 @@ module CD_termo
          end if
          v_perp(l) = max( DOT_PRODUCT(v_vec,n_perp), 0.d0 )
          !v_t(l) = max( DOT_PRODUCT(v_vec,n_t), 1.d-10 ) ! Just so we don't get a zero value in l=1
-         dV_cell(l) = (r_norm(l)*R0)*sin(theta(l))*dR(l)*(H_norm(l)*r_norm(l)*R0) ! Volume of the cell
-         write(18,*) theta(l),H_norm(l)
+         dV_cell(l) = R_theta(l)*sin(theta(l))*dR(l)*(H_norm(l)*R_theta(l)) ! Volume of the cell
+         write(18,*) theta(l), H_norm(l)*R_theta(l), R_acel(l)*R0
       end do
       close(18)
 
@@ -116,7 +116,7 @@ module CD_termo
             L_perp = (Mdot*v_perp(l)**2)/2.d0
             L_inj(l) = L_perp*(dOmega/4.d0/pi)
          else if (shock == 'FS') then
-            dA = (d_phi*R0*r_norm(l)*sin(theta(l))) * dR(l)
+            dA = (d_phi*R_theta(l)*sin(theta(l))) * dR(l)
             L_perp = 0.5*rho_ISM*v_perp(l)**2 * v_sh ! Valentí???? v_perp(l)**3 
             L_inj(l) = L_perp*dA 
          end if
@@ -150,7 +150,7 @@ module CD_termo
 
       
       if (shock == 'RS') then
-         rho_med = Mdot/(4.d0*pi*(R0*r_norm(1))**2*v_w)
+         rho_med = Mdot/(4.d0*pi*R_theta(1)**2*v_w)
          P_th_w(1) = rho_med*k*T_wind/mu_w/mp             ! Stellar wind thermal pressure at R0
          c_s_med(1) = sqrt(g_ad*P_th_w(1)/rho_med)       
          P(1) = rho_med*v_sh*v_perp(1)
@@ -171,7 +171,7 @@ module CD_termo
       !  $omp parallel do private(l)
       do l = 2, m_theta                                ! Calculo para la mitad de arriba
          if (shock == 'RS') then
-            rho_med = Mdot/(4.d0*pi*(R0*r_norm(l))**2*v_w)
+            rho_med = Mdot/(4.d0*pi*R_theta(l)**2*v_w)
             P_th_w(l) = rho_med*k*T_wind/mu_w/mp             ! SW thermal pressure at R0
             c_s_med(l) = sqrt(g_ad*P_th_w(l)/rho_med)        ! Speed of sound along the stellar wind
          else if (shock == 'FS') then
@@ -253,7 +253,7 @@ module CD_termo
       write(*,41) 'B_st <',(B(1)/4.d0)*(R0/R_st)*(v_w/v_st_rot)*r_A_st 
       41  format (A12,ES9.2)
 
-      deallocate( P,rho,T,B,v_t,v_perp,theta,r_norm,H_norm,Mach,r,P_med,P_th_w,C_s_med,C_s_sh )
+      deallocate( P,rho,T,B,v_t,v_perp,theta,r_norm,H_norm,R_theta,Mach,r,P_med,P_th_w,C_s_med,C_s_sh )
       
    END subroutine CD_termo_run
 

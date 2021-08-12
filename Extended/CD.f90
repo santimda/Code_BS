@@ -16,7 +16,7 @@ contains
    subroutine CD_run
       use global
       implicit none
-      real(dp) :: dtheta, dR(m_theta), Length(m_theta), r_aprox
+      real(dp) :: dtheta, dR(m_theta), Length(m_theta), R_acel(m_theta), r_aprox
 
       interface
          Subroutine RK(x1,y1,dx,y2)
@@ -80,8 +80,16 @@ contains
          x(l) = -r_norm(l)*cos(theta(l))
          y(l) = r_norm(l)*sin(theta(l))
          r_aprox = sqrt(3.*(1.-theta(l)/tan(theta(l))))/sin(theta(l))  ! solution for alpha = 0 (Wilkin 1996)
-         write(11,*) theta(l), r_norm(l), dR(l), Length(l)/R0
-         write(12,*) theta(l), r_aprox ! For consistency chechs
+         ! Prescription for the accelerator characteristic size (for diffusive escape)
+         !if (Length(l) < r_norm(l)*R0) then
+         !   R_acel(l) = r_norm(l)
+         if (y(l) < 1.d0) then
+            R_acel(l) = 1.d0 ! = R0
+         else
+            R_acel(l) = y(l)
+         endif
+         write(11,*) theta(l), r_norm(l), dR(l), Length(l)/R0, R_acel(l)
+         write(12,*) theta(l), r_aprox ! For consistency checks
          write(13,*) x(l),y(l) ! The z-coordinate is = zero, I rotate later 
          write(14,*) -r_aprox*cos(theta(l)), r_aprox*sin(theta(l)) ! For consistency chechs
       end do
