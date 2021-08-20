@@ -147,6 +147,7 @@ module CD_termo
       cte_P = 2./(g_ad+1.)
       cte_T = ( (g_ad-1.)/(g_ad+1.)**2 ) * (mp/k)
       cte_rho = (g_ad+1.)/(g_ad-1.)*(v_ISM/v_w)**2/(1.-lambda)
+      cte_ad = g_ad/(g_ad-1.)
 
       
       if (shock == 'RS') then
@@ -154,12 +155,13 @@ module CD_termo
          P_th_w(1) = rho_med*k*T_wind/mu_w/mp             ! Stellar wind thermal pressure at R0
          c_s_med(1) = sqrt(g_ad*P_th_w(1)/rho_med)       
          P(1) = rho_med*v_sh*v_perp(1)
+         rho(1) = cte_ad*2*P(1)/v_sh**2            ! 0.5*v_sh**2 = 0.5*v_t(l)**2 + (g_ad/(g_ad-1.))*P(l)/rho(l), v_t(1) = 0.
       else if (shock == 'FS') then
          rho_med = rho_ISM    
          P(1) = (1.+alpha_ISM)*rho_med*v_sh*v_perp(1)
          C_s_med(1) = sqrt(g_ad*P_th_ISM/rho_med)
-      end if
-      rho(1) = (g_ad/(g_ad-1.))*2*P(1)/v_sh**2            ! 0.5*v_sh**2 = 0.5*v_t(l)**2 + (g_ad/(g_ad-1.))*P(l)/rho(l), v_t(1) = 0.
+         rho(1) = cte_ad*P(1)/( cte_ad*P_th_ISM/rho_med + 0.5*v_sh**2 ) ! cte_ad*P_th_ISM/rho_ISM + 0.5*v_sh**2 = 0.5*v_t(l)**2 + cte_ad*P(l)/rho(l)
+      end if 
       T(1) = cte_T*v_perp(1)**2
       Mach(1) = v_perp(1)/C_s_med(1)
       r(1) = (g_ad+1.)*Mach(1)**2/((g_ad-1.)*Mach(1)**2+2.)
@@ -204,8 +206,12 @@ module CD_termo
          ! If P_mag = frac*P_th -> B^2/8pi = frac*P 
          B(l) = frac_sh*Beq0
 
-         ! Kinetic energy p/ unit mass in the upstream region = Kinetic p/ unit mass + specific enthalpy in the downstream region
-         v_t(l) = sqrt( 2.d0 * (0.5d0*v_sh**2-g_ad*P(l)/(rho(l)*(g_ad-1.))) )
+         if (shock == 'RS') then
+            ! Kinetic energy p/ unit mass in the upstream region = Kinetic p/ unit mass + specific enthalpy in the downstream region
+            v_t(l) = sqrt( 2.d0 * (0.5d0*v_sh**2-cte_ad*P(l)/rho(l)) )
+         else if (shock == 'FS') then
+            ! Add ISM specific enthalpy
+            v_t(l) = sqrt( 2.d0 * (0.5d0*v_sh**2+cte_ad*(P_th_ISM/rho_med - P(l)/rho(l)) )
          
       end do
       !  $omp end parallel do
@@ -242,7 +248,7 @@ module CD_termo
          write(*,41) 'rho0/rho_w =',rho(1)/(Mdot/(4.d0*pi*R0**2*v_w))  
          write(*,41) 'n_a0 =',rho(1)/mp/mu_sw
       else if (shock == 'FS') then
-         write(*,41) 'rho0/rho_FS =',rho(1)/rho_ISM 
+         write(*,41) 'rho0/rho_ISM =',rho(1)/rho_ISM 
          write(*,41) 'n_a0 =',rho(1)/mp/mu_ISM
       end if     
       write(*,41) 'P0 =',P(1)
