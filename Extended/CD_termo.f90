@@ -25,7 +25,7 @@ module CD_termo
       implicit none
       character(LEN=*), intent(in) :: shock
       real(dp) :: A_z,A_omega,st,ct
-      real(dp) :: cte_P,cte_T,cte_rho
+      real(dp) :: cte_P,cte_T,cte_rho,cte_ad
       real(dp) :: Beq0,v_sh,H0,rho_med
       real(dp) :: dOmega,dtheta,dR(m_theta),dA,dV_cell(m_theta)
       real(dp) :: L_inj(m_theta),L_perp,L_inj_tot, L_sh, R_acel(m_theta)
@@ -211,7 +211,8 @@ module CD_termo
             v_t(l) = sqrt( 2.d0 * (0.5d0*v_sh**2-cte_ad*P(l)/rho(l)) )
          else if (shock == 'FS') then
             ! Add ISM specific enthalpy
-            v_t(l) = sqrt( 2.d0 * (0.5d0*v_sh**2+cte_ad*(P_th_ISM/rho_med - P(l)/rho(l)) )
+            v_t(l) = sqrt( 2.d0 * (0.5d0*v_sh**2+cte_ad*(P_th_ISM/rho_med - P(l)/rho(l)) ))
+         end if
          
       end do
       !  $omp end parallel do
