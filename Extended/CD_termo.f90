@@ -250,7 +250,7 @@ module CD_termo
          write(*,41) 'n_a0 =',rho(1)/mp/mu_sw
       else if (shock == 'FS') then
          write(*,41) 'rho0/rho_ISM =',rho(1)/rho_ISM 
-         write(*,41) 'n_a0 =',rho(1)/mp/mu_ISM
+         write(*,41) 'n_a0 =',rho(1)/mp/mu_SISM
       end if     
       write(*,41) 'P0 =',P(1)
       write(*,41) 'v0_t =',v_t(1)
