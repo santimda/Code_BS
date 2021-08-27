@@ -7,10 +7,10 @@ set ylabel 'log_{10}(E_{e,max} [eV])'
 set xlabel 'position l'
 set label "NAME" at graph 0.05,0.95 font "Helvetica,18"
 
-plot '../EmaxeRS.dat' u (($1)):(log10(($2))) w l lw 3 
-
 set terminal postscript color solid enhanced dl 6.5 lw 2.7 "Helvetica" 20
 set output 'EmaxeRS.eps'
-replot
+
+plot '../EmaxeRS.dat' u (($1)):(log10(($2))) w l lw 3 
+
 !./fixbb EmaxeRS.eps
 !epstopdf EmaxeRS.eps

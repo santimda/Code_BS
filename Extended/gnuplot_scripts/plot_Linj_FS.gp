@@ -28,12 +28,12 @@ set label 2 "{/ZapfDingbats \110}" at -0.09,0.0 front textcolor rgb '#008B8B' fo
 set arrow 3 from 0,-0.02 to -0.5,-0.02 head back filled linecolor rgb '#6495ED' linewidth 2.0
 set label 3 "V_{/ZapfDingbats \110}" at -0.4,0.1 front textcolor rgb '#6495ED' 
 
+set terminal postscript color solid enhanced dl 6.5 lw 2.7 "Helvetica,22"
+set output 'Linj_FS.eps'
+
 #plot 'Linj_FS.dat' u (-cos($1)*$2):(sin($1)*$2):(log10(($3)/($4))) w l lw 3.5 lc palette
 plot '../Linj_FS.dat' u (-cos($1)*$2):(sin($1)*$2):(log10($3)) w l lw 4. lc palette,\
      '../Linj_FS.dat' u (-cos($1)*$2):(-sin($1)*$2):(log10($3)) w l lw 4. lc palette
 
-set terminal postscript color solid enhanced dl 6.5 lw 2.7 "Helvetica,22"
-set output 'Linj_FS.eps'
-replot
 !./fixbb Linj_FS.eps
 !epstopdf Linj_FS.eps

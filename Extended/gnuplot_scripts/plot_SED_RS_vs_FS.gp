@@ -3,7 +3,7 @@ set key out
 set key box opaque height 0.6 #width 0.50 
 set key horiz samplen 3. spacing 1.01 font ",20"
 set xrange [-7:14]
-set yrange [22.:]
+set yrange [22.:30.]
 set xtics 3 font "Helvetica,18"; set mxtics 3 
 set ytics 2 font "Helvetica,18"; set mytics 2  
 set xlabel 'log_{10} ({/Symbol e} [eV])'

@@ -14,6 +14,9 @@ set key off
 set datafile missing
 set label "NAME" at graph 0.05,0.95 font "Helvetica,18"
 
+set terminal postscript color solid enhanced dl 1.5 lw 2.5 "Helvetica" 22
+set output 'diste_FS.eps'
+
 plot '../diste_FS.dat' u (log10($2)):(log10((($2)*eV)**2*($3))):($1/pi) w l lw 2.0 lc palette,\
      '../diste_FS_total.dat' u (log10($1)):(log10((($1)*eV)**2*($2))) w l lw 3.0 dt 2	 
 
@@ -22,8 +25,5 @@ plot '../diste_FS.dat' u (log10($2)):(log10((($2)*eV)**2*($3))):($1/pi) w l lw 2
 
 #plot "< awk '($1+0.0) > 1.83 && $1 < 1.86 { print $1, $2, $3 }' ../diste_FS.dat" u (log10($2)):(log10((($2)*eV)**2*($3))):($1/pi) w l lc palette
 
-set terminal postscript color solid enhanced dl 1.5 lw 2.5 "Helvetica" 22
-set output 'diste_FS.eps'
-replot
 !./fixbb diste_FS.eps
 !epstopdf diste_FS.eps

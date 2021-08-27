@@ -12,16 +12,15 @@ set ylabel ''
 set x2tics ('0' 0, '1' 0.92, '2' 1.54, '3' 1.91, '4' 2.15, '5' 2.3) font ",16"
 set label "NAME" at graph 0.4,0.95 font "Helvetica,18"
 
+set terminal postscript color solid enhanced dl 1.25 lw 2.4 "Helvetica" 21
+set output 'termo_FS.eps'
+
 plot '../termonorm_FS.dat' u 1:5 t 'T/T_0' w l lw 2.4 dt 1,\
      '../termonorm_FS.dat' u 1:6 t 'B/B_0' w l lw 2.4 lc 7 dt 2,\
      '../termonorm_FS.dat' u 1:2 t '{/Symbol r}/{/Symbol r}_{0}' w l lw 2.4 dt 3,\
      '../termonorm_FS.dat' u 1:3 t 'P/P_0' w l lw 2.4 dt 4,\
      '../termonorm_FS.dat' u 1:4 t 'v_t /v_*' w l lw 2.4 lc rgb "coral" dt 5,\
      '../termonorm_FS.dat' u 1:7 t 'v_{p} /v_*' w l lw 2.4 lc rgb "green" dt 5
-     
 
-set terminal postscript color solid enhanced dl 1.25 lw 2.4 "Helvetica" 21
-set output 'termo_FS.eps'
-replot
 !./fixbb termo_FS.eps
 !epstopdf termo_FS.eps
