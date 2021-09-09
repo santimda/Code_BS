@@ -11,7 +11,8 @@ set y2tics 1.; set my2tics 2; set y2tics font ",16"
 set xlabel '{/Symbol q} [rad]'; set xlabel offset 0,0.25 font ",18"
 set ylabel ''
 set y2label 'v_t/c_s'
-#set x2tics ('0' 0, '' 0.49, '1' 0.92, '' 1.27, '2' 1.54, '' 1.75, '3' 1.91, '' 2.04, '4' 2.15, '' 2.23, '5' 2.3)Creo que Zeemann
+set x2label '{/Symbol D}s/R_0'; set x2label offset 0.0,-0.2 font ",18"
+#set x2tics ('0' 0, '' 0.49, '1' 0.92, '' 1.27, '2' 1.54, '' 1.75, '3' 1.91, '' 2.04, '4' 2.15, '' 2.23, '5' 2.3)
 set x2tics ('0' 0, '1' 0.92, '2' 1.54, '3' 1.91, '4' 2.15, '5' 2.3) font ",16"
 set label "NAME" at graph 0.4,0.95 font "Helvetica,18"
 
