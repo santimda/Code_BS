@@ -97,7 +97,7 @@ module CD_diste
          !       T_IR(l) = 27.*(0.2)**(-1./6.)*(L_st/1.d38)**(1./6.)*(R_theta(l)/pc)**(-1./3.) ! Eq.10 del Valle 2012
          T_IR(l) =  100.d0            ! K2017
          T_IR_ad(l) = k*T_IR(l)/mec2  ! Adimensional dust temperature
-         Kappa_IR(l) = L_IR/(4.*pi*sigma*T_IR(l)**4*R_theta(l)**2) ! 4*pi, not 16*pi, for a cavity
+         Kappa_IR(l) = L_IR/(16.*pi*sigma*T_IR(l)**4*R_theta(l)**2) ! assume the dust is in a shell outside the BS
          write(113,*) theta(l),T_IR(l),T_IR_ad(l),Kappa_IR(l) ! normalized
       end do
       close(113)
