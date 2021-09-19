@@ -1,11 +1,11 @@
 #!/bin/bash
 
 echo "Choose one of the following scenarios" 
-echo "1: B0-05-d cold"
-echo "2: B1-1-d cold" 
-echo "3: B1-1-h cold"
-echo "4: B1-1-nm cold"
-echo "5: B2-60-d cold"
+echo "1: B0-05-d"
+echo "2: B1-1-d" 
+echo "3: B1-1-h"
+echo "4: B1-1-nm"
+echo "5: B2-60-d"
 #echo "6: B0-05-d warm"
 #echo "7: B1-1-d warm" 
 #echo "8: B1-1-h warm"
