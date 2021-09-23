@@ -26,16 +26,19 @@ module CD_termo
       character(LEN=*), intent(in) :: shock
       real(dp) :: A_z,A_omega,st,ct
       real(dp) :: cte_P,cte_T,cte_rho,cte_ad
-      real(dp) :: Beq0,v_sh,H0,rho_med
+      real(dp) :: Beq0,v_sh,H0
       real(dp) :: dOmega,dtheta,dR(m_theta),dA,dV_cell(m_theta)
       real(dp) :: L_inj(m_theta),L_perp,L_inj_tot, L_sh, R_acel(m_theta)
       real(dp) :: v_vec(2), n_perp(2), n_t(2)
       real(dp) :: l_crit
+      real(dp) :: dot_M, dM
       allocate( theta(m_theta),r_norm(m_theta),H_norm(m_theta),R_theta(m_theta) )
+      allocate( x(m_theta), y(m_theta) )
       allocate( Mach(m_theta),P_th_w(m_theta),C_s_med(m_theta),C_s_sh(m_theta),r(m_theta) )
-      allocate( P_med(m_theta) )
+      allocate( P_med(m_theta), rho_med(m_theta) )
       allocate( P(m_theta),rho(m_theta),T(m_theta),B(m_theta),v_t(m_theta),v_perp(m_theta) )
       allocate( v_t_old(m_theta), P_old(m_theta), rho_old(m_theta))
+      allocate( H_new(m_theta), y_eff(m_theta) )
 
       80    format(A13,X,Es10.2)
       81    format(A18,X,Es10.2)
@@ -63,7 +66,16 @@ module CD_termo
          R_theta(l) = r_norm(l) * R0
       end do
       close(11)
-      dtheta = theta(2)-theta(1)    ! Constant step in theta    
+      dtheta = theta(2)-theta(1)    ! Constant step in theta
+
+      !-----------------------------------------------------------------
+      ! Read y coordinate (normalized)
+
+      open(12, file='CD_xy.dat')
+      do l= 1, m_theta
+         read(12,*) x(l), y(l)
+      end do
+      close(12)
 
       !-----------------------------------------------------------------
       ! Calculate the normal and tangential vectors at each position
@@ -152,19 +164,19 @@ module CD_termo
 
       
       if (shock == 'RS') then
-         rho_med = Mdot/(4.d0*pi*R_theta(1)**2*v_w)
-         P_th_w(1) = rho_med*k*T_wind/mu_w/mp             ! Stellar wind thermal pressure at R0
-         c_s_med(1) = sqrt(g_ad*P_th_w(1)/rho_med)       
+         rho_med(1) = Mdot/(4.d0*pi*R_theta(1)**2*v_w)
+         P_th_w(1) = rho_med(1)*k*T_wind/mu_w/mp             ! Stellar wind thermal pressure at R0
+         c_s_med(1) = sqrt(g_ad*P_th_w(1)/rho_med(1))       
       else if (shock == 'FS') then
-         rho_med = rho_ISM    
+         rho_med(1) = rho_ISM    
          !P(1) = (1.+alpha_ISM)*rho_med*v_sh*v_perp(1)
-         C_s_med(1) = sqrt(g_ad*P_th_ISM/rho_med)
+         C_s_med(1) = sqrt(g_ad*P_th_ISM/rho_med(1))
          !rho(1) = cte_ad*P(1)/( cte_ad*P_th_ISM/rho_med + 0.5*v_sh**2 ) ! cte_ad*P_th_ISM/rho_ISM + 0.5*v_sh**2 = 0.5*v_t(l)**2 + cte_ad*P(l)/rho(l)
       end if
-      P(1) = rho_med*v_sh*v_perp(1)
+      P(1) = rho_med(1)*v_sh*v_perp(1)
       rho(1) = cte_ad*2*P(1)/v_sh**2            ! 0.5*v_sh**2 = 0.5*v_t(l)**2 + (g_ad/(g_ad-1.))*P(l)/rho(l), v_t(1) = 0.
-      P_old(1) = cte_P*rho_med*v_perp(1)**2
-      rho_old(1) = (g_ad+1.)/(g_ad-1.)*rho_med
+      P_old(1) = cte_P*rho_med(1)*v_perp(1)**2
+      rho_old(1) = (g_ad+1.)/(g_ad-1.)*rho_med(1)
       T(1) = cte_T*v_perp(1)**2
       Mach(1) = v_perp(1)/C_s_med(1)
       r(1) = (g_ad+1.)*Mach(1)**2/((g_ad-1.)*Mach(1)**2+2.)
@@ -176,22 +188,23 @@ module CD_termo
       !  $omp parallel do private(l)
       do l = 2, m_theta                                ! Calculo para la mitad de arriba
          if (shock == 'RS') then
-            rho_med = Mdot/(4.d0*pi*R_theta(l)**2*v_w)
-            P_th_w(l) = rho_med*k*T_wind/mu_w/mp             ! SW thermal pressure at R0
-            c_s_med(l) = sqrt(g_ad*P_th_w(l)/rho_med)        ! Speed of sound along the stellar wind
+            rho_med(l) = Mdot/(4.d0*pi*R_theta(l)**2*v_w)
+            P_th_w(l) = rho_med(l)*k*T_wind/mu_w/mp             ! SW thermal pressure at R0
+            c_s_med(l) = sqrt(g_ad*P_th_w(l)/rho_med(l))        ! Speed of sound along the stellar wind
          else if (shock == 'FS') then
-            c_s_med(l) = sqrt(g_ad*P_th_ISM/rho_med)         ! Speed of sound in the ISM
+            c_s_med(l) = sqrt(g_ad*P_th_ISM/rho_med(l))         ! Speed of sound in the ISM
+            rho_med(l) = rho_ISM
          end if
 
-         P_old(l) = cte_P*rho_med*v_perp(l)**2
-         rho_old(l) = (g_ad+1.)/(g_ad-1.)*rho_med
+         P_old(l) = cte_P*rho_med(l)*v_perp(l)**2
+         rho_old(l) = (g_ad+1.)/(g_ad-1.)*rho_med(l)
 
          Mach(l) = v_perp(l)/C_s_med(l)
          r(l) = (g_ad+1.)*Mach(l)**2/((g_ad-1.)*Mach(l)**2+2.) ! Compression factor (Caprioli 2014, Eq. 1)
 
          if ( v_t(l-1) <= C_s_sh(l-1) ) then                 ! Check whether the shocked fluid is subsonic or not
              !if (shock == 'RS') then
-             P(l) = rho_med*v_sh*v_perp(l) !*r_norm(l)**2
+             P(l) = rho_med(l)*v_sh*v_perp(l) !*r_norm(l)**2
              !else if (shock == 'FS') then
              !P(l) = (1.+alpha_ISM)*rho_med*v_sh*v_perp(l)
              !end if
@@ -199,7 +212,7 @@ module CD_termo
              
          else
              !if (shock == 'RS') then
-             P(l) = rho_med*v_perp(l)**2/(v_perp(l_crit)/v_sh)   !*r_norm(l)**2   ! sin(ang0) = v_perp(l_crit)/v_sh
+             P(l) = rho_med(l)*v_perp(l)**2/(v_perp(l_crit)/v_sh)   !*r_norm(l)**2   ! sin(ang0) = v_perp(l_crit)/v_sh
              !else if (shock == 'FS') then
              !P(l) = (1.+alpha_ISM)*rho_med*v_perp(l)**2/(v_perp(l_crit)/v_sh)
              !end if
@@ -234,6 +247,31 @@ module CD_termo
       end do
       close(20)
       deallocate( alpha_sh )
+
+
+      !------------------------------
+      ! Calculate shock's width
+
+      do l = 1, m_theta
+         y_eff(l) = y(l)*R0
+      end do
+      dot_M = 0.d0
+
+      do l = 1, m_theta
+         dM = rho_med(l)*v_perp(l)*2*pi*R_theta(l)*sin(theta(l))*dR(l)
+         dot_M = dot_M + dM
+
+         if (theta(l) < 0.25d0) then
+            if (shock == 'RS') then
+               H_new(l) = 0.25*R_theta(l)
+            else if (shock == 'FS') then
+               H_new(l) = 0.4*R_theta(l)
+            end if
+         else   
+            H_new(l) = dot_M/(2*pi*y_eff(l)*rho(l)*v_t(l))   ! dot_M = 2*pi*y_eff(l)*H_new(l)*rho(l)*v_t(l)
+         end if
+
+      end do
       
 
       !------------------------------
@@ -242,14 +280,17 @@ module CD_termo
       open(16,file='termo_'//shock//'.dat')
       open(17,file='termonorm_'//shock//'.dat') ! normalized
       open(18, file='new_vs_old_'//shock//'.dat') ! comparison btw P, rho and v_t new vs old
+      open(19, file='H_'//shock//'.dat')
       do l = 1, m_theta
-         write(16,*) l,rho(l),P(l),v_t(l),T(l),B(l),v_perp(l),theta(l),Mach(l),r(l)
-         write(17,*) theta(l),rho(l)/rho(1),P(l)/P(1),v_t(l)/v_sh,T(l)/T(1),B(l)/B(1),v_perp(l)/v_sh,v_t(l)/C_s_sh(l)
+         write(16,*) l,rho(l),P(l),v_t(l),T(l),B(l),v_perp(l),theta(l),Mach(l),r(l),rho_med(l)
+         write(17,*) theta(l),rho(l)/rho(1),P(l)/P(1),v_t(l)/v_sh,T(l)/T(1),B(l)/B(1),v_perp(l)/v_sh,C_s_sh(l)/v_sh
          write(18,*) theta(l),v_t(l)/v_t_old(l), P(l)/P_old(l), rho(l)/rho_old(l)
+         write(19,*) theta(l), H_new(l), H_new(l)/R_theta(l)
       end do
       close(16)
       close(17)
       close(18)
+      close(19)
 
       
       write(*,*) 'At the stagnation point (sw):'
@@ -270,7 +311,8 @@ module CD_termo
       write(*,41) 'B_st <',(B(1)/4.d0)*(R0/R_st)*(v_w/v_st_rot)*r_A_st 
       41  format (A12,ES9.2)
 
-      deallocate( P,rho,T,B,v_t,v_perp,theta,r_norm,H_norm,R_theta,Mach,r,P_med,P_th_w,C_s_med,C_s_sh )
+      deallocate( P,rho,T,B,v_t,v_perp,theta,r_norm,H_norm,R_theta,Mach,r,P_med,rho_med,P_th_w,C_s_med,C_s_sh )
+      deallocate( x, y, H_new, y_eff )
       deallocate( v_t_old, P_old, rho_old )
       
    END subroutine CD_termo_run
