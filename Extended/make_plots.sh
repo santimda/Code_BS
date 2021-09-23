@@ -18,19 +18,19 @@ echo " "
 
 case $name_number in
 	1)
-	name='B0-05-d cold'
+	name='B0-05-d'
 	;;
 	2)
-	name='B1-1-d cold'
+	name='B1-1-d'
 	;;
 	3)
-	name='B1-1-h cold'
+	name='B1-1-h'
 	;;
 	4)
-	name='B1-1-nm cold'
+	name='B1-1-nm'
 	;;
 	5)
-	name='B2-60-d cold'
+	name='B2-60-d'
 	;;
 	*)
 	echo "Unknown scenario, exit"
