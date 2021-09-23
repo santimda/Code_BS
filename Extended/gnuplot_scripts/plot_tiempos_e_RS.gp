@@ -1,5 +1,5 @@
 set encoding iso_8859_1
-set size ratio 0.9
+set size ratio 0.8
 set title '' #'Electron cooling time (RS)'
 set key out 
 set key box opaque height 1.01 width 0.5
@@ -23,7 +23,7 @@ plot "< awk '$1==20 { print $2, $7 }' ../CD_tcoole_RS.dat" u (log10($1)):(log10(
     "< awk '$1==20 { print $2, $4 }' ../CD_tcoole_RS.dat" u (log10($1)):(log10($2)) t 'sy' w l lw 2.5 lc rgb "#DC143C",\
     "< awk '$1==20 { print $2, $14 }' ../CD_tcoole_RS.dat" u (log10($1)):(log10($2)) t 'tot' w l lw 3. lc 1,\
     "< awk '$1==20 { print $2, $3 }' ../CD_tcoole_RS.dat" u (log10($1)):(log10($2)) t 'IC' w l lw 2.5 lc 6
-#   "< awk '$1==20 { print $2, $11 }' ../CD_tcoole_RS.dat" u (log10($1)):(log10($2)) t 'IC_{UV}' w l lw 2.5 lc "orange", \
+#   "< awk '$1==20 { print $2, $11 }' ../CD_tcoole_RS.dat" u (log10($1)):(log10($2)) t 'IC_*' w l lw 2.5 lc "orange", \
 #   "< awk '$1==20 { print $2, $12 }' ../CD_tcoole_RS.dat" u (log10($1)):(log10($2)) t 'IC_{IR}' w l lw 2.5 lc "magenta", \
 
 

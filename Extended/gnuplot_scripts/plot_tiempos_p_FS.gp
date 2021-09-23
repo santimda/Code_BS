@@ -1,5 +1,5 @@
 set encoding iso_8859_1
-set size ratio 0.9
+set size ratio 0.8
 set title ''#'Proton cooling time (FS)'
 set key out 
 set key box opaque height 1.01 width 1.0 

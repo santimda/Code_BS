@@ -1,5 +1,5 @@
 set encoding iso_8859_1
-set size ratio 0.9
+set size ratio 0.8
 set title '' #'Electron cooling time (FS)'
 set key out 
 set key box opaque height 1.01 width 0.50 
@@ -16,14 +16,13 @@ set terminal postscript color solid enhanced dl 1.25 lw 2.5 "Helvetica" 22
 set output 't_e_FS.eps'
 
 plot	"< awk '$1==20 { print $2, $7 }' ../CD_tcoole_FS.dat" u (log10($1)):(log10($2)) t 'ac' w l lw 2.5 lc 8 dt 4, \
-	 	"< awk '$1==20 { print $2, $10 }' ../CD_tcoole_FS.dat" u (log10($1)):(log10($2)) t 'cell' w l lw 2.5 dt 3 lc 7,\
-	 	"< awk '$1==20 { print $2, $9 }' ../CD_tcoole_FS.dat" u (log10($1)):(log10($2)) t 'conv' w l lw 2.5 lc rgb "coral" dt 6, \
-   	 	"< awk '$1==20 { print $2, $6 }' ../CD_tcoole_FS.dat" u (log10($1)):(log10($2)) t 'diff' w l lw 2.5 lc rgb "#32CD32" dt 6, \
-		"< awk '$1==20 { print $2, $15}' ../CD_tcoole_FS.dat" u (log10($1)):(log10($2)) t 'adi' w l lw 2.5 lc 3, \
+	"< awk '$1==20 { print $2, $10 }' ../CD_tcoole_FS.dat" u (log10($1)):(log10($2)) t 'cell' w l lw 2.5 dt 3 lc 7,\			    "< awk '$1==20 { print $2, $9 }' ../CD_tcoole_FS.dat" u (log10($1)):(log10($2)) t 'conv' w l lw 2.5 lc rgb "coral" dt 6, \
+   	"< awk '$1==20 { print $2, $6 }' ../CD_tcoole_FS.dat" u (log10($1)):(log10($2)) t 'diff' w l lw 2.5 lc rgb "#32CD32" dt 6, \
+	"< awk '$1==20 { print $2, $15}' ../CD_tcoole_FS.dat" u (log10($1)):(log10($2)) t 'adi' w l lw 2.5 lc 3, \
     	"< awk '$1==20 { print $2, $4 }' ../CD_tcoole_FS.dat" u (log10($1)):(log10($2)) t 'sy' w l lw 2.5 lc rgb "#DC143C", \
- 	    "< awk '$1==20 { print $2, $3 }' ../CD_tcoole_FS.dat" u (log10($1)):(log10($2)) t 'IC' w l lw 2.5 lc 6, \
+ 	"< awk '$1==20 { print $2, $3 }' ../CD_tcoole_FS.dat" u (log10($1)):(log10($2)) t 'IC' w l lw 2.5 lc 6, \
     	"< awk '$1==20 { print $2, $14 }' ../CD_tcoole_FS.dat" u (log10($1)):(log10($2)) t 'tot' w l lw 3. lc 1
-#   	"< awk '$1==20 { print $2, $11 }' ../CD_tcoole_FS.dat" u (log10($1)):(log10($2)) t 'IC_{UV}' w l lw 2.5 lc 6, \
+#   	"< awk '$1==20 { print $2, $11 }' ../CD_tcoole_FS.dat" u (log10($1)):(log10($2)) t 'IC_*' w l lw 2.5 lc 6, \
 # 	    "< awk '$1==20 { print $2, $12 }' ../CD_tcoole_FS.dat" u (log10($1)):(log10($2)) t 'IC_{IR}' w l lw 2.5 lc 9, \    	
 
 
