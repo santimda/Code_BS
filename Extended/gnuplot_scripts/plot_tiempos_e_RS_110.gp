@@ -1,4 +1,4 @@
-set encoding iso_8859_1
+set encoding utf8 #iso_8859_1
 set size ratio 0.8
 set title '' #'Electron cooling time for theta ~ 110° (RS)'
 set key out 
@@ -6,11 +6,11 @@ set key box opaque height 1.01 width 0.5
 set key horiz samplen 2 spacing 1.01 font ",20"
 #set key bottom right
 set xrange [6.:13.]
-set yrange [4.:16.]
+set yrange [4.:14.]
 set ylabel 'log_{10}(t [s])'; set ylabel offset 0.9,0
 set xlabel 'log_{10}(E_e [eV])'; set xlabel offset 0,0.2
 set ytics 2; set mytics 2
-set label "NAME" at graph 0.65,0.95 font "Helvetica,18"
+set label "NAME  RS  {/Symbol q} = 110°" at graph 0.57,0.95 font "Helvetica,18"
 
 set terminal postscript color solid enhanced dl 1.25 lw 2.5 "Helvetica" 22
 set output 't_e_RS_110.eps'

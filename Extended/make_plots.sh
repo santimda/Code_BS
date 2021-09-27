@@ -53,6 +53,8 @@ declare -a script_list
 script_list=(plot_termo_RS.gp plot_termo_FS.gp)  
 script_list+=(plot_Linj_FS.gp plot_Linj_RS.gp)
 script_list+=(plot_tiempos_e_FS.gp plot_tiempos_e_RS.gp)
+script_list+=(plot_tiempos_e_FS_110.gp plot_tiempos_e_RS_110.gp)
+script_list+=(plot_tiempos_e_FS_165.gp plot_tiempos_e_RS_165.gp)
 script_list+=(plot_tiempos_p_RS.gp plot_tiempos_p_FS.gp)
 script_list+=(plot_Emaxe_RS.gp plot_Emaxe_FS.gp)
 script_list+=(plot_Emaxp_RS.gp plot_Emaxp_FS.gp)

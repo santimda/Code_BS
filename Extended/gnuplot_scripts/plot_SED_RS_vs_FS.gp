@@ -23,7 +23,7 @@ plot '../radsyn_FS_tot.dat' u (log10($1)):(log10($2)) t '' w l lw 3 dt 2 lc "red
      '../radic_ir_FS_tot.dat' u (log10($1)):(log10($2)) t '' w l lw 3 dt 2 lc rgb "cyan",\
      '../radic_ir_RS_tot.dat' u (log10($1)):(log10($2)) t 'IC_{IR}' w l lw 3 lc rgb "cyan",\
      '../radic_st_FS_tot.dat' u (log10($1)):(log10($2)) t '' w l lw 3 dt 2 lc "magenta" smooth bezier,\
-     '../radic_st_RS_tot.dat' u (log10($1)):(log10($2)) t 'IC_{UV}' w l lw 3 lc "magenta" smooth bezier,\
+     '../radic_st_RS_tot.dat' u (log10($1)):(log10($2)) t 'IC_{st}' w l lw 3 lc "magenta" smooth bezier,\
      '../radbr_FS_tot.dat' u (log10($1)):(log10($2)) t '' w l lw 3 dt 2 lc "gold" smooth bezier,\
      '../radbr_RS_tot.dat' u (log10($1)):(log10($2)) t 'rel. br.' w l lw 3 lc "gold" smooth bezier,\
      '../radpp_FS_tot.dat' u (log10($1)):(log10($2)) t '' w l lw 3 dt 2 lc rgb '#005A32' smooth bezier,\
