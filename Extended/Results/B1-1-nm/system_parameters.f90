@@ -70,7 +70,7 @@ module system_parameters
    !--------------------------------------------------------------------------------------
    ! Heated dust (IR)/shocked ISM   
    real(dp), parameter :: L_IR = L_st/350.d0       ! Dust luminosity, K2017
-   real(dp), parameter :: mu_SISM = 0.615d0        ! Assume solar abundance (?)
+   real(dp), parameter :: mu_SISM = 2.d0        ! Assume solar abundance (?)
    real(dp), dimension(:), allocatable :: T_IR,T_IR_ad
 
    !--------------------------------------------------------------------------------------
