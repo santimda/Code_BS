@@ -23,7 +23,7 @@ plot '../termonorm_FS.dat' u 1:5 t 'T/T_0' w l lw 2.4 dt 1,\
      '../termonorm_FS.dat' u 1:3 t 'P/P_0' w l lw 2.4 dt 4,\
      '../termonorm_FS.dat' u 1:4 t 'v_t /v_*' w l lw 2.4 lc rgb "coral" dt 5,\
      '../termonorm_FS.dat' u 1:7 t 'v_{p} /v_*' w l lw 2.4 lc rgb "green" dt 5,\
-     '../termonorm_FS.dat' u 1:8 axis x1y2 t 'c_s /v_*' w l lw 2.4 lc rgb "black" dt 5,\
+     '../termonorm_FS.dat' u 1:8 t 'c_s /v_*' w l lw 2.4 lc rgb "black" dt 5,\
      
 
 !./fixbb termo_FS.eps
