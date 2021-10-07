@@ -169,10 +169,9 @@ module CD_termo
          c_s_med(1) = sqrt(g_ad*P_th_w(1)/rho_med(1))       
       else if (shock == 'FS') then
          rho_med(1) = rho_ISM    
-         !P(1) = (1.+alpha_ISM)*rho_med*v_sh*v_perp(1)
          C_s_med(1) = sqrt(g_ad*P_th_ISM/rho_med(1))
-         !rho(1) = cte_ad*P(1)/( cte_ad*P_th_ISM/rho_med + 0.5*v_sh**2 ) ! cte_ad*P_th_ISM/rho_ISM + 0.5*v_sh**2 = 0.5*v_t(l)**2 + cte_ad*P(l)/rho(l)
       end if
+      
       P(1) = rho_med(1)*v_sh*v_perp(1)
       rho(1) = cte_ad*2*P(1)/v_sh**2            ! 0.5*v_sh**2 = 0.5*v_t(l)**2 + (g_ad/(g_ad-1.))*P(l)/rho(l), v_t(1) = 0.
       P_old(1) = cte_P*rho_med(1)*v_perp(1)**2
@@ -192,8 +191,8 @@ module CD_termo
             P_th_w(l) = rho_med(l)*k*T_wind/mu_w/mp             ! SW thermal pressure at R0
             c_s_med(l) = sqrt(g_ad*P_th_w(l)/rho_med(l))        ! Speed of sound along the stellar wind
          else if (shock == 'FS') then
-            c_s_med(l) = sqrt(g_ad*P_th_ISM/rho_med(l))         ! Speed of sound in the ISM
             rho_med(l) = rho_ISM
+            c_s_med(l) = sqrt(g_ad*P_th_ISM/rho_med(l))         ! Speed of sound in the ISM
          end if
 
          P_old(l) = cte_P*rho_med(l)*v_perp(l)**2
@@ -203,20 +202,12 @@ module CD_termo
          r(l) = (g_ad+1.)*Mach(l)**2/((g_ad-1.)*Mach(l)**2+2.) ! Compression factor (Caprioli 2014, Eq. 1)
 
          if ( v_t(l-1) <= C_s_sh(l-1) ) then                 ! Check whether the shocked fluid is subsonic or not
-             !if (shock == 'RS') then
              P(l) = rho_med(l)*v_sh*v_perp(l) !*r_norm(l)**2
-             !else if (shock == 'FS') then
-             !P(l) = (1.+alpha_ISM)*rho_med*v_sh*v_perp(l)
-             !end if
-             l_crit = l                                      ! l for which shocked fluid becomes supersonic
-             
+             l_crit = l                                      ! l for which shocked fluid becomes supersonic           
          else
-             !if (shock == 'RS') then
              P(l) = rho_med(l)*v_perp(l)**2/(v_perp(l_crit)/v_sh)   !*r_norm(l)**2   ! sin(ang0) = v_perp(l_crit)/v_sh
-             !else if (shock == 'FS') then
-             !P(l) = (1.+alpha_ISM)*rho_med*v_perp(l)**2/(v_perp(l_crit)/v_sh)
-             !end if
-         end if
+          end if
+          
          rho(l) = rho(1)*(P(l)/P(1))**(1./g_ad)              ! Adiabatic relation
          C_s_sh(l) = sqrt(g_ad*P(l)/rho(l))                  ! Sound speed in the shocked fluid     
          T(l) = cte_T*v_perp(l)**2                 ! Eq. 20
@@ -225,13 +216,8 @@ module CD_termo
          ! If P_mag = frac*P_th -> B^2/8pi = frac*P 
          B(l) = frac_sh*Beq0
 
-         !if (shock == 'RS') then
-            ! Kinetic energy p/ unit mass in the upstream region = Kinetic p/ unit mass + specific enthalpy in the downstream region
-            v_t(l) = sqrt( 2.d0 * (0.5d0*v_sh**2-cte_ad*P(l)/rho(l)) )
-         !else if (shock == 'FS') then
-            ! Add ISM specific enthalpy
-          !  v_t(l) = sqrt( 2.d0 * (0.5d0*v_sh**2+cte_ad*(P_th_ISM/rho_med - P(l)/rho(l)) ))
-         !end if
+         ! Kinetic energy p/ unit mass in the upstream region = Kinetic p/ unit mass + specific enthalpy in the downstream region
+         v_t(l) = sqrt( 2.d0 * (0.5d0*v_sh**2-cte_ad*P(l)/rho(l)) )
          
       end do
       !  $omp end parallel do
