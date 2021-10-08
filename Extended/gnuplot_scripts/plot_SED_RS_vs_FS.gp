@@ -1,7 +1,7 @@
 set encoding iso_8859_1
 set key out
 set key box opaque height 0.6 #width 0.50 
-set key horiz samplen 1. spacing 1.01 font ",20"
+set key horiz samplen 1.5 spacing 1.01 font ",20"
 set xrange [-7.:14.]
 set yrange [22.:32.]
 set xtics 3 font "Helvetica,18"; set mxtics 3 
@@ -28,16 +28,16 @@ dist = 1.*3.0856e21
 eV = 1.602176e-12
 a = 4.0*pi*dist**2.
 
-plot '../radsyn_FS_tot.dat' u (log10($1)):(log10($2)) t '' w l lw 3 dt 2 lc "red",\
+plot '../radsyn_FS_tot.dat' u (log10($1)):(log10($2)) t '' w l lw 3 dt 3 lc "red",\
      '../radsyn_RS_tot.dat' u (log10($1)):(log10($2)) t 'sy' w l lw 3 dt 1 lc "red",\
-     '../radic_ir_FS_tot.dat' u (log10($1)):(log10($2)) t '' w l lw 3 dt 2 lc rgb "cyan",\
-     '../radic_ir_RS_tot.dat' u (log10($1)):(log10($2)) t 'IC_{IR}' w l lw 3 lc rgb "cyan",\
-     '../radic_st_FS_tot.dat' u (log10($1)):(log10($2)) t '' w l lw 3 dt 2 lc "magenta" smooth bezier,\
-     '../radic_st_RS_tot.dat' u (log10($1)):(log10($2)) t 'IC_*' w l lw 3 lc "magenta" smooth bezier,\
-     '../radbr_FS_tot.dat' u (log10($1)):(log10($2)) t '' w l lw 3 dt 2 lc "gold" smooth bezier,\
-     '../radbr_RS_tot.dat' u (log10($1)):(log10($2)) t 'rel. br.' w l lw 3 lc "gold" smooth bezier,\
-     '../radpp_FS_tot.dat' u (log10($1)):(log10($2)) t '' w l lw 3 dt 2 lc rgb '#005A32' smooth bezier,\
-     '../radpp_RS_tot.dat' u (log10($1)):(log10($2)) t 'p-p' w l lw 3 lc rgb '#005A32' smooth bezier,\
+     '../radbr_FS_tot.dat' u (log10($1)):(log10($2)) t '' w l lw 3 dt 3 lc rgb '#005A32' smooth bezier,\
+     '../radbr_RS_tot.dat' u (log10($1)):(log10($2)) t 'Br.' w l lw 3 lc rgb '#005A32' smooth bezier,\
+     '../radic_st_FS_tot.dat' u (log10($1)):(log10($2)) t '' w l lw 3 dt 3 lc rgb "blue" smooth bezier,\
+     '../radic_st_RS_tot.dat' u (log10($1)):(log10($2)) t 'IC_*' w l lw 3 lc rgb "blue" smooth bezier,\
+     '../radic_ir_FS_tot.dat' u (log10($1)):(log10($2)) t '' w l lw 3 dt 3 lc rgb '#e55964',\
+     '../radic_ir_RS_tot.dat' u (log10($1)):(log10($2)) t 'IC_{IR}' w l lw 3 lc rgb '#e55964',\
+     '../radpp_FS_tot.dat' u (log10($1)):(log10($2)) t '' w l lw 3 dt 3 lc rgb 'orange' smooth bezier,\
+     '../radpp_RS_tot.dat' u (log10($1)):(log10($2)) t 'p-p' w l lw 3 lc rgb 'orange' smooth bezier,\
      './sens_fermi10yr_120_45.dat' u (log10($1*1.e6)):(log10($2*a)) t 'Fermi' w l lt 2 lc rgb 'grey40' lw 4,\
      './sens_CTA_100h.dat' u (log10($1*1.e6)):(log10($2*a)) t 'CTA' w l lt 2 lc rgb 'black' lw 4
 #     './sens_eastrogam.dat' u (log10($1*1.e6)):(log10($2*a)) t 'e-ASTROGAM' w l lt 2 lc rgb 'green' lw 4,\
