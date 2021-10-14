@@ -21,8 +21,9 @@ module CD_diste
       implicit none
       character(LEN=*), intent(in) :: shock
       integer :: l_min,l2,m_theta_inj_max
-      real(dp) :: t_cell(m_theta),t_adv(m_theta),t_coole(m_theta,mE_e),t_loss(m_theta,mE_e)
+      real(dp) :: t_cell(m_theta),t_adv(m_theta),t_coole(m_theta,mE_e),t_loss(m_theta,mE_e),t_th(m_theta)
       real(dp) :: t_ic_st,t_ic_IR,t_ic,t_sy,t_ac,t_br,D_diff,t_diff,t_esc,t_adi(m_theta)
+      real(dp) :: lambda_T(m_theta)
       real(dp) :: cte_sy, gamm, cte_IC, C_ic_st,kC_ic_st, C_ic_IR(m_theta),kC_ic_IR
       real(dp) :: log_coul,gdot_coul,cte_coul,t_coul
       real(dp) :: log10Emaxl,R_acel(m_theta),Q,integral
@@ -53,7 +54,7 @@ module CD_diste
       end interface
 
       allocate( theta(m_theta),R_theta(m_theta),H_theta(m_theta) )
-      allocate( P(m_theta),rho(m_theta),T(m_theta),B(m_theta),v_t(m_theta) )
+      allocate( P(m_theta),rho(m_theta),T(m_theta),B(m_theta),v_t(m_theta),v_perp(m_theta),r(m_theta),Mach(m_theta),rho_med(m_theta) )
       allocate( N_e(mE_e),E_e(mE_e),B_par(m_theta),N_etot(m_theta,mE_e) )
       allocate( T_IR(m_theta),T_IR_ad(m_theta) )
       allocate( efi_ac_sh(m_theta) )
@@ -76,7 +77,7 @@ module CD_diste
 
       open(11,file='termo_'//shock//'.dat') 
       do l = 1, m_theta
-         read(11,*) l2,rho(l),P(l),v_t(l),T(l),B(l) ! all in CGS units
+         read(11,*) l2,rho(l),P(l),v_t(l),T(l),B(l),v_perp(l),theta(l),Mach(l),r(l),rho_med(l) ! all in CGS units
       end do
       close (11)
       B_par = B*par        ! For synchrotron, only the parallel component of B is relevant
@@ -121,8 +122,9 @@ module CD_diste
       ! First calculate the cooling time at all energies and at each position 
       ! (and also the maximum energy)
 
+      open(65,file='rad_adi_'//shock//'.dat')
       open(70,file='CD_tcoole_'//shock//'.dat')
-      open(78,file='Emaxe'//shock//'.dat') 
+      open(78,file='Emaxe'//shock//'.dat')
 
       cte_IC = pi*h_bar**3*c**2/(2.*re**2*mec2**3)
       C_ic_st = (cte_IC)/(T_st_ad**2)
@@ -132,13 +134,30 @@ module CD_diste
 
       do l = 1, m_theta
          t_cell(l) = dR(l)/v_t(l)      ! Cell advection time
-         t_adv(l) = R_theta(l)/v_t(l)  ! Characteristic advection time
+         t_adv(l) = R_theta(l)/v_t(l)  ! Characteristic advection time  
+            
          if (l < m_theta) then
             t_adi(l) = 3.*dR(l)/(v_t(l)*log(rho(l)/rho(l+1))) ! Characteristic adiabatic losses time
             if (t_adi(l) <= 0.d0) t_adi(l) = 1.d20   ! To avoid numerical errors
          else if (l == m_theta) then
             t_adi(l) = t_adi(l-1)
          end if
+
+         if ((1.d4 <= T(l)) .AND. (T(l) <= 1.d5)) then
+            lambda_T(l) = 7.d-27 * T(l)
+         else if ((1.d5 < T(l)) .AND. (T(l) <= 4.d7)) then
+            lambda_T(l) = 7.d-19 * T(l)**(-0.6) 
+         else if (T(l) > 4.d7) then
+            lambda_T(l) = 3.d-27 * sqrt(T(l))
+         end if
+
+         if (shock == 'RS') then
+            t_th(l) = k*T(l)/r(l)/rho_med(l)/mu_w/mp/lambda_T(l)  ! Thermal losses
+         else if (shock == 'FS') then
+            t_th(l) = k*T(l)/r(l)/n_ISM/lambda_T(l)
+         end if
+
+      write(65,*) theta(l),t_th(l)/t_adv(l)
       end do
 
       search_Emax = .TRUE.
@@ -189,6 +208,7 @@ module CD_diste
 
             t_ac = efi_ac_sh(l)*E_e(i)/(B(l)*c*qe)
 
+
             write(70,*) l,E_e(i)/eV,t_ic,t_sy,t_br,t_diff,t_ac,t_coole(l,i),t_adv(l),t_cell(l),t_ic_st,t_ic_IR,t_esc,t_loss(l,i),t_adi(l),t_coul
 
             E_dot(l,i) = E_e(i)/t_coole(l,i)
@@ -197,6 +217,7 @@ module CD_diste
 
          write(78,*) l, Emax_e0(l)/eV
       end do
+      close(65)
       close(70)
       close(78)
 
@@ -350,7 +371,7 @@ module CD_diste
 
       !------------------------------------------------------------
 
-      deallocate( theta,R_theta,H_theta,B,B_par,rho,P,v_t,T )
+      deallocate( theta,R_theta,H_theta,B,B_par,rho,P,v_t,T,v_perp,r,Mach,rho_med )
       deallocate( N_e,E_e,N_etot ) 
       deallocate( T_IR, T_IR_ad, efi_ac_sh, alpha_sh )
 
