@@ -323,7 +323,8 @@ module CD_diste
                   end do
                end if
 
-               N_e(index1) = N_e(index2) * ( E_dot(l-1,index2)/E_dot(l,index1) ) 
+               ! The following takes into account energy losses and variable cell size and velocity
+               N_e(index1) = N_e(index2) * ( E_dot(l-1,index2)/E_dot(l,index1) )! * (t_cell(l)/t_cell(l-1))
 
                N_etot(l,index1) = N_etot(l,index1) + N_e(index1)  ! The energies match by construction
 
