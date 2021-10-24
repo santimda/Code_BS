@@ -40,7 +40,7 @@ module system_parameters
    real(dp), parameter :: v_ISM = v_st             ! 
    real(dp), parameter :: n_ISM = 0.1d0            ! Galactic halo 
    real(dp), parameter :: mu_ISM = 1.28_dp         ! K2018; 0.5 for pure H ionized
-   real(dp), parameter :: T_ISM = 1.d2             ! Cold ISM
+   real(dp), parameter :: T_ISM = 1.d4             ! Cold ISM
    real(dp), parameter :: T_ISM_ad = k*T_ISM/mec2  ! Adimensional ISM temperature 
    real(dp), parameter :: alpha_ISM = k*T_ISM/(v_ISM**2*mp*mu_ISM)! = P_thermal_ISM/P_kin_ISM
    real(dp), parameter :: lambda = alpha_ISM/(alpha_ISM + 1.d0)
