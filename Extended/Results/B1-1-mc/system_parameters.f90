@@ -76,7 +76,7 @@ module system_parameters
    !--------------------------------------------------------------------------------------
    ! Non-thermal particles
    real(dp), dimension(:), allocatable :: efi_ac_sh! particle accel. efficiency at the shocks  (l)
-   real(dp), parameter :: frac_sh = sqrt(0.1_dp) ! fraction sqrt(UB_sh/UB_equipartition_sh)
+   real(dp), parameter :: frac_sh = sqrt(1._dp) ! fraction sqrt(UB_sh/UB_equipartition_sh)
    real(dp), parameter :: frac_NT = 1.d-1
    real(dp), parameter :: inj_e = frac_NT*0.05d0   ! Fraction L_NT_e/L_iny_perp
    real(dp), parameter :: inj_p = frac_NT-inj_e    ! Fraction L_NT_p/L_iny_perp 

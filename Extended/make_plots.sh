@@ -4,7 +4,7 @@ echo "Choose one of the following scenarios"
 echo "1: B0-05-d"
 echo "2: B1-1-d" 
 echo "3: B1-1-h"
-echo "4: B1-1-nm"
+echo "4: B1-1-mc"
 echo "5: B2-60-d"
 #echo "6: B0-05-d warm"
 #echo "7: B1-1-d warm" 
@@ -27,7 +27,7 @@ case $name_number in
 	name='B1-1-h'
 	;;
 	4)
-	name='B1-1-nm'
+	name='B1-1-mc'
 	;;
 	5)
 	name='B2-60-d'
