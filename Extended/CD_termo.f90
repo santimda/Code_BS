@@ -1,3 +1,5 @@
+
+  
 module CD_termo
 
    use global
@@ -117,37 +119,6 @@ module CD_termo
 
 
       !-----------------------------------------------------------------
-      ! Injected power available for acceleration of NT particles
-      ! (depends on the energy flux perpendicular to the shock)
-
-      L_inj_tot = 0.d0
-
-      open(42,file='Linj_'//shock//'.dat')            ! stores L_inj in one quadrant
-      do l = 1, m_theta      
-         if (shock == 'RS') then
-            dOmega = sin(theta(l))*dtheta*d_phi 
-            L_perp = (Mdot*v_sh*v_perp(l))/2.d0      ! v_perp**2
-            L_inj(l) = L_perp*(dOmega/4.d0/pi)
-         else if (shock == 'FS') then
-            dA = (d_phi*R_theta(l)*sin(theta(l))) * dR(l)
-            L_perp = 0.5*rho_ISM*v_perp(l) * v_sh**2 ! V_perp**2 * v_sh
-            L_inj(l) = L_perp*dA 
-         end if
-         L_inj_tot = L_inj_tot + L_inj(l)         
-         write(42,*) theta(l), r_norm(l), L_inj(l), dR(l)/R0, L_inj_tot*(mphi*4.)/L_sh
-      end do
-      close(42)
-
-      write(*,80) 'L_inj('//shock//') =', L_inj_tot*(mphi*4.) ! It was just 1 quadrant
-      write(*,81) 'L_NT/L_sh('//shock//') [%] =', frac_NT*(L_inj_tot*mphi*4.)/L_sh*100.d0
-      if (shock == 'RS') then
-         write(*,82) 'L_inj(RS)/L_w =', L_inj_tot*(mphi*4.)/L_sh
-      else if (shock == 'FS') then
-         write(*,83) 'L_inj(FS)/L_ISM =', L_inj_tot*(mphi*4.)/L_sh
-      end if
-
-
-      !-----------------------------------------------------------------
       !
       !  Thermodynamical quantities (shock)
       !
@@ -222,6 +193,48 @@ module CD_termo
       end do
       !  $omp end parallel do
 
+            !-----------------------------------------------------------------
+      ! Injected power available for acceleration of NT particles
+      ! (depends on the energy flux perpendicular to the shock)
+
+      L_inj_tot = 0.d0
+
+      open(42,file='Linj_'//shock//'.dat')            ! stores L_inj in one quadrant
+      do l = 1, m_theta
+         if (l <= l_crit) then
+             if (shock == 'RS') then
+                dOmega = sin(theta(l))*dtheta*d_phi 
+                L_perp = (Mdot*v_sh*v_perp(l))/2.d0      ! v_perp**2
+                L_inj(l) = L_perp*(dOmega/4.d0/pi)
+             else if (shock == 'FS') then
+                dA = (d_phi*R_theta(l)*sin(theta(l))) * dR(l)
+                L_perp = 0.5*rho_ISM*v_perp(l) * v_sh**2 ! V_perp**2 * v_sh
+                L_inj(l) = L_perp*dA 
+             end if
+         else
+             if (shock == 'RS') then
+                dOmega = sin(theta(l))*dtheta*d_phi 
+                L_perp = (Mdot*v_perp(l)**2)/2.d0      ! v_perp**2
+                L_inj(l) = L_perp*(dOmega/4.d0/pi)
+             else if (shock == 'FS') then
+                dA = (d_phi*R_theta(l)*sin(theta(l))) * dR(l)
+                L_perp = 0.5*rho_ISM*v_perp(l)**2 * v_sh ! V_perp**2 * v_sh
+                L_inj(l) = L_perp*dA 
+             end if
+         end if
+             
+         L_inj_tot = L_inj_tot + L_inj(l)         
+         write(42,*) theta(l), r_norm(l), L_inj(l), dR(l)/R0, L_inj_tot*(mphi*4.)/L_sh
+      end do
+      close(42)
+
+      write(*,80) 'L_inj('//shock//') =', L_inj_tot*(mphi*4.) ! It was just 1 quadrant
+      write(*,81) 'L_NT/L_sh('//shock//') [%] =', frac_NT*(L_inj_tot*mphi*4.)/L_sh*100.d0
+      if (shock == 'RS') then
+         write(*,82) 'L_inj(RS)/L_w =', L_inj_tot*(mphi*4.)/L_sh
+      else if (shock == 'FS') then
+         write(*,83) 'L_inj(FS)/L_ISM =', L_inj_tot*(mphi*4.)/L_sh
+      end if
       
       !------------------------------
       !Calculate injection spectral index at the shocks
@@ -337,5 +350,6 @@ END SUBROUTINE A_theta
 
 
 !============================================================================
+
 
 
