@@ -6,7 +6,7 @@ set key box opaque height 1.01 width 0.5
 set key horiz samplen 2 spacing 1.01 font ",20"
 #set key bottom right
 set xrange [6.:13.]
-set yrange [4.:14.]
+set yrange [5.:13.]
 set ylabel 'log_{10}(t [s])'; set ylabel offset 0.9,0
 set xlabel 'log_{10}(E_e [eV])'; set xlabel offset 0,0.2
 set ytics 2; set mytics 2

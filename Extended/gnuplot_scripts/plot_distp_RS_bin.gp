@@ -2,11 +2,11 @@ eV=1.602176e-12
 set encoding iso_8859_1
 set title '' #'Proton distribution in RS'
 set xrange [9.:13.]
-set yrange [31.:40.]
+set yrange [31.:41.]
 set xlabel 'log_{10}(E_p [eV])'; set ylabel offset 0.0,-0.1
 set ylabel 'log_{10}({E_p}^2 N_p(E_p) [erg])'; set ylabel offset 0.1,0.0
 set ytics 1 ; set mytics 2
-set mxtics 2
+set xtics 0.5 ; set mytics 1
 set palette maxcolors 5 # 5 = N_bins
 set cblabel '' #'{/Symbol q}/{/Symbol p}'; set cblabel offset -0.5,-0.8
 set cbtics ("I1" 1.4, "I2" 2.2,"I3" 3.,"I4" 3.8,"I5" 4.6)

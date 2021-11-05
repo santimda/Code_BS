@@ -31,7 +31,7 @@ contains
     allocate( Lsy_tot(m_nu),nu(m_nu),Lsy(m_theta,m_nu) )
     Lsy_tot = 0.d0
   
-80  format(A19,X,Es10.2)
+80  format(A19,X,Es10.3)
 
     ! set omp threads number
     !$ call omp_set_num_threads(nth) 

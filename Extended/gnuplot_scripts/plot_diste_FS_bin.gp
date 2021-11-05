@@ -3,11 +3,11 @@ set encoding iso_8859_1
 set title ''
 #'Electron distribution in FS'
 set xrange [6.:13.]
-set yrange [31.:40.]
+set yrange [31.:41.]
 set xlabel 'log_{10}(E_e [eV])'; set ylabel offset 0.0,-0.1
 set ylabel 'log_{10}({E_e}^2 N_e(E_e) [erg])'; set ylabel offset 0.1,0.0
 set ytics 1 ; set mytics 2
-set mxtics 2
+set xtics 1 ; set mxtics 2
 set palette maxcolors 5 # 5 = N_bins
 set cblabel '' #'{/Symbol q}/{/Symbol p}'; set cblabel offset -0.5,-0.8
 set cbtics ("I1" 1.4, "I2" 2.2,"I3" 3.,"I4" 3.8,"I5" 4.6)

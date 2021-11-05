@@ -85,6 +85,7 @@ PROGRAM main
    real(dp) :: E_br(mE_f),Lbr_sh_tot(mE_f)
    real(dp) :: E_pp(mE_f),Lpp_sh_tot(mE_f)
    real(dp) :: Eph_min, Eph_max
+   real(dp) :: dE_sy(m_nu),dE_IC_IR(mE_f),dE_IC_st(mE_f)
    real(dp) :: u_proj,v_proj,emi,emi_abs
    real(dp) :: phi
    integer :: i_phi,i_E,i_l  
@@ -302,8 +303,9 @@ PROGRAM main
             open (31,file='radic_st_'//shock//'_tot.dat')
             do i_E = 1, mE_f
                read(31,*) E_IC_st(i_E), LIC_st_tot(i_E)
+               dE_IC_st(i_E) = E_IC_st(i_E)*ev * (E_IC_st(2)/E_IC_st(1) - 1.d0)
                if ( E_IC_st(i_E) >= Eph_min .and. E_IC_st(i_E) <= Eph_max ) then
-                   L_X_int = L_X_int + LIC_st_tot(i_E)
+                   L_X_int = L_X_int + LIC_st_tot(i_E)*dE_IC_st(i_E)
                 end if
             end do
             close(31)
@@ -311,8 +313,9 @@ PROGRAM main
             open (33,file='radic_ir_'//shock//'_tot.dat')
             do i_E = 1, mE_f
                read(33,*) E_IC_IR(i_E),LIC_IR_tot(i_E)
+               dE_IC_IR(i_E) = E_IC_IR(i_E)*ev * (E_IC_IR(2)/E_IC_IR(1) - 1.d0)
                if ( E_IC_IR(i_E) >= Eph_min .and. E_IC_IR(i_E) <= Eph_max ) then
-                   L_X_int = L_X_int + LIC_IR_tot(i_E)
+                   L_X_int = L_X_int + LIC_IR_tot(i_E)*dE_IC_IR(i_E)
                 end if
             end do
             close(33)
@@ -320,8 +323,9 @@ PROGRAM main
             open (51,file='radsyn_'//shock//'_tot.dat')
             do i_E = 1, m_nu
                read(51,*) E_sy(i_E), Lsy_sh_tot(i_E)
+               dE_sy(i_E) = E_sy(i_E)*ev * (E_sy(2)/E_sy(1) - 1.d0)
                if ( E_sy(i_E) >= Eph_min .and. E_sy(i_E) <= Eph_max ) then
-                   L_X_int = L_X_int + Lsy_sh_tot(i_E)
+                   L_X_int = L_X_int + Lsy_sh_tot(i_E)*dE_sy(i_E)
                 end if
             end do
             close(51)
