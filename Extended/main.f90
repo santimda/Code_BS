@@ -78,12 +78,13 @@ PROGRAM main
    80 format(A9,X,Es10.2)
 
    character(LEN=*), intent(in) :: shock 
-   real(dp) :: Lsy_one,Lbr_one,Lpp_one, LIC_one,LIC_all,LIC_int
+   real(dp) :: Lsy_one,Lbr_one,Lpp_one, LIC_one,LIC_all,LIC_int,L_X_int
    real(dp) :: E_IC_st(mE_f),E_IC_IR(mE_f),LIC_st_tot(mE_f),LIC_IR_tot(mE_f)
    real(dp) :: E_sy(m_nu),Lsy_sh_tot(m_nu) 
    real(dp) :: Lsy_sh_abs(m_nu), Lsy_sh_unabs(m_nu), Lsy_unabs, Lsy_abs
    real(dp) :: E_br(mE_f),Lbr_sh_tot(mE_f)
    real(dp) :: E_pp(mE_f),Lpp_sh_tot(mE_f)
+   real(dp) :: Eph_min, Eph_max
    real(dp) :: u_proj,v_proj,emi,emi_abs
    real(dp) :: phi
    integer :: i_phi,i_E,i_l  
@@ -290,6 +291,45 @@ PROGRAM main
             close(42)
             close(52)
          endif
+
+
+         if ( (radic_st_calc) .and. (radic_ir_calc) .and. (radsyn_sw_calc) ) then
+            ! Calculates the X-ray luminosity
+            L_X_int = 0.d0
+            Eph_min = 1.d3 ! 1 keV
+            Eph_max = 1.d4 ! 10 keV
+            
+            open (31,file='radic_st_'//shock//'_tot.dat')
+            do i_E = 1, mE_f
+               read(31,*) E_IC_st(i_E), LIC_st_tot(i_E)
+               if ( E_IC_st(i_E) >= Eph_min .and. E_IC_st(i_E) <= Eph_max ) then
+                   L_X_int = L_X_int + LIC_st_tot(i_E)
+                end if
+            end do
+            close(31)
+
+            open (33,file='radic_ir_'//shock//'_tot.dat')
+            do i_E = 1, mE_f
+               read(33,*) E_IC_IR(i_E),LIC_IR_tot(i_E)
+               if ( E_IC_IR(i_E) >= Eph_min .and. E_IC_IR(i_E) <= Eph_max ) then
+                   L_X_int = L_X_int + LIC_IR_tot(i_E)
+                end if
+            end do
+            close(33)
+
+            open (51,file='radsyn_'//shock//'_tot.dat')
+            do i_E = 1, m_nu
+               read(51,*) E_sy(i_E), Lsy_sh_tot(i_E)
+               if ( E_sy(i_E) >= Eph_min .and. E_sy(i_E) <= Eph_max ) then
+                   L_X_int = L_X_int + Lsy_sh_tot(i_E)
+                end if
+            end do
+            close(51)
+
+            write(*,*) 'Calculate the luminosity btw 1-10 keV'
+            write(*,80) 'L_X= ', L_X_int
+            write(*,*) ''
+         end if
 
       endif
 
