@@ -126,7 +126,7 @@ contains
       end do
       close(31)
 
-      i_1G = int(log(1.d9/nu(1))/log_nu_int) + 1        ! 1. GHz
+      i_1G = int(log(1.4d9/nu(1))/log_nu_int) + 1        ! 1.4 GHz
       i_5G = int(log(4.8d9/nu(1))/log_nu_int) + 1        ! 4.8 GHz
       flux1 = flux/nu(i_1G)   
       flux2 = flux/nu(i_5G) 
@@ -147,10 +147,10 @@ contains
       emision2 = L_sy(i_5G) * flux2 ! At 4.8 GHz
       emision2_abs = emision2 * exp(-tauff(i_5G))
       write(*,*) 'Unabsorbed:'
-      write(*,88) 'S(1.GHz)=',emision1,'mJy'
+      write(*,88) 'S(1.4GHz)=',emision1,'mJy'
       write(*,88) 'S(4.8GHz)=',emision2,'mJy'
       write(*,*) 'Absorbed:'
-      write(*,88) 'S(1.GHz)=',emision1_abs,'mJy'
+      write(*,88) 'S(1.4GHz)=',emision1_abs,'mJy'
       write(*,88) 'S(4.8GHz)=',emision2_abs,'mJy'
 
       88  format(A11,X,Es10.2,X,A3)
