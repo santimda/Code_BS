@@ -47,7 +47,9 @@ module system_parameters
    real(dp), parameter :: gamma_ISM = 1.0_dp       ! abundance parameter ???
    real(dp), parameter :: rho_ISM = n_ISM*mp*mu_ISM
    real(dp), parameter :: alpha_ISM = k*T_ISM/(v_ISM**2*mp*mu_ISM)! = P_thermal_ISM/P_kin_ISM
-   real(dp), parameter :: R0 = sqrt( (Mdot*v_w)/(4.*pi*(1.+alpha_ISM)*rho_ISM*v_ISM**2) ) 
+   real(dp), parameter :: R0 = sqrt( (Mdot*v_w)/(4.*pi*(1.+alpha_ISM)*rho_ISM*v_ISM**2) )
+   real(dp), parameter :: R_eff_RS = R0*0.6
+   real(dp), parameter :: R_eff_FS = R0*100.
    real(dp), parameter :: H0 = R0*0.3             ! shock width
    real(dp), parameter :: L_ISM = 0.5*pi*rho_ISM*R0**2*v_ISM**3 ! Kinetic power injected in the ISM shock
    real(dp), parameter :: L_inj_FS = frac_BS*L_ISM          ! Wind kinetic power injeted in the BS
@@ -91,7 +93,8 @@ module system_parameters
    real(dp), parameter :: efi_ac_RS = 2.d0*pi*(c/v_w)**2    ! Particle accel. efficiency at the RS
    real(dp), parameter :: efi_ac_FS = 2.d0*pi*(c/v_ISM)**2  ! Particle accel. efficiency at the FS
    real(dp), parameter :: alpha_NT = 2.d0            ! Injection spectral index
-   real(dp), parameter :: R_acel = R0  !
+   real(dp), parameter :: R_acel_RS = R_eff_RS  !
+   real(dp), parameter :: R_acel_FS = R_eff_FS
 
    real(dp), parameter :: frac_NT = 0.1_dp             ! Fraction of L_inj_perp converted to L_NT
    real(dp), parameter :: inj_e = frac_NT*0.05d0       ! Fraction L_NT_e/L_NT
@@ -101,7 +104,7 @@ module system_parameters
    ! If U_mag = frac*U_th -> B^2/4pi = frac*(g_ad/(g_ad - 1))*P 
    ! If P_mag = frac*P_th -> B^2/8pi = frac*P 
    real(dp), parameter :: frac_B = sqrt(0.1_dp)        ! Fraction B/B_equipartition
-   real(dp), parameter :: B_RS = frac_B*sqrt(Mdot*v_w/R0**2) ! del Valle 2012
+   real(dp), parameter :: B_RS = frac_B*sqrt(Mdot*v_w/R_eff_RS**2) ! del Valle 2012
    real(dp), parameter :: B_FS = frac_B*sqrt(6.d0*pi*rho_ISM*v_ISM**2) ! P ~ 3/4*rho*v^2
 
 

@@ -26,6 +26,7 @@ contains
       real(dp) :: b_pp,sigma_pp,L1,E_punto,c_s,b_ion,t_ion
       real(dp) :: dE2_p,E2_p,Eint2_p,Emax2_p,Emin2_p,efi_ac,cte_ac
       real(dp) :: n_a,L_inj,B,B_par
+      real(dp) :: R_eff, R_acel
       real(dp), parameter :: E_th=1.22d9*eV, TeV=1.d12*eV, kappa_pp=0.5d0
       integer :: mE2
 
@@ -52,14 +53,18 @@ contains
          c_s = c_s_RS
          efi_ac = efi_ac_RS
          B = B_RS
+         R_eff = R_eff_RS
+         R_acel = R_acel_RS
       else if (shock=='FS') then     
          n_a = n_sh_FS
          L_inj = L_inj_FS
          c_s = c_s_FS
          efi_ac = efi_ac_FS
          B = B_FS
+         R_eff = R_eff_FS
+         R_acel = R_acel_FS
       end if
-      B_par = B*par 
+      B_par = B*par
 
       L_inj_p = inj_p*L_inj  
       write(*,810) 'L_injp =',L_inj_p
@@ -69,13 +74,9 @@ contains
       
       cte_ac = efi_ac/(B_par*c*qe)
 
-      if (shock == 'RS') then
-         t_adv = R0/c_s 
-         t_adi = 3.d0*R0/c_s*5.d0! adiabatic losses: dE/dt = 1/3*d(log(rho))/dl *E*v, delta_rho/rho ~ 0.2
-      else if (shock == 'FS') then
-         t_adv = R_eff/c_s
-         t_adi = 3.d0*R_eff/c_s*5.d0
-      end if
+      t_adv = R_eff/c_s 
+      t_adi = 3.d0*R_eff/c_s*5.d0! adiabatic losses: dE/dt = 1/3*d(log(rho))/dl *E*v, delta_rho/rho ~ 0.2
+
    
       t_pp = 1.d15/n_a/z_pp   ! approx expression for p-p losses, used only to calculate Emax_p
 
@@ -231,7 +232,7 @@ Function resta_p(log10E,t_pp,t_adv,c_ac,B)
    implicit none
    real(dp), intent(in) :: log10E,t_pp,t_adv,c_ac,B
    real(dp) :: resta_p,E_l,t_diff,t_ac,t_coolp
-   real(dp) :: t_loss,t_esc
+   real(dp) :: t_loss,t_esc,R_acel
 
    E_l = 10.d0**log10E
 

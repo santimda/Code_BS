@@ -30,6 +30,7 @@ module diste
       real(dp) :: E2_e,dE2_e,Emin2_e,Emax2_e,Eint2_e,integral,S,Q
       real(dp) :: E_punto,Emax_e,Ka,L_inj_e,c_s,efi_ac,cte_ac
       real(dp) :: T_6,n_a,L_inj,B,B_par,cte_Bohm
+      real(dp) :: R_eff, R_acel
       integer :: mE2
 
       interface
@@ -56,6 +57,8 @@ module diste
          c_s = c_s_RS
          efi_ac = efi_ac_RS
          B = B_RS
+         R_eff = R_eff_RS
+         R_acel = R_acel_RS
       else if (shock=='FS') then     
          n_a = n_sh_FS
          T_6 = T_sh_FS/1.d6
@@ -63,13 +66,15 @@ module diste
          c_s = c_s_FS
          efi_ac = efi_ac_FS
          B = B_FS
+         R_eff = R_eff_FS
+         R_acel = R_acel_FS
       end if
       B_par = B*par 
 
       L_inj_e = inj_e*L_inj 
       write(*,810) 'L_inje =',L_inj_e
-      write(*,810) 'U_IR [eV/cm3] =',L_IR/(pi*R0**2*c)/eV
-      write(*,810) 'U_st [eV/cm3] =',L_st/(4.*pi*R0**2*c)/eV
+      write(*,810) 'U_IR [eV/cm3] =',L_IR/(pi*R_eff**2*c)/eV
+      write(*,810) 'U_st [eV/cm3] =',L_st/(4.*pi*R_eff**2*c)/eV
       !write(*,810) 'U_IR/U_st =',16.*pi*R0**2*T_IR**4/L_st
       !write(*,810) 'R_IR/R0 =',R_IR/R0
       !write(*,810) 'Kappa_IR =',Kappa_IR
@@ -87,13 +92,8 @@ module diste
       C_ic_IR = const_ic/(T_IR_ad**2*Kappa_IR)
       C_ic_CMB = const_ic/(T_CMB_ad**2*Kappa_CMB)
 
-      if (shock == 'RS') then
-         t_adv = R0/c_s
-         t_adi = 3.d0*R0/c_s*5.d0! adiabatic losses: dE/dt = 1/3*d(log(rho))/dl *E*v, delta_rho/rho ~ 0.2 
-      else if (shock == 'FS') then
-         t_adv = R_eff/c_s
-         t_adi = 3.d0*R_eff/c_s*5.d0
-      end if
+      t_adv = R_eff/c_s
+      t_adi = 3.d0*R_eff/c_s*5.d0! adiabatic losses: dE/dt = 1/3*d(log(rho))/dl *E*v, delta_rho/rho ~ 0.2 
 
       cte_br = 4.*n_a*z_br*re**2*alfa*c   
       if (screened) p_br = log(183./z_br**(1./6)) - 1./18. ! for screened nuclei
@@ -252,7 +252,7 @@ Function resta(log10E,c1,c2,c3,t_br,t_adv,c_ac,B,c_sy)
    real(dp), intent(in) :: log10E,c1,c2,c3,t_br,t_adv,c_ac,B,c_sy
    real(dp) :: resta,E_l,gamm
    real(dp) :: t_sy,t_ic_st,t_ic_IR,t_ic_CMB,t_ac,t_coole
-   real(dp) :: t_diff,t_loss,t_esc
+   real(dp) :: t_diff,t_loss,t_esc,R_acel
 
    E_l = 10.d0**log10E
 
