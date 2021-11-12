@@ -41,7 +41,7 @@ module system_parameters
    ! ISM
    real(dp), parameter :: v_ISM = v_st             ! ISM speed in the star's ref. frame
    real(dp), parameter :: n_ISM = 10.d0            ! 
-   real(dp), parameter :: T_ISM = 1.d4             ! 10000 K = warm ISM
+   real(dp), parameter :: T_ISM = 1.d2             ! 10000 K = warm ISM
    real(dp), parameter :: T_ISM_ad = k*T_ISM/mec2  ! Adimensional ISM temperature 
    real(dp), parameter :: mu_ISM = 1.28_dp         ! mean atomic weight for an atomic cloud
    real(dp), parameter :: gamma_ISM = 1.0_dp       ! abundance parameter ???
@@ -49,9 +49,9 @@ module system_parameters
    real(dp), parameter :: alpha_ISM = k*T_ISM/(v_ISM**2*mp*mu_ISM)! = P_thermal_ISM/P_kin_ISM
    real(dp), parameter :: R0 = sqrt( (Mdot*v_w)/(4.*pi*(1.+alpha_ISM)*rho_ISM*v_ISM**2) )
    real(dp), parameter :: R_eff_RS = R0*0.6
-   real(dp), parameter :: R_eff_FS = R0*100.
+   real(dp), parameter :: R_eff_FS = R0*5.
    real(dp), parameter :: H0 = R0*0.3             ! shock width
-   real(dp), parameter :: L_ISM = 0.5*pi*rho_ISM*R0**2*v_ISM**3 ! Kinetic power injected in the ISM shock
+   real(dp), parameter :: L_ISM = 0.5*pi*rho_ISM*R_eff_FS**2*v_ISM**3 ! Kinetic power injected in the ISM shock
    real(dp), parameter :: L_inj_FS = frac_BS*L_ISM          ! Wind kinetic power injeted in the BS
 
    !--------------------------------------------------------------------------------------
