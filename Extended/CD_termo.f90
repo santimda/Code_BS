@@ -29,7 +29,7 @@ module CD_termo
       real(dp) :: A_z,A_omega,st,ct
       real(dp) :: cte_P,cte_T,cte_rho,cte_ad
       real(dp) :: Beq0,v_sh,H0
-      real(dp) :: dOmega,dtheta,dR(m_theta),dA,dV_cell(m_theta)
+      real(dp) :: dOmega,dtheta,dR(m_theta),dV_cell(m_theta),dA,dA_perp !REMOVE UNUSED VARIABLES AFTER DEBUGGING
       real(dp) :: L_inj(m_theta),L_perp,L_inj_tot, L_sh, R_acel(m_theta)
       real(dp) :: v_vec(2), n_perp(2), n_t(2)
       real(dp) :: l_crit, e_flux, sin_alpha, L_old !REMOVE L_OLD AFTER DEBUGGING
@@ -232,12 +232,16 @@ module CD_termo
          ! The injected power is the energy flux * area_perpendicular
          ! Calculate the perpendicular area:
          sin_alpha = v_perp(l)/v_sh
-         if (shock == 'RS') then
-            ! IMPORTANT: CHECK IF SIN(ALPHA) SHOULD ALSO BE USED HERE
-            dA = (R_theta(l)*sin(theta(l))) * (R_theta(l)*dtheta*sin_alpha) * d_phi 
-         else if (shock == 'FS') then
-            dA = (R_theta(l)*sin(theta(l))) * (dR(l)*sin_alpha) * d_phi
-         endif
+         dA_perp = (R_theta(l)*sin(theta(l))) * (dR(l)*sin_alpha) * d_phi
+
+         !REMOVE ALL OF THIS AFTER DEBUGGING
+         !if (shock == 'RS') then
+            !IMPORTANT: CHECK IF SIN(ALPHA) SHOULD ALSO BE USED HERE
+            !dA = (R_theta(l)*sin(theta(l))) * (R_theta(l)*dtheta*sin_alpha) * d_phi 
+         !else if (shock == 'FS') then
+            !dA = (R_theta(l)*sin(theta(l))) * (dR(l)*sin_alpha) * d_phi
+         !endif
+         ! DELETE UNTIL HERE
 
          ! Calculate the energy flux (depends on the sub/super-sonic regime):
          if (l <= l_crit) then   
@@ -246,7 +250,7 @@ module CD_termo
             e_flux = 0.5d0 * rho_med(l) * v_sh**2 * v_perp(l)
          endif
 
-         L_inj(l) = e_flux * dA 
+         L_inj(l) = e_flux * dA_perp
 
          print*, l, L_inj(l)/L_old ! DELETE THIS LINE AFTER DEBUGGING
          L_inj_tot = L_inj_tot + L_inj(l)         
