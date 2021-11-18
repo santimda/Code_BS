@@ -28,11 +28,11 @@ module CD_termo
       character(LEN=*), intent(in) :: shock
       real(dp) :: A_z,A_omega,st,ct
       real(dp) :: cte_P,cte_T,cte_rho,cte_ad
-      real(dp) :: Beq0,v_sh,H0
-      real(dp) :: dOmega,dtheta,dR(m_theta),dV_cell(m_theta),dA,dA_perp !REMOVE UNUSED VARIABLES AFTER DEBUGGING
-      real(dp) :: L_inj(m_theta),L_perp,L_inj_tot, L_sh, R_acel(m_theta)
+      real(dp) :: Beq0,v_sh
+      real(dp) :: dtheta,dR(m_theta),dV_cell(m_theta),dA_perp 
+      real(dp) :: L_inj(m_theta), L_inj_tot, L_sh, R_acel(m_theta)
       real(dp) :: v_vec(2), n_perp(2), n_t(2)
-      real(dp) :: l_crit, e_flux, sin_alpha, L_old !REMOVE L_OLD AFTER DEBUGGING
+      real(dp) :: l_crit, e_flux, sin_alpha
       real(dp) :: dot_M, dM
       allocate( theta(m_theta),r_norm(m_theta),H_norm(m_theta),R_theta(m_theta) )
       allocate( x(m_theta), y(m_theta) )
@@ -127,13 +127,11 @@ module CD_termo
       ! set omp threads number
       ! $ call omp_set_num_threads(nth)
 
-
       cte_P = 2./(g_ad+1.)
       cte_T = ( (g_ad-1.)/(g_ad+1.)**2 ) * (mp/k)
       cte_rho = (g_ad+1.)/(g_ad-1.)*(v_ISM/v_w)**2/(1.-lambda)
       cte_ad = g_ad/(g_ad-1.)
 
-      
       if (shock == 'RS') then
          rho_med(1) = Mdot/(4.d0*pi*R_theta(1)**2*v_w)
          P_th_w(1) = rho_med(1)*k*T_wind/mu_w/mp             ! Stellar wind thermal pressure at R0
@@ -193,55 +191,17 @@ module CD_termo
       end do
       !  $omp end parallel do
 
-            !-----------------------------------------------------------------
-      ! Injected power available for acceleration of NT particles
-      ! (depends on the energy flux perpendicular to the shock)
-
-      L_inj_tot = 0.d0
+      !-----------------------------------------------------------------
+      ! Injected power available for the acceleration of NT particles 
+      ! The injected power is the energy flux * area_perpendicular
 
       open(42,file='Linj_'//shock//'.dat')            ! stores L_inj in one quadrant
-      ! THIS IS THE OLD VERSION; DELETE AFTER DEBUGGING
-      do l = 1, m_theta
-         if (l <= l_crit) then
-             if (shock == 'RS') then
-                dOmega = sin(theta(l))*dtheta*d_phi 
-                L_perp = (Mdot*v_sh*v_perp(l))/2.d0      ! v_perp**2
-                !L_inj(l) = L_perp*(dOmega/4.d0/pi)
-                L_old = L_perp*(dOmega/4.d0/pi)
-             else if (shock == 'FS') then
-                dA = (d_phi*R_theta(l)*sin(theta(l))) * dR(l)
-                L_perp = 0.5*rho_ISM*v_perp(l) * v_sh**2 ! V_perp**2 * v_sh
-                !L_inj(l) = L_perp*dA 
-                L_old = L_perp*dA 
-             end if
-         else
-             if (shock == 'RS') then
-                dOmega = sin(theta(l))*dtheta*d_phi 
-                L_perp = (Mdot*v_perp(l)**2)/2.d0      ! v_perp**2
-                !L_inj(l) = L_perp*(dOmega/4.d0/pi)
-                L_old = L_perp*(dOmega/4.d0/pi)
-             else if (shock == 'FS') then
-                dA = (d_phi*R_theta(l)*sin(theta(l))) * dR(l)
-                L_perp = 0.5*rho_ISM*v_perp(l)**2 * v_sh ! V_perp**2 * v_sh
-                !L_inj(l) = L_perp*dA 
-                L_old = L_perp*dA 
-             end if
-         end if
-         ! DELETE UNTIL HERE
 
-         ! The injected power is the energy flux * area_perpendicular
+      L_inj_tot = 0.d0
+      do l = 1, m_theta
          ! Calculate the perpendicular area:
          sin_alpha = v_perp(l)/v_sh
          dA_perp = (R_theta(l)*sin(theta(l))) * (dR(l)*sin_alpha) * d_phi
-
-         !REMOVE ALL OF THIS AFTER DEBUGGING
-         !if (shock == 'RS') then
-            !IMPORTANT: CHECK IF SIN(ALPHA) SHOULD ALSO BE USED HERE
-            !dA = (R_theta(l)*sin(theta(l))) * (R_theta(l)*dtheta*sin_alpha) * d_phi 
-         !else if (shock == 'FS') then
-            !dA = (R_theta(l)*sin(theta(l))) * (dR(l)*sin_alpha) * d_phi
-         !endif
-         ! DELETE UNTIL HERE
 
          ! Calculate the energy flux (depends on the sub/super-sonic regime):
          if (l <= l_crit) then   
@@ -251,8 +211,6 @@ module CD_termo
          endif
 
          L_inj(l) = e_flux * dA_perp
-
-         print*, l, L_inj(l)/L_old ! DELETE THIS LINE AFTER DEBUGGING
          L_inj_tot = L_inj_tot + L_inj(l)         
          write(42,*) theta(l), r_norm(l), L_inj(l), dR(l)/R0, L_inj_tot*(mphi*4.)/L_sh
       end do
