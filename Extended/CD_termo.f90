@@ -32,7 +32,7 @@ module CD_termo
       real(dp) :: dOmega,dtheta,dR(m_theta),dA,dV_cell(m_theta)
       real(dp) :: L_inj(m_theta),L_perp,L_inj_tot, L_sh, R_acel(m_theta)
       real(dp) :: v_vec(2), n_perp(2), n_t(2)
-      real(dp) :: l_crit
+      real(dp) :: l_crit, e_flux, sin_alpha, L_old !REMOVE L_OLD AFTER DEBUGGING
       real(dp) :: dot_M, dM
       allocate( theta(m_theta),r_norm(m_theta),H_norm(m_theta),R_theta(m_theta) )
       allocate( x(m_theta), y(m_theta) )
@@ -173,8 +173,8 @@ module CD_termo
          r(l) = (g_ad+1.)*Mach(l)**2/((g_ad-1.)*Mach(l)**2+2.) ! Compression factor (Caprioli 2014, Eq. 1)
 
          if ( v_t(l-1) <= C_s_sh(l-1) ) then                 ! Check whether the shocked fluid is subsonic or not
-             P(l) = rho_med(l)*v_sh*v_perp(l) !*r_norm(l)**2
-             l_crit = l                                      ! l for which shocked fluid becomes supersonic           
+            P(l) = rho_med(l)*v_sh*v_perp(l) !*r_norm(l)**2
+            l_crit = l                                      ! l for which shocked fluid becomes supersonic           
          else
              P(l) = rho_med(l)*v_perp(l)**2/(v_perp(l_crit)/v_sh)   !*r_norm(l)**2   ! sin(ang0) = v_perp(l_crit)/v_sh
           end if
@@ -200,29 +200,55 @@ module CD_termo
       L_inj_tot = 0.d0
 
       open(42,file='Linj_'//shock//'.dat')            ! stores L_inj in one quadrant
+      ! THIS IS THE OLD VERSION; DELETE AFTER DEBUGGING
       do l = 1, m_theta
          if (l <= l_crit) then
              if (shock == 'RS') then
                 dOmega = sin(theta(l))*dtheta*d_phi 
                 L_perp = (Mdot*v_sh*v_perp(l))/2.d0      ! v_perp**2
-                L_inj(l) = L_perp*(dOmega/4.d0/pi)
+                !L_inj(l) = L_perp*(dOmega/4.d0/pi)
+                L_old = L_perp*(dOmega/4.d0/pi)
              else if (shock == 'FS') then
                 dA = (d_phi*R_theta(l)*sin(theta(l))) * dR(l)
                 L_perp = 0.5*rho_ISM*v_perp(l) * v_sh**2 ! V_perp**2 * v_sh
-                L_inj(l) = L_perp*dA 
+                !L_inj(l) = L_perp*dA 
+                L_old = L_perp*dA 
              end if
          else
              if (shock == 'RS') then
                 dOmega = sin(theta(l))*dtheta*d_phi 
                 L_perp = (Mdot*v_perp(l)**2)/2.d0      ! v_perp**2
-                L_inj(l) = L_perp*(dOmega/4.d0/pi)
+                !L_inj(l) = L_perp*(dOmega/4.d0/pi)
+                L_old = L_perp*(dOmega/4.d0/pi)
              else if (shock == 'FS') then
                 dA = (d_phi*R_theta(l)*sin(theta(l))) * dR(l)
                 L_perp = 0.5*rho_ISM*v_perp(l)**2 * v_sh ! V_perp**2 * v_sh
-                L_inj(l) = L_perp*dA 
+                !L_inj(l) = L_perp*dA 
+                L_old = L_perp*dA 
              end if
          end if
-             
+         ! DELETE UNTIL HERE
+
+         ! The injected power is the energy flux * area_perpendicular
+         ! Calculate the perpendicular area:
+         sin_alpha = v_perp(l)/v_sh
+         if (shock == 'RS') then
+            ! IMPORTANT: CHECK IF SIN(ALPHA) SHOULD ALSO BE USED HERE
+            dA = (R_theta(l)*sin(theta(l))) * (R_theta(l)*dtheta*sin_alpha) * d_phi 
+         else if (shock == 'FS') then
+            dA = (R_theta(l)*sin(theta(l))) * (dR(l)*sin_alpha) * d_phi
+         endif
+
+         ! Calculate the energy flux (depends on the sub/super-sonic regime):
+         if (l <= l_crit) then   
+            e_flux = 0.5d0 * rho_med(l) * v_sh**3
+         else 
+            e_flux = 0.5d0 * rho_med(l) * v_sh**2 * v_perp(l)
+         endif
+
+         L_inj(l) = e_flux * dA 
+
+         print*, l, L_inj(l)/L_old ! DELETE THIS LINE AFTER DEBUGGING
          L_inj_tot = L_inj_tot + L_inj(l)         
          write(42,*) theta(l), r_norm(l), L_inj(l), dR(l)/R0, L_inj_tot*(mphi*4.)/L_sh
       end do
