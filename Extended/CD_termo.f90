@@ -39,7 +39,7 @@ module CD_termo
       allocate( Mach(m_theta),P_th_w(m_theta),C_s_med(m_theta),C_s_sh(m_theta),r(m_theta) )
       allocate( P_med(m_theta), rho_med(m_theta) )
       allocate( P(m_theta),rho(m_theta),T(m_theta),B(m_theta),v_t(m_theta),v_perp(m_theta) )
-      allocate( v_t_old(m_theta), P_old(m_theta), rho_old(m_theta))
+      allocate( v_t_old(m_theta), P_old(m_theta), rho_old(m_theta), B_old(m_theta) )
       allocate( H_new(m_theta), y_eff(m_theta) )
 
       80    format(A13,X,Es10.2)
@@ -150,6 +150,7 @@ module CD_termo
       r(1) = (g_ad+1.)*Mach(1)**2/((g_ad-1.)*Mach(1)**2+2.)
       Beq0 = sqrt(8.d0*pi*P(1))
       B(1) = frac_sh*Beq0
+      B_old(1) = frac_sh*Beq0
       C_s_sh(1) = sqrt(g_ad*P(1)/rho(1))
       v_t(1) = 0.d0
 
@@ -175,18 +176,24 @@ module CD_termo
             l_crit = l                                      ! l for which shocked fluid becomes supersonic           
          else
              P(l) = rho_med(l)*v_perp(l)**2/(v_perp(l_crit)/v_sh)   !*r_norm(l)**2   ! sin(ang0) = v_perp(l_crit)/v_sh
-          end if
+         end if
           
          rho(l) = rho(1)*(P(l)/P(1))**(1./g_ad)              ! Adiabatic relation
          C_s_sh(l) = sqrt(g_ad*P(l)/rho(l))                  ! Sound speed in the shocked fluid     
          T(l) = cte_T*v_perp(l)**2                 ! Eq. 20
-         Beq0 = sqrt(8.d0*pi*P(l))     ! sqrt(4.d0*pi*rho(l)*v(l)**2.d0)
          ! If U_mag = frac*U_th -> B^2/4pi = frac*(g_ad/g_ad - 1)*P 
          ! If P_mag = frac*P_th -> B^2/8pi = frac*P 
-         B(l) = frac_sh*Beq0
+         Beq0 = sqrt(8.d0*pi*P(l))     ! sqrt(4.d0*pi*rho(l)*v(l)**2.d0)
+         ! B_old(l) = frac_sh*Beq0     ! Move Beq0 outside if conditional if this quantiy is needed
 
          ! Kinetic energy p/ unit mass in the upstream region = Kinetic p/ unit mass + specific enthalpy in the downstream region
          v_t(l) = sqrt( 2.d0 * (0.5d0*v_sh**2-cte_ad*P(l)/rho(l)) )
+
+         if ( v_t(l-1) <= C_s_sh(l-1) ) then
+            B(l) = frac_sh*Beq0
+         else       
+            B(l) = B(l-1)*(rho(l)*v_t(l-1)/rho(l-1)/v_t(l))**0.5d0   ! Frozen-in conditions
+         end if
          
       end do
       !  $omp end parallel do
@@ -300,7 +307,7 @@ module CD_termo
 
       deallocate( P,rho,T,B,v_t,v_perp,theta,r_norm,H_norm,R_theta,Mach,r,P_med,rho_med,P_th_w,C_s_med,C_s_sh )
       deallocate( x, y, H_new, y_eff )
-      deallocate( v_t_old, P_old, rho_old )
+      deallocate( v_t_old, P_old, rho_old, B_old )
       
    END subroutine CD_termo_run
 
