@@ -103,7 +103,7 @@ module CD_termo
          v_perp(l) = max( DOT_PRODUCT(v_vec,n_perp), 0.d0 )
          !v_t(l) = max( DOT_PRODUCT(v_vec,n_t), 1.d-10 ) ! Just so we don't get a zero value in l=1
          dV_cell(l) = R_theta(l)*sin(theta(l))*dR(l)*(H_norm(l)*R_theta(l)) ! Volume of the cell
-         write(18,*) theta(l), H_norm(l)*R_theta(l), R_acel(l)*R0
+         write(18,*) theta(l), H_norm(l)*R_theta(l), R_acel(l)*R0, H_norm(l)
       end do
       close(18)
 
@@ -336,7 +336,11 @@ SUBROUTINE A_theta(shock,theta0,st,ct,r1,A_z,A_omega,H0_norm)
       H0_norm = 0.5*(g_ad-1.)/(g_ad+1.) * (v_w/v_ISM)**2* (g_theta**2)/(f_theta*st) ! Eq. 23
       !H0_norm = 0.2d0 ! + (theta0/2./pi)**2.
    else if (shock == 'FS') then
-      H0_norm = 0.3
+      if (theta(l) <= pi/2) then
+         H0_norm = 0.3
+      else
+         H0_norm = 0.3 * sin(theta(l))
+      end if
    end if
 
    RETURN
