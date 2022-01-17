@@ -24,7 +24,7 @@ module CD_distp
       real(dp) :: t_cell(m_theta),t_adv(m_theta),t_adi(m_theta),t_adi_pp
       real(dp) :: t_ac,t_pp,t_diff,t_esc,t_loss(m_theta,mE_p),t_coolp(m_theta,mE_p)
       real(dp) :: log10Emaxl,R_acel(m_theta),D_diff,integral,Q
-      real(dp) :: E_dot(m_theta,mE_p),Emax_p0(m_theta),Ka,E_NT,dVol,U_NT
+      real(dp) :: E_dot(m_theta,mE_p),Emax_p0(m_theta),rg_p_max(m_theta),max,Ka,E_NT,dVol,U_NT
       real(dp) :: N_p0(mE_p),n_a(m_theta),L_inj(m_theta),dR(m_theta)
       real(dp) :: L_inj_p(m_theta), sum, b_pp, L1, f1, f2, f
       real(dp) :: dE_aprox, cool
@@ -110,7 +110,8 @@ module CD_distp
       ! (and also the maximum energy)
 
       open(70,file='CD_tcoolp_'//shock//'.dat')
-      open(78,file='Emaxp'//shock//'.dat') 
+      open(78,file='Emaxp'//shock//'.dat')
+      open(83,file='Gyroradius_p_'//shock//'.dat')
 
       do l = 1, m_theta
          t_cell(l) = dR(l)/v_t(l)      ! Cell advection time
@@ -141,6 +142,8 @@ module CD_distp
          endif
 
          if (Emax_p0(l) >= 0.5*Emax_p) write(*,*) 'Emax_p in global.f90 is too small!'
+
+         rg_p_max(l) = Emax_p0(l)/qe/B(l)    ! Max gyroradius
          
          do i = 1, mE_p
             if (E_p(i) <= E_th) then    ! E_th= 1.22 GeV
@@ -167,9 +170,11 @@ module CD_distp
          end do
 
          write(78,*) l, Emax_p0(l)/eV
+         write(83,*) l, theta(l), rg_p_max(l), H_theta(l)/rg_p_max(l)
       end do
       close(70)
       close(78)
+      close(83)
 
       !========================================================================
 
@@ -404,7 +409,7 @@ Subroutine Biseccion_p(Be,x3,t_pp,t_adv,xi,Rdiff)
    end interface
 
    ! Error in nth step < |a-b|/2**n
-   a_ = log10(1.5*Emin_p) 
+   a_ = log10(1.2*Emin_p) 
    b_ = log10(Emax_p) 
    i = 0
    do while ( abs(b_ - a_) > err )
