@@ -27,7 +27,7 @@ module CD_diste
       real(dp) :: cte_sy, gamm, cte_IC, C_ic_st,kC_ic_st, C_ic_IR(m_theta),kC_ic_IR
       real(dp) :: log_coul,gdot_coul,cte_coul,t_coul
       real(dp) :: log10Emaxl,R_acel(m_theta),Q,integral
-      real(dp) :: E_dot(m_theta,mE_e),Emax_e0(m_theta),Ka,E_NT,dVol,U_NT
+      real(dp) :: E_dot(m_theta,mE_e),Emax_e0(m_theta),rg_e_max(m_theta),Ka,E_NT,dVol,U_NT
       real(dp) :: N_e0(mE_e),n_a(m_theta),L_inj(m_theta),dR(m_theta)
       real(dp) :: L_inj_e(m_theta), sum, f1, f2, f
       real(dp) :: dE_aprox, cool
@@ -125,6 +125,7 @@ module CD_diste
       open(65,file='rad_adi_'//shock//'.dat')
       open(70,file='CD_tcoole_'//shock//'.dat')
       open(78,file='Emaxe'//shock//'.dat')
+      open(83,file='Gyroradius_e_'//shock//'.dat')
 
       cte_IC = pi*h_bar**3*c**2/(2.*re**2*mec2**3)
       C_ic_st = (cte_IC)/(T_st_ad**2)
@@ -184,6 +185,8 @@ module CD_diste
 
          if (Emax_e0(l) >= 0.5*Emax_e) write(*,*) 'Emax_e in global.f90 is too small!'
 
+         rg_e_max(l) = Emax_e0(l)/qe/B(l)     ! Max gyroradius
+
          log_coul = 29.7d0 + log( (T(l)/1.d6)/sqrt(n_a(l)) ) 
          cte_coul = 3.d-14*n_a(l)*log_coul
 
@@ -216,10 +219,12 @@ module CD_diste
          end do
 
          write(78,*) l, Emax_e0(l)/eV
+         write(83,*) l, theta(l), rg_e_max(l), H_theta(l)/rg_e_max(l)
       end do
       close(65)
       close(70)
       close(78)
+      close(83)
 
       !========================================================================
 
