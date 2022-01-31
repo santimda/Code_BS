@@ -183,7 +183,7 @@ module CD_termo
          T(l) = cte_T*v_perp(l)**2                 ! Eq. 20
          ! If U_mag = frac*U_th -> B^2/4pi = frac*(g_ad/g_ad - 1)*P 
          ! If P_mag = frac*P_th -> B^2/8pi = frac*P 
-         Beq0 = sqrt(8.d0*pi*P(l))     ! sqrt(4.d0*pi*rho(l)*v(l)**2.d0)
+         Beq0 = sqrt(8.d0*pi*P(l))     ! sqrt(4.d0*pi*rho(l)*v(l)**2)
          ! B_old(l) = frac_sh*Beq0     ! Move Beq0 outside if conditional if this quantiy is needed
 
          ! Kinetic energy p/ unit mass in the upstream region = Kinetic p/ unit mass + specific enthalpy in the downstream region
@@ -192,7 +192,7 @@ module CD_termo
          if ( v_t(l-1) <= C_s_sh(l-1) ) then
             B(l) = frac_sh*Beq0
          else       
-            B(l) = B(l-1)*(rho(l)*v_t(l-1)/rho(l-1)/v_t(l))**0.5d0   ! Frozen-in conditions
+            B(l) = B(l-1)*sqrt(rho(l)*v_t(l-1)/rho(l-1)/v_t(l))   ! Frozen-in conditions
          end if
          
       end do
