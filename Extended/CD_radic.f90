@@ -98,10 +98,7 @@ module CD_radic
       ang = acos(DOT_PRODUCT(X_obs,X_Ee)) ! angle between Xobs and XEe
 
       ! Obtain the SED, L_IC(Ef), and the integrated luminosity, L_unabs, at "l":
-      do i = 1,mE_e ! Work with a vector instead of the full array
-        N_e(i)=N_etot(l,i)
-      enddo
-
+      N_e = N_etot(l,:)      ! N_e = electron distribution at position "l"
       call IC_ani(E_e,N_e,Ef,Kappa_st,T_st_ad,ang,LIC,L_unabs) 
 
       L_unabs_tot = L_unabs_tot + L_unabs 

@@ -90,9 +90,7 @@ contains
     ! At each position we calculate the synchrotron emission; then we sum all.
     sum_sy = 0.d0
     DO l = 1, m_theta
-      do i = 1, mE_e
-        N_e(i) = N_etot(l,i)
-      enddo
+      N_e = N_etot(l,:)      ! N_e = electron distribution at position "l"
       ni = rho(l)/mp/2.085d0  ! 2.085 = x + 4*y + 14*z  ?????????
       ne = 1.395d0*ni         ! 1.395 = x + 2*y + 7*z   ?????????
       nu_RT = 20.d0*ne/B(l)   ! characteristic frequency for R-T effect 

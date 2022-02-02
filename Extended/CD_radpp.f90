@@ -87,12 +87,9 @@ module CD_radpp
     Lpp_tot = 0.d0
     sum_pp=0.d0
 
-    do l=1,m_theta          ! l
-      do i=1,mE_p
-        N_p(i)=N_ptot(l,i)
-      end do
-
-      mE_pi = mE_f    ! Initial value
+    do l=1,m_theta            ! l
+      N_p = N_ptot(l,:)       ! N_p = proton distribution at position "l"
+      mE_pi = mE_f            ! Initial value
       do i = 1,mE_f           ! Ef(i) 
         dEf = Ef(i)*(Ef_int-1.d0)
         ! We use a different formalism in 2 energy ranges: 

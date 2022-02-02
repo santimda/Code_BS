@@ -89,10 +89,7 @@ contains
       ! At each position we calculate the brem. emission; then we sum all.
       sum_br=0.d0
       DO l=1,m_theta
-         do i=1,mE_e
-            N_e(i)=N_etot(l,i)
-         end do
-
+         N_e = N_etot(l,:)      ! N_e = electron distribution at position "l"
          do i = 1,mE_f              ! Eps(i) 
             dEf = Ef(i)*(Ef_int-1.d0)
             sum = 0.d0
