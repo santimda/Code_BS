@@ -32,8 +32,9 @@ module CD_termo
       real(dp) :: dtheta,dR(m_theta),dV_cell(m_theta),dA_perp 
       real(dp) :: L_inj(m_theta), L_inj_tot, L_sh, R_acel(m_theta)
       real(dp) :: v_vec(2), n_perp(2), n_t(2)
-      real(dp) :: l_crit, e_flux, sin_alpha
+      real(dp) :: e_flux, sin_alpha
       real(dp) :: dot_M, dM
+      integer :: l_crit
       allocate( theta(m_theta),r_norm(m_theta),H_norm(m_theta),R_theta(m_theta) )
       allocate( x(m_theta), y(m_theta) )
       allocate( Mach(m_theta),P_th_w(m_theta),C_s_med(m_theta),C_s_sh(m_theta),r(m_theta) )
@@ -175,12 +176,18 @@ module CD_termo
             P(l) = rho_med(l)*v_sh*v_perp(l) !*r_norm(l)**2
             l_crit = l                                      ! l for which shocked fluid becomes supersonic           
          else
-             P(l) = rho_med(l)*v_perp(l)**2/(v_perp(l_crit)/v_sh)   !*r_norm(l)**2   ! sin(ang0) = v_perp(l_crit)/v_sh
+            P(l) = rho_med(l)*v_perp(l)**2/(v_perp(l_crit)/v_sh)   !*r_norm(l)**2   ! sin(ang0) = v_perp(l_crit)/v_sh
          end if
           
-         rho(l) = rho(1)*(P(l)/P(1))**(1./g_ad)              ! Adiabatic relation
-         C_s_sh(l) = sqrt(g_ad*P(l)/rho(l))                  ! Sound speed in the shocked fluid     
-         T(l) = cte_T*v_perp(l)**2                 ! Eq. 20
+         rho(l) = rho(1)*(P(l)/P(1))**(1./g_ad)       ! Adiabatic relation
+         !print*, rho(l)/rho_med(l)
+         !rho(l) = max( rho(l), rho_med(l) )           ! The density in the shocked fluid cannot drop below the medium density
+         if (rho(l) < rho_med(l)) then         ! The density in the shocked fluid cannot drop below the medium density
+            print*,'\n UNREALISTIC DENSITY! theta_max IS TOO LARGE, ABORT'
+            stop
+         endif
+         C_s_sh(l) = sqrt(g_ad*P(l)/rho(l))           ! Sound speed in the shocked fluid     
+         T(l) = cte_T*v_perp(l)**2                    ! Eq. 20
          ! If U_mag = frac*U_th -> B^2/4pi = frac*(g_ad/g_ad - 1)*P 
          ! If P_mag = frac*P_th -> B^2/8pi = frac*P 
          Beq0 = sqrt(8.d0*pi*P(l))     ! sqrt(4.d0*pi*rho(l)*v(l)**2)
