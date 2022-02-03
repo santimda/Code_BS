@@ -33,8 +33,8 @@ module CD_termo
       real(dp) :: L_inj(m_theta), L_inj_tot, L_sh, R_acel(m_theta)
       real(dp) :: v_vec(2), n_perp(2), n_t(2)
       real(dp) :: e_flux, sin_alpha
-      real(dp) :: dot_M, dM, drho, P_th_med
-      integer :: l_crit, l_transition
+      real(dp) :: dot_M, dM, drho, P_th_med, Omega_in, theta_min
+      integer :: l_crit, l_transition, l_min
       logical :: transition
       allocate( theta(m_theta),r_norm(m_theta),H_norm(m_theta),R_theta(m_theta) )
       allocate( x(m_theta), y(m_theta) )
@@ -85,7 +85,7 @@ module CD_termo
       ! Calculate the normal and tangential vectors at each position
       ! using Eqs.12-16 from Christie+16; we also calculate H(theta)/R(theta)
 
-      open(18,file='Hnorm_'//shock//'.dat') ! normalized
+      !open(18,file='Hnorm_'//shock//'.dat') ! normalized
       do l = 1, m_theta
          st = sin(theta(l))
          ct = cos(theta(l))
@@ -104,10 +104,10 @@ module CD_termo
          end if
          v_perp(l) = max( DOT_PRODUCT(v_vec,n_perp), 0.d0 )
          !v_t(l) = max( DOT_PRODUCT(v_vec,n_t), 1.d-10 ) ! Just so we don't get a zero value in l=1
-         dV_ring(l) = (2.d0*pi*R_theta(l)*st) * dR(l) * (H_norm(l)*R_theta(l)) ! Volume of the ring
-         write(18,*) theta(l), H_norm(l)*R_theta(l), R_acel(l)*R0, H_norm(l), dV_ring(l)
+         !dV_ring(l) = (2.d0*pi*R_theta(l)*st) * dR(l) * (H_norm(l)*R_theta(l)) ! Volume of the ring
+         !write(18,*) theta(l), H_norm(l)*R_theta(l), R_acel(l)*R0, H_norm(l), dV_ring(l)
       end do
-      close(18)
+      !close(18)
 
       ! particle accel. efficiency at the shock, depending on theta
       allocate( efi_ac_sh(m_theta) )
@@ -186,7 +186,8 @@ module CD_termo
          endif
 
          if (shock == 'RS') then
-            rho_min(l) = 4.d0/(2.d0*( 1.d0-cos(pi-theta(l)) )) * rho_med(l)
+            Omega_in = 2.d0*( 1.d0-cos(pi-theta(l)) ) ! Solid angle of the inner region (divided by pi)
+            rho_min(l) = (4.d0-Omega_in)/Omega_in * rho_med(l)
          else if (shock == 'FS') then
             rho_min(l) = rho_med(l)
          end if
@@ -279,24 +280,32 @@ module CD_termo
       do l = 1, m_theta
          y_eff(l) = y(l)*R0
       end do
+
       dot_M = 0.d0
-
+      theta_min = 0.1d0 ! For theta < theta_min, the approximation is not good
+      l_min = int( (theta_min/theta_max) * m_theta )
       do l = 1, m_theta
-         dM = rho_med(l)*v_perp(l)*2.*pi*R_theta(l)*sin(theta(l))*dR(l)
+         ! Calculate the perpendicular area of a ring:
+         sin_alpha = v_perp(l)/v_sh
+         dA_perp = (R_theta(l)*sin(theta(l))) * (dR(l)*sin_alpha) * 2.d0*pi
+         dM = (rho_med(l) * v_sh) * dA_perp
+         !dM = rho_med(l)*v_perp(l)*2.*pi*R_theta(l)*sin(theta(l))*dR(l)
          dot_M = dot_M + dM
-
-         if (theta(l) < 0.25d0) then
-            if (shock == 'RS') then
-               H_new(l) = 0.25*R_theta(l)
-            else if (shock == 'FS') then
-               H_new(l) = 0.4*R_theta(l)
-            end if
-         else   
-            H_new(l) = dot_M/(2.*pi*y_eff(l)*rho(l)*v_t(l))   ! dot_M = 2*pi*y_eff(l)*H_new(l)*rho(l)*v_t(l)
-         end if
-
+         H_new(l) = dot_M/(2.*pi*y_eff(l)*rho(l)*v_t(l))   ! dot_M = 2*pi*y_eff(l)*H_new(l)*rho(l)*v_t(l)
       end do
-      
+
+      ! For theta < theta_min, we use the value obtained at theta_min
+      do l = 1, l_min
+         H_new(l) = H_new(l_min)
+      end do
+
+      open(18,file='Hnorm_'//shock//'.dat') ! normalized
+      do l = 1, m_theta
+         st = sin(theta(l))
+         dV_ring(l) = (2.d0*pi*R_theta(l)*st) * dR(l) * H_new(l) ! Volume of the ring
+         write(18,*) theta(l), H_new(l), R_acel(l)*R0, H_new(l)/R_theta(l), dV_ring(l)
+      end do
+      close(18)
 
       !------------------------------
       ! Write the results
@@ -309,11 +318,7 @@ module CD_termo
          write(16,*) l,rho(l),P(l),v_t(l),T(l),B(l),v_perp(l),theta(l),Mach(l),r(l),rho_med(l)
          write(17,*) theta(l),rho(l)/rho(1),P(l)/P(1),v_t(l)/v_sh,T(l)/T(1),B(l)/B(1),v_perp(l)/v_sh,C_s_sh(l)/v_sh
          write(18,*) theta(l),v_t(l)/v_t_old(l), P(l)/P_old(l), rho(l)/rho_old(l)
-         if (theta(l) < pi/2.d0) then
-            write(19,*) theta(l), H_new(l), H_new(l)/R_theta(l)
-         else
-            write(19,*) theta(l), H_new(l), H_new(l)/R_theta(l)/sin(theta(l))
-         end if
+         write(19,*) theta(l), H_new(l), H_new(l)/R_theta(l)
       end do
       close(16)
       close(17)
