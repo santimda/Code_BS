@@ -24,8 +24,8 @@ module CD_distp
       real(dp) :: t_cell(m_theta),t_adv(m_theta),t_adi(m_theta),t_adi_pp
       real(dp) :: t_ac,t_pp,t_diff,t_esc,t_loss(m_theta,mE_p),t_coolp(m_theta,mE_p)
       real(dp) :: log10Emaxl,R_acel(m_theta),D_diff,integral,Q
-      real(dp) :: E_dot(m_theta,mE_p),Emax_p0(m_theta),rg_p_max(m_theta),max,Ka,E_NT,dVol,U_NT
-      real(dp) :: N_p0(mE_p),n_a(m_theta),L_inj(m_theta),dR(m_theta)
+      real(dp) :: E_dot(m_theta,mE_p),Emax_p0(m_theta),rg_p_max(m_theta),max,Ka,E_NT,U_NT
+      real(dp) :: N_p0(mE_p),n_a(m_theta),L_inj(m_theta),dR(m_theta),dV_ring(m_theta)
       real(dp) :: L_inj_p(m_theta), sum, b_pp, L1, f1, f2, f
       real(dp) :: dE_aprox, cool
       real(dp), parameter :: k_pp = 0.5d0
@@ -85,7 +85,7 @@ module CD_distp
       
       open(103,file='Hnorm_'//shock//'.dat') 
       do l = 1, m_theta
-         read(103,*) dummy, H_theta(l), R_acel(l)
+         read(103,*) dummy, H_theta(l), R_acel(l), dummy, dV_ring(l)       
       end do
       close(103)
       
@@ -169,6 +169,7 @@ module CD_distp
             E_dot(l,i) = E_p(i)/t_coolp(l,i)
          end do
 
+         !print*, l, t_adi(l), t_coolp(l,80), t_loss(l,80)
          write(78,*) l, Emax_p0(l)/eV
          write(83,*) l, theta(l), rg_p_max(l), H_theta(l)/rg_p_max(l)
       end do
@@ -311,8 +312,7 @@ module CD_distp
             E_NT = E_NT + E_p(i)*N_ptot(l,i)*dE_p
          end do
          E_NT = E_NT * 4.d0*mphi ! Total NT energy in each BS "ring"
-         dVol = 2.d0*pi*R_theta(l)*sin(theta(l))*dR(l)*H_theta(l) ! Volume of the "ring"
-         U_NT = E_NT/dVol
+         U_NT = E_NT/dV_ring(l)
          write(80,*) l, E_NT, U_NT, U_NT/(8.d0*pi*B(l)**2)! Store the energy density as well
          sum = sum + E_NT
       end do
@@ -329,10 +329,216 @@ module CD_distp
       deallocate( theta,R_theta,H_theta,B,rho,P,v_t,T )
       deallocate( N_p,E_p, N_ptot, efi_ac_sh, alpha_sh )
       
+      !call CD_distp_approx_run(shock) ! JUST FOR A CHECK
+
    END subroutine CD_distp_run
    
    !============================================================================
    ! CD_distp_run (END)
+   !============================================================================
+
+   !============================================================================
+   ! CD_distp_approx_run (START)
+   !============================================================================
+   !  This program calculates the proton energy distribution at each position
+   !  of the CD using CD.dat and termo_sw.dat. The program generates distp_sw.dat, 
+   !  in which Np(l,E(i)) is saved, with m_theta*mE_p data; distp_sw_total.dat, 
+   !  which stores Np(E(i)), and ENTp.dat, with E_NT(l). Emin_p and Emax_p are 
+   !  fixed in global. THIS APPROXIMATION NEGLECTS ENERGY LOSSES.
+   !============================================================================
+   
+   subroutine CD_distp_approx_run(shock) 
+
+      use global
+      implicit none
+      character(LEN=*), intent(in) :: shock
+      integer :: l_min,l2,m_theta_inj_max
+      real(dp) :: t_cell(m_theta),t_adv(m_theta)
+      real(dp) :: t_diff,t_esc,t_loss(m_theta,mE_p)
+      real(dp) :: R_acel(m_theta),D_diff,integral,Q
+      real(dp) :: E_dot(m_theta,mE_p),Emax_p0(m_theta),max,Ka,E_NT,dV_ring(m_theta),U_NT
+      real(dp) :: N_p0(mE_p),n_a(m_theta),L_inj(m_theta),dR(m_theta),N_total_i
+      real(dp) :: L_inj_p(m_theta), f1, f2, f
+      real(dp) :: dE_aprox
+      real(dp), parameter :: k_pp = 0.5d0
+      
+      interface
+      function fQp(E,Emax,alpha) ! function Q(E)
+         use iso_fortran_env, only: dp => real64
+         implicit none
+         real(dp) :: fQp
+         real(dp), intent(in) :: E,Emax,alpha
+      end function fQp
+      end interface
+
+      allocate( theta(m_theta),R_theta(m_theta),H_theta(m_theta) )
+      allocate( P(m_theta),rho(m_theta),T(m_theta),B(m_theta),v_t(m_theta) )
+      allocate( N_p(mE_p),E_p(mE_p),N_ptot(m_theta,mE_p) )
+      allocate( efi_ac_sh(m_theta) )
+      allocate( alpha_sh(m_theta) )
+      
+      write(*,*) 'Calculate the approximate non-thermal proton distribution in the shock'
+
+      !---------------------------------------------------------------------------------
+      !  Read the position of the shock and cell size: theta, r_norm(theta), dR(theta); 
+      !  the thermodynamical quantities and injected luminosity at each cell
+      
+      open(12,file='Linj_'//shock//'.dat')
+      do l=1,m_theta
+         read(12,*) theta(l),R_theta(l),L_inj(l),dR(l)
+      end do
+      close(12)
+      R_theta = R0*R_theta     ! The file contained r_norm, not R_theta
+      dR = R0*dR               ! The file contained dR/R0, not dR [cm]
+      L_inj_p = inj_p*L_inj    ! The cell size is already taken into account in L_inj
+      
+      open(11,file='termo_'//shock//'.dat') 
+      do l=1,m_theta
+         read(11,*) l2,rho(l),P(l),v_t(l),T(l),B(l) ! all in CGS units
+      end do
+      close (11)
+      if (shock == 'RS') then
+         n_a = rho/mp/mu_sw   ! Ambient number density
+      else if (shock == 'FS') then
+         n_a = rho/mp/mu_SISM
+      end if
+      
+      open(103,file='Hnorm_'//shock//'.dat') 
+      do l = 1, m_theta
+         read(103,*) dummy, H_theta(l), R_acel(l), dummy, dV_ring(l) 
+      end do
+      close(103)
+      
+      open(114,file='efi_ac_'//shock//'.dat')
+      open(20,file='alpha_'//shock//'.dat')
+      do l = 1,m_theta
+         read(114,*) dummy,efi_ac_sh(l)
+         read(20,*) dummy,alpha_sh(l)
+      end do
+      close(114)
+      close(20)
+
+      
+      !--------------------------------------------------------------------
+      ! Build an energy vector that is common for all linear-emitters: 
+      
+      call vector_log(Emin_p,Emax_p,Eint_p,E_p)
+
+      ! Calculate the convection time at each position (and also the maximum energy)
+
+      do l = 1, m_theta
+         t_cell(l) = dR(l)/v_t(l)      ! Cell advection time
+         t_adv(l) = R_theta(l)/v_t(l)  ! Characteristic advection time
+      end do
+
+      m_theta_inj_max = m_theta ! Default value is to inject up to m_theta
+      do l = 1, m_theta
+         ! advection or diffusion determine E_max
+         Emax_p0(l) = MIN( t_adv(l)*(B(l)*c*qe)/efi_ac_sh(l), qe*B(l)*R_acel(l)*sqrt(1.5d0/efi_ac_sh(l)) )
+         if (Emax_p0(l) >= 0.5*Emax_p) write(*,*) 'Emax_p in global.f90 is too small!'
+         do i = 1, mE_p
+            D_diff = E_p(i)*c/(3.d0*qe*B(l))
+            t_diff = R_acel(l)**2/(2.d0*D_diff)      ! Diffusion losses
+            t_esc = 1./( 1./t_adv(l) + 1.d0/t_diff )  ! escape
+            t_loss(l,i) = t_esc ! general losses
+         end do
+      end do
+
+      !========================================================================
+
+      ! Consider different starting points for each linear emitter
+      
+      N_ptot = 0.d0 ! Array containing N_p(l,i) with all the contributions at a cell "l"
+      Do l_min = 1, m_theta_inj_max ! After m_theta_inj_max, particles are no longer accelerated
+
+         ! Q = Ka*E**-alpha*e^(-E/Emax), alpha=2. The normalization constant Ka is obtained 
+         ! by the condition: int Q(E')*E'dE' = Linj. [Linj]=erg/s, [Ka]=erg/s, [Q]=1/erg/seg
+
+         ! The integral is solved with the trapezoid method; Q(E) is obtained from fQp
+         integral = 0.d0
+         i = 1
+         f1 = E_p(1) * fQp(E_p(1), Emax_p0(l_min), alpha_sh(l_min))
+         do while (i < mE_p .and. E_p(i+1) < 10.d0*Emax_p0(l_min))
+           f2 = E_p(i+1) * fQp(E_p(i+1), Emax_p0(l_min), alpha_sh(l_min))
+           f = (f1 + f2)/2.d0
+           dE_p = E_p(i)*(Eint_p-1.d0)
+           integral = integral + f*dE_p
+           f1 = f2
+           i = i + 1
+         end do
+         Ka = L_inj_p(l_min)/integral ! Injected at the starting point of the line   
+
+         !------------------------------------------------------------------------
+
+         N_p0 = 0.d0            ! Initialize to zero at each loop in l_min
+         i = 1
+         do while (i < mE_p+1 .and. E_p(i) < 10.d0*Emax_p0(l_min)) 
+            ! N(E)=1/|dE/dt|*int_E^Emax Q(E')dE' = Q(E)*dt, with |dE/dt|= E/t_cool 
+            ! in [erg/seg], dt = min(t_cell,t_cool) so that [N(E)]=erg/erg**2
+
+            Q = Ka * fQp(E_p(i), Emax_p0(l_min), alpha_sh(l_min))
+            N_p0(i) = Q * min(t_cell(l_min),t_loss(l_min,i))
+            N_ptot(l_min,i) = N_ptot(l_min,i) + N_p0(i)
+            
+            ! We calculate the evolved version of the injected electron distribution at each
+            ! position "l" as: N_l(l) = N_l-1* (Edot_l-1/Edot_l), where the energy also evolves
+            ! as E0(l) given by: t_cell(l) = int_E0^El Edot * dE
+            
+            N_p = 0.d0            ! Initialize to zero at each loop in l_min
+            N_p(i) = N_p0(i) ! This will be evolved
+            l = l_min + 1  
+
+            do while( l <= m_theta) 
+               ! The following takes into account variable cell size and velocity
+               N_p(i) = N_p(i) * (t_cell(l)/t_cell(l-1))
+               N_ptot(l,i) = N_ptot(l,i) + N_p(i)  ! The energies match by construction
+               l = l + 1 
+            end do               ! End loop in shock position (l) 
+            i = i + 1
+         end do                  ! End loop in electron starting energies (i)
+
+      end do                     ! End loop in starting position (l_min = # linear-emitters)
+
+      ! Save the proton distribution at each position 
+      open(79,file='distp_approx_'//shock//'.dat')
+      do l = 1,m_theta
+         do i = 1,mE_p
+            write(79,*) theta(l),E_p(i)/eV,N_ptot(l,i)
+         end do
+         write(79,*) 
+      end do
+      close(79)
+
+      open(80,file='ENTp_approx_'//shock//'.dat')
+      do l = 1,m_theta
+         E_NT = 0.d0
+         do i=1,mE_p
+            dE_p = E_p(i)*(Eint_p - 1.d0)  
+            E_NT = E_NT + E_p(i)*N_ptot(l,i)*dE_p
+         end do
+         E_NT = E_NT * 4.d0*mphi ! Total NT energy in each BS "ring"
+         U_NT = E_NT/dV_ring(l)
+         write(80,*) l, E_NT, U_NT, U_NT/(8.d0*pi*B(l)**2)! Store the energy density as well
+      end do
+      close(80)
+
+      open(81,file='distp_approx_'//shock//'_total.dat')
+      do i=1,mE_p
+         N_total_i = 0.d0
+         do l=1,m_theta
+            N_total_i = N_total_i + N_ptot(l,i)
+         end do
+         write(81,*) E_p(i)/eV, N_total_i * mphi*1.d0 ! Total distribution at each energy for 1 of the 4 quadrants
+      end do
+      close(81)
+
+      deallocate( theta,R_theta,H_theta,B,rho,P,v_t,T )
+      deallocate( N_p,E_p, N_ptot, efi_ac_sh, alpha_sh )
+
+   END subroutine CD_distp_approx_run
+   
+   !============================================================================
+   ! CD_distp_approx_run (END)
    !============================================================================
 
 END module CD_distp

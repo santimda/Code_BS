@@ -27,7 +27,7 @@ module CD_diste
       real(dp) :: cte_sy, gamm, cte_IC, C_ic_st,kC_ic_st, C_ic_IR(m_theta),kC_ic_IR
       real(dp) :: log_coul,gdot_coul,cte_coul,t_coul
       real(dp) :: log10Emaxl,R_acel(m_theta),Q,integral
-      real(dp) :: E_dot(m_theta,mE_e),Emax_e0(m_theta),rg_e_max(m_theta),Ka,E_NT,dVol,U_NT
+      real(dp) :: E_dot(m_theta,mE_e),Emax_e0(m_theta),rg_e_max(m_theta),Ka,E_NT,dV_ring(m_theta),U_NT
       real(dp) :: N_e0(mE_e),n_a(m_theta),L_inj(m_theta),dR(m_theta)
       real(dp) :: L_inj_e(m_theta), sum, f1, f2, f
       real(dp) :: dE_aprox, cool
@@ -89,7 +89,7 @@ module CD_diste
 
       open(103,file='Hnorm_'//shock//'.dat') 
       do l = 1, m_theta
-         read(103,*) dummy,H_theta(l), R_acel(l) 
+         read(103,*) dummy, H_theta(l), R_acel(l), dummy, dV_ring(l) 
       end do
       close(103)
 
@@ -362,8 +362,7 @@ module CD_diste
             E_NT = E_NT + E_e(i)*N_etot(l,i)*dE_e
          end do
          E_NT = E_NT * 4.d0*mphi ! Total NT energy in each BS "ring"
-         dVol = 2.d0*pi*R_theta(l)*sin(theta(l))*dR(l)*H_theta(l) ! Volume of the "ring"
-         U_NT = E_NT/dVol
+         U_NT = E_NT/dV_ring(l)
          write(80,*) l, E_NT, U_NT, U_NT/(8.d0*pi*B(l)**2)! Store the energy density as well
          sum = sum + E_NT
       end do
@@ -381,10 +380,241 @@ module CD_diste
       deallocate( N_e,E_e,N_etot ) 
       deallocate( T_IR, T_IR_ad, efi_ac_sh, alpha_sh )
 
+      !call CD_diste_approx_run(shock) ! JUST FOR A CHECK
+
    END subroutine CD_diste_run
 
    !============================================================================
    ! CD_diste_run (END)
+   !============================================================================
+
+   !============================================================================
+   ! CD_diste_run (START)
+   !============================================================================
+   !  This program calculates the electron energy distribution at each position
+   !  of the CD using CD.dat and termo_sw.dat. The program generates diste_sw.dat, 
+   !  in which Ne(l,E(i)) is saved, with m_theta*mE_e data; diste_sw_total.dat, 
+   !  which stores Ne(E(i)), and ENTe.dat, with E_NT(l). Emin_e and Emax_e are 
+   !  fixed in global. THIS APPROXIMATION NEGLECTS ENERGY LOSSES.
+   !============================================================================
+
+   subroutine CD_diste_approx_run(shock)  
+
+      use global
+      implicit none
+      character(LEN=*), intent(in) :: shock
+      integer :: l_min,l2,m_theta_inj_max
+      real(dp) :: t_cell(m_theta),t_adv(m_theta),t_coole(m_theta,mE_e),t_loss(m_theta,mE_e)
+      real(dp) :: D_diff,t_diff,t_esc
+      real(dp) :: lambda_T(m_theta)
+      real(dp) :: cte_sy
+      real(dp) :: R_acel(m_theta),Q,integral
+      real(dp) :: E_dot(m_theta,mE_e),Emax_e0(m_theta),Ka,E_NT,dV_ring(m_theta),U_NT
+      real(dp) :: N_e0(mE_e),n_a(m_theta),L_inj(m_theta),dR(m_theta),N_total_i
+      real(dp) :: L_inj_e(m_theta), f1, f2, f
+
+      interface
+      subroutine Biseccion(c_sy,Bl,logEmax,c1,c2,T1,tbr,tad,xi,Rdiff)
+         use iso_fortran_env, only: dp => real64
+         implicit none
+         real(dp), intent(in) :: c_sy,Bl,c1,c2,T1,tbr,tad,xi,Rdiff
+         real(dp), intent(out) :: logEmax
+      end subroutine Biseccion
+      end interface
+
+      interface
+      function fQ(E,Emin,Emax,alpha) ! function Q(E)
+         use iso_fortran_env, only: dp => real64
+         implicit none
+         real(dp) :: fQ
+         real(dp), intent(in) :: E,Emin,Emax,alpha
+      end function fQ
+      end interface
+
+      allocate( theta(m_theta),R_theta(m_theta),H_theta(m_theta) )
+      allocate( P(m_theta),rho(m_theta),T(m_theta),B(m_theta),v_t(m_theta),v_perp(m_theta),r(m_theta),Mach(m_theta),rho_med(m_theta) )
+      allocate( N_e(mE_e),E_e(mE_e),B_par(m_theta),N_etot(m_theta,mE_e) )
+      allocate( T_IR(m_theta),T_IR_ad(m_theta) )
+      allocate( efi_ac_sh(m_theta) )
+      allocate( alpha_sh(m_theta) )
+
+      write(*,*) 'Calculate the non-thermal electron distribution in the shock'
+
+      !---------------------------------------------------------------------------------
+      !  Read the position of the shock and cell size: theta, r_norm(theta), dR(theta); 
+      !  the thermodynamical quantities and injected luminosity at each cell
+
+      open(12,file='Linj_'//shock//'.dat')
+      do l = 1, m_theta
+         read(12,*) theta(l),R_theta(l),L_inj(l),dR(l)
+      end do
+      close(12)
+      R_theta = R0*R_theta     ! The file contained r_norm, not R_theta
+      dR = R0*dR               ! The file contained dR/R0, not dR [cm]
+      L_inj_e = inj_e*L_inj    ! The cell size is already taken into account in L_inj
+
+      open(11,file='termo_'//shock//'.dat') 
+      do l = 1, m_theta
+         read(11,*) l2,rho(l),P(l),v_t(l),T(l),B(l),v_perp(l),theta(l),Mach(l),r(l),rho_med(l) ! all in CGS units
+      end do
+      close (11)
+      B_par = B*par        ! For synchrotron, only the parallel component of B is relevant
+      if (shock == 'RS') then
+         n_a = rho/mp/mu_sw   ! Ambient number density
+      else if (shock == 'FS') then
+         n_a = rho/mp/mu_SISM
+      end if   
+
+      open(103,file='Hnorm_'//shock//'.dat') 
+      do l = 1, m_theta
+         read(103,*) dummy, H_theta(l), R_acel(l), dummy, dV_ring(l) 
+      end do
+      close(103)
+
+      open(113,file='T_IR.dat') 
+      do l = 1, m_theta
+         !       T_IR(l) = 27.*(0.2)**(-1./6.)*(L_st/1.d38)**(1./6.)*(R_theta(l)/pc)**(-1./3.) ! Eq.10 del Valle 2012
+         T_IR(l) =  100.d0            ! K2017
+         T_IR_ad(l) = k*T_IR(l)/mec2  ! Adimensional dust temperature
+         Kappa_IR(l) = L_IR/(16.*pi*sigma*T_IR(l)**4*R_theta(l)**2) ! assume the dust is in a shell outside the BS
+         write(113,*) theta(l),T_IR(l),T_IR_ad(l),Kappa_IR(l) ! normalized
+      end do
+      close(113)
+
+      open(114,file='efi_ac_'//shock//'.dat')
+      open(20,file='alpha_'//shock//'.dat')
+      do l = 1, m_theta
+         read(114,*) dummy,efi_ac_sh(l)
+         read(20,*) dummy,alpha_sh(l)
+      end do
+      close(114)
+      close(20)
+
+
+      !--------------------------------------------------------------------
+      ! Build an energy vector that is common for all linear-emitters: 
+
+      call vector_log(Emin_e,Emax_e,Eint_e,E_e)
+
+      ! Calculate the convection time at each position (and also the maximum energy)
+
+      do l = 1, m_theta
+         t_cell(l) = dR(l)/v_t(l)      ! Cell advection time
+         t_adv(l) = R_theta(l)/v_t(l)  ! Characteristic advection time
+      end do
+
+      m_theta_inj_max = m_theta ! Default value is to inject up to m_theta
+      do l = 1, m_theta
+         cte_sy = 6.*pi*mec2**2/(c*sigma_T*B(l)**2)   ! Valid for isotropic e- distribution
+         Emax_e0(l) = MIN( sqrt(cte_sy*c*qe*B(l)/efi_ac_sh(l)), qe*B(l)*R_acel(l)*sqrt(1.5d0/efi_ac_sh(l)) )
+         if (Emax_e0(l) >= 0.5*Emax_e) write(*,*) 'Emax_e in global.f90 is too small!'
+         do i = 1, mE_e
+            D_diff = E_e(i)*c/(3.d0*qe*B(l)) ! Bohm
+            t_diff = R_acel(l)**2/(2.d0*D_diff) ! Diffusion losses
+            t_esc = 1./( 1./t_adv(l) + 1.d0/t_diff ) ! escape
+            t_loss(l,i) = t_esc ! general losses
+         end do
+         print*, l, t_loss(l,80), t_loss(l,80)
+
+      end do
+
+      !========================================================================
+
+      ! Consider different starting points for each linear emitter
+
+      N_etot = 0.d0
+      Do l_min = 1, m_theta_inj_max ! After m_theta_inj_max, particles are no longer accelerated
+
+         ! Q = Ka*E**-alpha*e^(-E/Emax), alpha=2. The normalization constant Ka is obtained 
+         ! by the condition: integral Q(E')*E'dE' = Linj. [Linj]=erg/s, [Ka]=erg/s, [Q]=1/erg/seg
+          
+         ! The integral is solved with the trapezoid method; Q(E) is obtained from fQ
+         integral = 0.d0
+         i = 1
+         f1 = E_e(1) * fQ(E_e(1), Emin_e_inj, Emax_e0(l_min),alpha_sh(1))
+         do while (i < mE_e .and. E_e(i+1) < 10.d0*Emax_e0(l_min))
+           f2 = E_e(i+1) * fQ(E_e(i+1), Emin_e_inj, Emax_e0(l_min),alpha_sh(l_min))
+           f = (f1 + f2)/2.d0
+           dE_e = E_e(i)*(Eint_e-1.d0)
+           integral = integral + f*dE_e
+           f1 = f2
+           i = i + 1
+         end do
+         Ka = L_inj_e(l_min)/integral ! Injected at the starting point of the line   
+
+         !------------------------------------------------------------------------
+
+         N_e0 = 0.d0            ! Initialize to zero at each loop in l_min
+         i = 1
+         do while (i < mE_e+1 .and. E_e(i) < 10.d0*Emax_e0(l_min)) 
+            ! N(E)=1/|dE/dt|*int_E^Emax Q(E')dE' = Q(E)*dt, with |dE/dt|= E/t_cool 
+            ! in [erg/seg], dt = min(t_cell,t_cool) so that [N(E)]=1/erg
+   
+            Q = Ka * fQ(E_e(i), Emin_e_inj, Emax_e0(l_min),alpha_sh(l_min))
+            N_e0(i) = Q * min(t_cell(l_min),t_coole(l_min,i))
+            N_etot(l_min,i) = N_etot(l_min,i) + N_e0(i)  
+
+            ! We calculate the evolved version of the injected electron distribution at each
+            ! position "l" as: N_l(l) = N_l-1* (Edot_l-1/Edot_l), where the energy also evolves
+            ! as E0(l) given by: t_cell(l) = int_E0^El Edot * dE
+
+            N_e = 0.d0            ! Initialize to zero at each loop in l_min
+            N_e(i) = N_e0(i) ! This will be evolved
+            l = l_min + 1    
+
+            do while( l <= m_theta ) 
+               ! The following takes into account energy losses and variable cell size and velocity
+               N_e(i) = N_e(i) * (t_cell(l)/t_cell(l-1))
+               N_etot(l,i) = N_etot(l,i) + N_e(i)  ! The energies match by construction
+               l = l + 1 
+            end do              ! End loop in shock position (l) 
+            i = i + 1
+         end do                 ! End loop in electron starting energies (i)
+
+      end do                    ! End loop in starting position (l_min = # linear-emitters)
+
+      !----------------------------------------------------------------------
+      ! Save the electron distribution at each position 
+      open(79,file='diste_approx_'//shock//'.dat')
+      do l = 1, m_theta
+         do i = 1, mE_e     
+            write(79,*) theta(l),E_e(i)/eV,N_etot(l,i)
+         end do
+         write(79,*)
+      end do
+      close(79)
+
+      open(80,file='ENTe_approx_'//shock//'.dat')
+      do l = 1, m_theta
+         E_NT = 0.d0
+         do i = 1, mE_e
+            dE_e = E_e(i)*(Eint_e - 1.d0)  
+            E_NT = E_NT + E_e(i)*N_etot(l,i)*dE_e
+         end do
+         E_NT = E_NT * 4.d0*mphi ! Total NT energy in each BS "ring"
+         U_NT = E_NT/dV_ring(l)
+         write(80,*) l, E_NT, U_NT, U_NT/(8.d0*pi*B(l)**2)! Store the energy density as well
+      end do
+      close(80)
+
+      open(81,file='diste_approx_'//shock//'_total.dat')
+      do i=1,mE_e
+         N_total_i = 0.d0
+         do l=1,m_theta
+            N_total_i = N_total_i + N_etot(l,i)
+         end do
+         write(81,*) E_e(i)/eV, N_total_i * mphi*1.d0 ! Total distribution at each energy for 1 of the 4 quadrants
+      end do
+
+      deallocate( theta,R_theta,H_theta,B,B_par,rho,P,v_t,T,v_perp,r,Mach,rho_med )
+      deallocate( N_e,E_e,N_etot ) 
+      deallocate( T_IR, T_IR_ad, efi_ac_sh, alpha_sh )
+      close(81)
+
+   END subroutine CD_diste_approx_run
+
+   !============================================================================
+   ! CD_diste_approx_run (END)
    !============================================================================
 
 END module CD_diste
