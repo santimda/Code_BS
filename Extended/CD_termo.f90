@@ -29,17 +29,17 @@ module CD_termo
       real(dp) :: A_z,A_omega,st,ct
       real(dp) :: cte_P,cte_T,cte_rho,cte_ad
       real(dp) :: Beq0,v_sh
-      real(dp) :: dtheta,dR(m_theta),dV_cell(m_theta),dA_perp 
+      real(dp) :: dtheta,dR(m_theta),dV_ring(m_theta),dA_perp 
       real(dp) :: L_inj(m_theta), L_inj_tot, L_sh, R_acel(m_theta)
       real(dp) :: v_vec(2), n_perp(2), n_t(2)
       real(dp) :: e_flux, sin_alpha
-      real(dp) :: dot_M, dM, drho
+      real(dp) :: dot_M, dM, drho, P_th_med
       integer :: l_crit, l_transition
       logical :: transition
       allocate( theta(m_theta),r_norm(m_theta),H_norm(m_theta),R_theta(m_theta) )
       allocate( x(m_theta), y(m_theta) )
-      allocate( Mach(m_theta),P_th_w(m_theta),C_s_med(m_theta),C_s_sh(m_theta),r(m_theta) )
-      allocate( P_med(m_theta), rho_med(m_theta) )
+      allocate( Mach(m_theta),C_s_med(m_theta),C_s_sh(m_theta),r(m_theta) )
+      allocate( rho_med(m_theta) )
       allocate( P(m_theta),rho(m_theta),T(m_theta),B(m_theta),v_t(m_theta),v_perp(m_theta) )
       allocate( v_t_old(m_theta), P_old(m_theta), rho_old(m_theta), B_old(m_theta), rho_min(m_theta) )
       allocate( H_new(m_theta), y_eff(m_theta) )
@@ -104,8 +104,8 @@ module CD_termo
          end if
          v_perp(l) = max( DOT_PRODUCT(v_vec,n_perp), 0.d0 )
          !v_t(l) = max( DOT_PRODUCT(v_vec,n_t), 1.d-10 ) ! Just so we don't get a zero value in l=1
-         dV_cell(l) = R_theta(l)*sin(theta(l))*dR(l)*(H_norm(l)*R_theta(l)) ! Volume of the cell
-         write(18,*) theta(l), H_norm(l)*R_theta(l), R_acel(l)*R0, H_norm(l)
+         dV_ring(l) = (2.d0*pi*R_theta(l)*st) * dR(l) * (H_norm(l)*R_theta(l)) ! Volume of the ring
+         write(18,*) theta(l), H_norm(l)*R_theta(l), R_acel(l)*R0, H_norm(l), dV_ring(l)
       end do
       close(18)
 
@@ -133,11 +133,12 @@ module CD_termo
 
       if (shock == 'RS') then
          rho_med(1) = Mdot/(4.d0*pi*R_theta(1)**2*v_w)
-         P_th_w(1) = rho_med(1)*k*T_wind/mu_w/mp             ! Stellar wind thermal pressure at R0
-         c_s_med(1) = sqrt(g_ad*P_th_w(1)/rho_med(1))       
+         P_th_med = rho_med(1)*k*T_wind/mu_w/mp             ! Stellar wind thermal pressure at R0
+         c_s_med(1) = sqrt(g_ad*P_th_med/rho_med(1))       
       else if (shock == 'FS') then
-         rho_med(1) = rho_ISM    
-         C_s_med(1) = sqrt(g_ad*P_th_ISM/rho_med(1))
+         rho_med(1) = rho_ISM  
+         P_th_med = P_th_ISM  
+         C_s_med(1) = sqrt(g_ad*P_th_med/rho_med(1))
       end if
       
       P(1) = rho_med(1)*v_sh*v_perp(1)
@@ -158,11 +159,11 @@ module CD_termo
       do l = 2, m_theta                                ! Calculo para la mitad de arriba
          if (shock == 'RS') then
             rho_med(l) = Mdot/(4.d0*pi*R_theta(l)**2*v_w)
-            P_th_w(l) = rho_med(l)*k*T_wind/mu_w/mp             ! SW thermal pressure at R0
-            c_s_med(l) = sqrt(g_ad*P_th_w(l)/rho_med(l))        ! Speed of sound along the stellar wind
+            P_th_med = rho_med(l)*k*T_wind/mu_w/mp             ! SW thermal pressure at R0
+            c_s_med(l) = sqrt(g_ad*P_th_med/rho_med(l))        ! Speed of sound along the stellar wind
          else if (shock == 'FS') then
             rho_med(l) = rho_ISM
-            c_s_med(l) = sqrt(g_ad*P_th_ISM/rho_med(l))         ! Speed of sound in the ISM
+            c_s_med(l) = sqrt(g_ad*P_th_med/rho_med(l))         ! Speed of sound in the ISM
          end if
 
          P_old(l) = cte_P*rho_med(l)*v_perp(l)**2
@@ -177,7 +178,13 @@ module CD_termo
          else
             P(l) = rho_med(l)*v_perp(l)**2/(v_perp(l_crit)/v_sh)   !*r_norm(l)**2   ! sin(ang0) = v_perp(l_crit)/v_sh
          end if
-          
+         
+         if (P(l) < 2.d0 * P_th_med) then
+            print*, '\n ABORT'
+            print*, 'The ambient medium pressure is too high at position l=',l 
+            stop
+         endif
+
          if (shock == 'RS') then
             rho_min(l) = 4.d0/(2.d0*( 1.d0-cos(pi-theta(l)) )) * rho_med(l)
          else if (shock == 'FS') then
@@ -186,25 +193,23 @@ module CD_termo
 
          if (transition) then
             rho(l) = rho(1)*(P(l)/P(1))**(1.d0/g_ad)       ! Adiabatic relation
-            if ( rho(l) < 1.1d0 * rho_min(l)) then
+            if ( rho(l) < 2.1d0 * rho_min(l)) then
                transition = .false.
                l_transition = l 
                print*,'*******************'
                print*, theta(l)*180./pi
                print*,l_transition
-               print*,'*******************'
+               print*,'*******************'   
+               !   print*,'\n UNREALISTIC DENSITY! theta_max IS TOO LARGE, ABORT'
+               !   stop
             end if
          else 
             drho = (rho_min(l)/rho(l-1))**(1.d0/float(m_theta-l_transition))
             rho(l) = rho(l-1)*drho
             !rho(l) = rho(1)*(P(l)/P(1))**(1.d0/g_ad)       ! Adiabatic relation
+            !print*,rho(l)/(rho(1)*(P(l)/P(1))**(1.d0/g_ad))       
          endif
-         !print*, rho(l)/rho_med(l)
-         !rho(l) = max( rho(l), rho_med(l) )           ! The density in the shocked fluid cannot drop below the medium density
-         !if (rho(l) < rho_med(l)) then         ! The density in the shocked fluid cannot drop below the medium density
-         !   print*,'\n UNREALISTIC DENSITY! theta_max IS TOO LARGE, ABORT'
-         !   stop
-         !endif
+
          C_s_sh(l) = sqrt(g_ad*P(l)/rho(l))           ! Sound speed in the shocked fluid     
          T(l) = cte_T*v_perp(l)**2                    ! Eq. 20
          ! If U_mag = frac*U_th -> B^2/4pi = frac*(g_ad/g_ad - 1)*P 
@@ -334,7 +339,7 @@ module CD_termo
       write(*,41) 'B_st <',(B(1)/4.d0)*(R0/R_st)*(v_w/v_st_rot)*r_A_st 
       41  format (A12,ES9.2)
 
-      deallocate( P,rho,T,B,v_t,v_perp,theta,r_norm,H_norm,R_theta,Mach,r,P_med,rho_med,P_th_w,C_s_med,C_s_sh,rho_min )
+      deallocate( P,rho,T,B,v_t,v_perp,theta,r_norm,H_norm,R_theta,Mach,r,rho_med,C_s_med,C_s_sh,rho_min )
       deallocate( x, y, H_new, y_eff )
       deallocate( v_t_old, P_old, rho_old, B_old )
       
