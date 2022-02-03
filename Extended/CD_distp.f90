@@ -26,7 +26,7 @@ module CD_distp
       real(dp) :: log10Emaxl,R_acel(m_theta),D_diff,integral,Q
       real(dp) :: E_dot(m_theta,mE_p),Emax_p0(m_theta),rg_p_max(m_theta),max,Ka,E_NT,U_NT
       real(dp) :: N_p0(mE_p),n_a(m_theta),L_inj(m_theta),dR(m_theta),dV_ring(m_theta)
-      real(dp) :: L_inj_p(m_theta), sum, b_pp, L1, f1, f2, f
+      real(dp) :: L_inj_p(m_theta), suma, b_pp, L1, f1, f2, f
       real(dp) :: dE_aprox, cool
       real(dp), parameter :: k_pp = 0.5d0
       integer :: index1,index2,count,steps
@@ -250,14 +250,14 @@ module CD_distp
 
                elseif ( 1.-cool <= 0.99/Eint_p .and. dE_aprox > 1./Eint_p ) then
                   if (new_count) then
-                     sum = 1.d0
+                     suma = 1.d0
                      steps = 0 ! number of steps until it changes E(index1) -> E(index1-1)
                      l2 = l
-                     do while (sum > 1./Eint_p .and. l2 <= m_theta)
+                     do while (suma > 1./Eint_p .and. l2 <= m_theta)
                         steps = steps + 1
-                        sum = sum*(1.-t_cell(l2)/t_coolp(l2,index1))
+                        suma = suma*(1.-t_cell(l2)/t_coolp(l2,index1))
                         l2 = l2 + 1
-                        if (sum > 1./Eint_p .and. l2 == m_theta) steps = m_theta ! NOT COOLING
+                        if (suma > 1./Eint_p .and. l2 == m_theta) steps = m_theta ! NOT COOLING
                      end do
                      new_count = .false.
                   end if
@@ -270,11 +270,11 @@ module CD_distp
                   end if
 
                elseif ( dE_aprox <= 1./Eint_p ) then
-                  sum = 0.d0
-                  do while (sum < t_cell(l) .and. index1 > 1)
+                  suma = 0.d0
+                  do while (suma < t_cell(l) .and. index1 > 1)
                      index1 = index1 - 1    
                      dE_p = E_p(index1)*(Eint_p-1.d0)
-                     sum = sum + dE_p/E_dot(l,index1)        
+                     suma = suma + dE_p/E_dot(l,index1)        
                   end do
 
                end if
@@ -303,7 +303,7 @@ module CD_distp
       end do
       close(79)
 
-      sum = 0.d0
+      suma = 0.d0
       open(80,file='ENTp_'//shock//'.dat')
       do l = 1,m_theta
          E_NT = 0.d0
@@ -313,12 +313,13 @@ module CD_distp
          end do
          E_NT = E_NT * 4.d0*mphi ! Total NT energy in each BS "ring"
          U_NT = E_NT/dV_ring(l)
-         write(80,*) l, E_NT, U_NT, U_NT/(8.d0*pi*B(l)**2)! Store the energy density as well
-         sum = sum + E_NT
+         write(80,*) l, E_NT, U_NT, U_NT/(B(l)**2/(8.d0*pi))! Store the energy density as well
+         suma = suma + E_NT
       end do
       close(80)
-      !177  format(A10,X,Es10.2)
-      !write(*,177) 'E_tot_p=', sum ! Total NT energy in the BS
+      !177  format(A11,X,Es10.2)
+      !write(*,177) 'E_tot_p =', suma ! Total NT energy in the BS
+      !write(*,177) 'E_iny_p =', SUM(L_inj_p) * 4.d0*mphi * R_theta(m_theta)/v_t(m_theta/2) ! Total NT energy in the BS
 
       !------------------------------------------------------------
       ! Group in bins according to position angle
