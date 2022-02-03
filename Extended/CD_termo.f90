@@ -40,7 +40,7 @@ module CD_termo
       allocate( Mach(m_theta),P_th_w(m_theta),C_s_med(m_theta),C_s_sh(m_theta),r(m_theta) )
       allocate( P_med(m_theta), rho_med(m_theta) )
       allocate( P(m_theta),rho(m_theta),T(m_theta),B(m_theta),v_t(m_theta),v_perp(m_theta) )
-      allocate( v_t_old(m_theta), P_old(m_theta), rho_old(m_theta), B_old(m_theta) )
+      allocate( v_t_old(m_theta), P_old(m_theta), rho_old(m_theta), B_old(m_theta), rho_min(m_theta) )
       allocate( H_new(m_theta), y_eff(m_theta) )
 
       80    format(A13,X,Es10.2)
@@ -143,6 +143,7 @@ module CD_termo
       end if
       
       P(1) = rho_med(1)*v_sh*v_perp(1)
+      rho_min(1) = rho_med(1)
       rho(1) = cte_ad*2*P(1)/v_sh**2            ! 0.5*v_sh**2 = 0.5*v_t(l)**2 + (g_ad/(g_ad-1.))*P(l)/rho(l), v_t(1) = 0.
       P_old(1) = cte_P*rho_med(1)*v_perp(1)**2
       rho_old(1) = (g_ad+1.)/(g_ad-1.)*rho_med(1)
@@ -179,13 +180,25 @@ module CD_termo
             P(l) = rho_med(l)*v_perp(l)**2/(v_perp(l_crit)/v_sh)   !*r_norm(l)**2   ! sin(ang0) = v_perp(l_crit)/v_sh
          end if
           
-         rho(l) = rho(1)*(P(l)/P(1))**(1./g_ad)       ! Adiabatic relation
+         if (shock == 'RS') then
+            !rho_min(l) = 4.d0/(pi-theta(l))**2 * rho_med(l)
+            rho_min(l) = 4.d0/(2.d0* (1.d0-cos(pi-theta(l)) )) * rho_med(l)
+         else if (shock == 'FS') then
+            rho_min(l) = rho_med(l)
+         end if
+
+         rho(l) = rho(1)*(P(l)/P(1))**(1.d0/g_ad)       ! Adiabatic relation
+
+         if ( rho(l) < 1.3d0 * rho_min(l) ) then
+            !rho(l) = 0.99 * rho(l-1)
+            rho(l) = max(0.99d0 * rho(l-1),rho_min(l))
+         end if
          !print*, rho(l)/rho_med(l)
          !rho(l) = max( rho(l), rho_med(l) )           ! The density in the shocked fluid cannot drop below the medium density
-         if (rho(l) < rho_med(l)) then         ! The density in the shocked fluid cannot drop below the medium density
-            print*,'\n UNREALISTIC DENSITY! theta_max IS TOO LARGE, ABORT'
-            stop
-         endif
+         !if (rho(l) < rho_med(l)) then         ! The density in the shocked fluid cannot drop below the medium density
+         !   print*,'\n UNREALISTIC DENSITY! theta_max IS TOO LARGE, ABORT'
+         !   stop
+         !endif
          C_s_sh(l) = sqrt(g_ad*P(l)/rho(l))           ! Sound speed in the shocked fluid     
          T(l) = cte_T*v_perp(l)**2                    ! Eq. 20
          ! If U_mag = frac*U_th -> B^2/4pi = frac*(g_ad/g_ad - 1)*P 
@@ -286,7 +299,11 @@ module CD_termo
          write(16,*) l,rho(l),P(l),v_t(l),T(l),B(l),v_perp(l),theta(l),Mach(l),r(l),rho_med(l)
          write(17,*) theta(l),rho(l)/rho(1),P(l)/P(1),v_t(l)/v_sh,T(l)/T(1),B(l)/B(1),v_perp(l)/v_sh,C_s_sh(l)/v_sh
          write(18,*) theta(l),v_t(l)/v_t_old(l), P(l)/P_old(l), rho(l)/rho_old(l)
-         write(19,*) theta(l), H_new(l), H_new(l)/R_theta(l)
+         if (theta(l) < pi/2.d0) then
+            write(19,*) theta(l), H_new(l), H_new(l)/R_theta(l)
+         else
+            write(19,*) theta(l), H_new(l), H_new(l)/R_theta(l)/sin(theta(l))
+         end if
       end do
       close(16)
       close(17)
@@ -312,7 +329,7 @@ module CD_termo
       write(*,41) 'B_st <',(B(1)/4.d0)*(R0/R_st)*(v_w/v_st_rot)*r_A_st 
       41  format (A12,ES9.2)
 
-      deallocate( P,rho,T,B,v_t,v_perp,theta,r_norm,H_norm,R_theta,Mach,r,P_med,rho_med,P_th_w,C_s_med,C_s_sh )
+      deallocate( P,rho,T,B,v_t,v_perp,theta,r_norm,H_norm,R_theta,Mach,r,P_med,rho_med,P_th_w,C_s_med,C_s_sh,rho_min )
       deallocate( x, y, H_new, y_eff )
       deallocate( v_t_old, P_old, rho_old, B_old )
       
