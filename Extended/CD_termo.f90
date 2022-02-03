@@ -33,8 +33,9 @@ module CD_termo
       real(dp) :: L_inj(m_theta), L_inj_tot, L_sh, R_acel(m_theta)
       real(dp) :: v_vec(2), n_perp(2), n_t(2)
       real(dp) :: e_flux, sin_alpha
-      real(dp) :: dot_M, dM
-      integer :: l_crit
+      real(dp) :: dot_M, dM, drho
+      integer :: l_crit, l_transition
+      logical :: transition
       allocate( theta(m_theta),r_norm(m_theta),H_norm(m_theta),R_theta(m_theta) )
       allocate( x(m_theta), y(m_theta) )
       allocate( Mach(m_theta),P_th_w(m_theta),C_s_med(m_theta),C_s_sh(m_theta),r(m_theta) )
@@ -75,7 +76,7 @@ module CD_termo
       ! Read y coordinate (normalized)
 
       open(12, file='CD_xy.dat')
-      do l= 1, m_theta
+      do l = 1, m_theta
          read(12,*) x(l), y(l)
       end do
       close(12)
@@ -125,9 +126,6 @@ module CD_termo
       !
       !-----------------------------------------------------------------
 
-      ! set omp threads number
-      ! $ call omp_set_num_threads(nth)
-
       cte_P = 2./(g_ad+1.)
       cte_T = ( (g_ad-1.)/(g_ad+1.)**2 ) * (mp/k)
       cte_rho = (g_ad+1.)/(g_ad-1.)*(v_ISM/v_w)**2/(1.-lambda)
@@ -156,7 +154,7 @@ module CD_termo
       C_s_sh(1) = sqrt(g_ad*P(1)/rho(1))
       v_t(1) = 0.d0
 
-      !  $omp parallel do private(l)
+      transition = .true. 
       do l = 2, m_theta                                ! Calculo para la mitad de arriba
          if (shock == 'RS') then
             rho_med(l) = Mdot/(4.d0*pi*R_theta(l)**2*v_w)
@@ -181,18 +179,26 @@ module CD_termo
          end if
           
          if (shock == 'RS') then
-            !rho_min(l) = 4.d0/(pi-theta(l))**2 * rho_med(l)
-            rho_min(l) = 4.d0/(2.d0* (1.d0-cos(pi-theta(l)) )) * rho_med(l)
+            rho_min(l) = 4.d0/(2.d0*( 1.d0-cos(pi-theta(l)) )) * rho_med(l)
          else if (shock == 'FS') then
             rho_min(l) = rho_med(l)
          end if
 
-         rho(l) = rho(1)*(P(l)/P(1))**(1.d0/g_ad)       ! Adiabatic relation
-
-         if ( rho(l) < 1.3d0 * rho_min(l) ) then
-            !rho(l) = 0.99 * rho(l-1)
-            rho(l) = max(0.99d0 * rho(l-1),rho_min(l))
-         end if
+         if (transition) then
+            rho(l) = rho(1)*(P(l)/P(1))**(1.d0/g_ad)       ! Adiabatic relation
+            if ( rho(l) < 1.1d0 * rho_min(l)) then
+               transition = .false.
+               l_transition = l 
+               print*,'*******************'
+               print*, theta(l)*180./pi
+               print*,l_transition
+               print*,'*******************'
+            end if
+         else 
+            drho = (rho_min(l)/rho(l-1))**(1.d0/float(m_theta-l_transition))
+            rho(l) = rho(l-1)*drho
+            !rho(l) = rho(1)*(P(l)/P(1))**(1.d0/g_ad)       ! Adiabatic relation
+         endif
          !print*, rho(l)/rho_med(l)
          !rho(l) = max( rho(l), rho_med(l) )           ! The density in the shocked fluid cannot drop below the medium density
          !if (rho(l) < rho_med(l)) then         ! The density in the shocked fluid cannot drop below the medium density
@@ -216,7 +222,6 @@ module CD_termo
          end if
          
       end do
-      !  $omp end parallel do
 
       !-----------------------------------------------------------------
       ! Injected power available for the acceleration of NT particles 
@@ -272,7 +277,7 @@ module CD_termo
       dot_M = 0.d0
 
       do l = 1, m_theta
-         dM = rho_med(l)*v_perp(l)*2*pi*R_theta(l)*sin(theta(l))*dR(l)
+         dM = rho_med(l)*v_perp(l)*2.*pi*R_theta(l)*sin(theta(l))*dR(l)
          dot_M = dot_M + dM
 
          if (theta(l) < 0.25d0) then
@@ -282,7 +287,7 @@ module CD_termo
                H_new(l) = 0.4*R_theta(l)
             end if
          else   
-            H_new(l) = dot_M/(2*pi*y_eff(l)*rho(l)*v_t(l))   ! dot_M = 2*pi*y_eff(l)*H_new(l)*rho(l)*v_t(l)
+            H_new(l) = dot_M/(2.*pi*y_eff(l)*rho(l)*v_t(l))   ! dot_M = 2*pi*y_eff(l)*H_new(l)*rho(l)*v_t(l)
          end if
 
       end do
