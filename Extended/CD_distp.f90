@@ -280,8 +280,7 @@ module CD_distp
                end if
 
                ! The following takes into account energy losses and variable cell size and velocity
-               !N_p(index1) = N_p(index2) * ( E_dot(l-1,index2)/E_dot(l,index1) ) * (t_cell(l)/t_cell(l-1))
-               N_p(index1) = N_p(index2) * ( t_loss(l,index1)/t_loss(l-1,index2) ) * (t_cell(l)/t_cell(l-1))
+               N_p(index1) = N_p(index2) * ( E_dot(l,index2)/E_dot(l,index1) ) * (t_cell(l)/t_cell(l-1))
 
                N_ptot(l,index1) = N_ptot(l,index1) + N_p(index1)  ! The energies match by construction
 
