@@ -194,7 +194,7 @@ module CD_termo
 
          if (transition) then
             rho(l) = rho(1)*(P(l)/P(1))**(1.d0/g_ad)       ! Adiabatic relation
-            if ( rho(l) < 2.1d0 * rho_min(l)) then
+            if ( rho(l) < 1.1d0 * rho_min(l)) then
                transition = .false.
                l_transition = l 
                print*,'*******************'
