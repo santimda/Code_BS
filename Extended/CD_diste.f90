@@ -78,6 +78,7 @@ module CD_diste
       open(11,file='termo_'//shock//'.dat') 
       do l = 1, m_theta
          read(11,*) l2,rho(l),P(l),v_t(l),T(l),B(l),v_perp(l),theta(l),Mach(l),r(l),rho_med(l) ! all in CGS units
+         print*, rho_med(l)
       end do
       close (11)
       B_par = B*par        ! For synchrotron, only the parallel component of B is relevant
@@ -144,7 +145,9 @@ module CD_diste
             t_adi(l) = t_adi(l-1)
          end if
 
-         if ((1.d4 <= T(l)) .AND. (T(l) <= 1.d5)) then
+         if (T(l) < 1.d4) then
+            lambda_T(l) = 7.d-23 ! Just to have a smooth transition...
+         else if ((1.d4 <= T(l)) .AND. (T(l) <= 1.d5)) then
             lambda_T(l) = 7.d-27 * T(l)
          else if ((1.d5 < T(l)) .AND. (T(l) <= 4.d7)) then
             lambda_T(l) = 7.d-19 * T(l)**(-0.6) 
@@ -153,11 +156,12 @@ module CD_diste
          end if
 
          if (shock == 'RS') then
-            t_th(l) = k*T(l)/r(l)/rho_med(l)/mu_w/mp/lambda_T(l)  ! Thermal losses
+            t_th(l) = k*T(l)/(r(l) * rho_med(l)/(mu_w * mp) * lambda_T(l) ) ! Thermal losses
          else if (shock == 'FS') then
-            t_th(l) = k*T(l)/r(l)/n_ISM/lambda_T(l)
+            t_th(l) = k*T(l)/( r(l) * n_ISM * lambda_T(l) )
          end if
 
+         print*, l, T(l), lambda_T(l), t_th(l), t_adv(l)
       write(65,*) theta(l),t_th(l)/t_adv(l)
       end do
 
