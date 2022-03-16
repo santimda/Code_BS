@@ -2,21 +2,18 @@ module SW_conv
    ! This program makes the convolution of the emission in the plane of the sky 
    ! with the instrument response 
    use global
-
    implicit none
+
    private
-   public :: SW_conv1G_run,SW_conv3G_run,SW_conv5G_run,SW_spex_run
+   public :: SW_conv1G_run, SW_conv3G_run, SW_conv5G_run, SW_spex_run
 
    contains
 
    !============================================================================
    ! SW_conv1G_run
-   !=====================================================!--------------------------------------------------------------
-
+   !============================================================================
 
    subroutine SW_conv1G_run  
-      use global
-      implicit none
       integer, parameter :: m_tot = (2*(mphi-1))*(m_theta*2)   ! Total number of data
       real(dp), parameter :: sigma_x = 12.d0, sigma_y = 12.d0  ! Benaglia2010
       !    real(dp), parameter :: coc = sqrt(8.d0*log(2.d0))        ! Benaglia gives sigma, not theta!
@@ -160,8 +157,6 @@ module SW_conv
    !============================================================================
 
    subroutine SW_conv3G_run  
-      use global
-      implicit none
       integer, parameter :: m_tot = (2*(mphi-1))*(m_theta*2)    ! Total number of data
       !real(dp), parameter :: coc = sqrt(8.d0*log(2.d0))         ! theta to sigma
       !real(dp), parameter :: theta_x = 20.2d0, theta_y = 12.5d0   ! HPBW = Resolution 
@@ -301,8 +296,6 @@ module SW_conv
    !============================================================================
 
    subroutine SW_conv5G_run  
-      use global
-      implicit none
       integer, parameter :: m_tot = (2*(mphi-1))*(m_theta*2)   ! Total number of data
       real(dp), parameter :: sigma_x = 12.d0, sigma_y = 12.d0   ! Benaglia2010
       !    real(dp), parameter :: coc = sqrt(8.d0*log(2.d0))        ! Benaglia gives sigma, not theta!
@@ -442,8 +435,6 @@ module SW_conv
    !============================================================================
 
    subroutine SW_spex_run  
-      use global
-      implicit none
       real(dp), parameter :: sigma_x = 12.d0, sigma_y = 12.d0   ! Benaglia2010
       !    real(dp), parameter :: coc = sqrt(8.d0*log(2.d0))        ! Benaglia gives sigma, not theta!
       !    real(dp), parameter :: theta_x = sigma_x*coc, theta_y = sigma_y*coc ! HPBW = Resolution (Ben2010)
@@ -508,6 +499,5 @@ module SW_conv
    ! SW_spex_run (END)
    !============================================================================
 
-   !-------------
 
 END module SW_conv
