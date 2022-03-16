@@ -1,11 +1,8 @@
 PROGRAM main
-
    use global
    use controls
    use CD, only: CD_run
-   use CD_rot, only: CD_rot_run
    use BB, only: BB_run
-   use SW_conv, only: SW_conv1G_run, SW_conv3G_run, SW_conv5G_run, SW_spex_run
    implicit none
    
    interface
@@ -15,48 +12,37 @@ PROGRAM main
    end interface
    
 
-   write(*,*) '\n ============================'
-   write(*,*) ' START'
-   write(*,*) '============================\n '
-
-   
+   print *, '\n ============================'
+   print *, ' START'
+   print *, '============================\n '
 
    if (BBrad_calc) call BB_run
 
-   !---------------------------------------------------------------!
-   !                                                               !
-   !                  Shocks                                       !
-   !                                                               !
-   !---------------------------------------------------------------!
-
    if (CD_calc) call CD_run
 
-   
+   if (RS) then 
+      print *, '\n----------------------------'
+      print *, ' Reverse Shock'
+      print *, '----------------------------'
+      call calculate('RS')
+   endif
 
+   if (FS) then 
+      print *, '\n----------------------------'
+      print *, ' Forward shock'
+      print *, '----------------------------'
+      call calculate('FS')
+   endif
 
-   !--------------------------------------------------------------
-
-   write(*,*) '\n ----------------------------'
-   write(*,*) ' Reverse Shock'
-   write(*,*) '----------------------------'
-
-   if (RS) call calculate('RS')
-
-   write(*,*) '\n ----------------------------'
-   write(*,*) ' Forward shock'
-   write(*,*) '----------------------------'
-
-   if (FS) call calculate('FS')
-
-   write(*,*) '\n ======================================'
-   write(*,*) '         END'
-   write(*,*) '======================================'
-
+   print *, '\n ======================================'
+   print *, '         END'
+   print *, '======================================'
 
    
  END PROGRAM main
 
 
+ !============================================================================
 
  Subroutine calculate(shock)
    use global
@@ -73,6 +59,7 @@ PROGRAM main
    use opac_ff, only: opac_ff_run
    use CD_abssyn, only: CD_abssyn_run
    use CD_rot, only: CD_rot_run
+   use SW_conv, only: SW_conv1G_run, SW_conv3G_run, SW_conv5G_run, SW_spex_run
    
    implicit none
    80 format(A9,X,Es10.2)
@@ -112,17 +99,15 @@ PROGRAM main
    !===============================================================!
 
    IF (electrons) then
-      write(*,*) '\n ELECTRONS:'
+      print *, '\n ELECTRONS:'
 
-       ! -----------------------------------------------------------------------------
-       !------------------------------------------------------------------------------
-      !if (maps_calc) then      
-      !   open(88,file='SW_radiomap_1GHz.dat')
-      !   open(89,file='SW_radiomap_3GHz.dat')
-      !   open(90,file='SW_radiomap_5GHz.dat')
-      !endif
-       ! -----------------------------------------------------------------------------
-       !------------------------------------------------------------------------------
+      !------------------------------------------------------------------------------
+      if (maps_calc) then      
+         open(88,file='SW_radiomap_1GHz.dat')
+         open(89,file='SW_radiomap_3GHz.dat')
+         open(90,file='SW_radiomap_5GHz.dat')
+      endif
+      ! -----------------------------------------------------------------------------
 
 
       if (diste_calc) call CD_diste_run(shock) 
@@ -141,13 +126,13 @@ PROGRAM main
       LIC_all = 0.d0
       if (rotate) then
          DO i_phi = 1, mphi
-            write(*,*) 'i(phi)=',i_phi,'/',mphi
-            !     write(*,*) 'phi(deg)=', phi*180_dp/pi
+            print *, 'i(phi)=',i_phi,'/',mphi
+            !     print *, 'phi(deg)=', phi*180_dp/pi
 
             call CD_rot_run(phi)   
 
             if (radic_st_calc) then
-               write(*,*) 'Calculate the IC(star) emission'
+               print *, 'Calculate the IC(star) emission'
                call CD_radic_st_run(LIC_int,shock) 
                open (35,file='radic_st_'//shock//'.dat')
                do i_E = 1,mE_f    ! SED --> sum emission from different phi
@@ -160,7 +145,7 @@ PROGRAM main
             endif
 
             if (abssyn_calc) then
-               write(*,*) 'Calculate the free-free synchrotron absorption'
+               print *, 'Calculate the free-free synchrotron absorption'
                call CD_abssyn_run(shock) !(phi)
                open (45,file='radsyn_abs_'//shock//'.dat')
                do i_E = 1,m_nu    ! SED --> sum emission from different phi
@@ -172,42 +157,43 @@ PROGRAM main
             endif
             ! -----------------------------------------------------------------------------
             !------------------------------------------------------------------------------ 
-           ! if (maps_calc) then           
-           !    write(*,*) 'Save synthetic radio emission maps'
-           !    open(55,file='CD_radiomap_1GHz.dat') ! 1.4 GHz
-           !    open(56,file='CD_radiomap_3GHz.dat') ! 3.0 GHz
-           !    open(57,file='CD_radiomap_5GHz.dat') ! 4.8 GHz
-           !    do i_l = 1,2*m_theta
-           !       read(55,*) u_proj,v_proj,emi,emi_abs
-           !       write(88,*) u_proj,v_proj,emi,emi_abs
-           !       if (i_phi.ne.1) then ! .and. i_phi.ne.mphi) then
-           !          write(88,*) u_proj,-v_proj,emi,emi_abs ! symmetry???
-           !       endif
-           !       read(56,*) u_proj,v_proj,emi,emi_abs
-           !       write(89,*) u_proj,v_proj,emi,emi_abs  
-           !       if (i_phi.ne.1) then !.and. i_phi.ne.mphi) then
-           !          write(89,*) u_proj,-v_proj,emi,emi_abs ! symmetry???
-           !       endif
-           !       read(57,*) u_proj,v_proj,emi,emi_abs
-           !       write(90,*) u_proj,v_proj,emi,emi_abs  
-           !       if (i_phi.ne.1) then !.and. i_phi.ne.mphi) then
-           !          write(90,*) u_proj,-v_proj,emi,emi_abs ! symmetry???
-           !       endif
-           !    end do
-           !    close(55)
-           !    close(56)
-           !    close(57)
-           ! endif
+            if (maps_calc) then           
+               print *, 'Save synthetic radio emission maps'
+               open(55,file='CD_radiomap_1GHz.dat') ! 1.4 GHz
+               open(56,file='CD_radiomap_3GHz.dat') ! 3.0 GHz
+               open(57,file='CD_radiomap_5GHz.dat') ! 4.8 GHz
+               do i_l = 1,2*m_theta
+                  read(55,*) u_proj,v_proj,emi,emi_abs
+                  write(88,*) u_proj,v_proj,emi,emi_abs
+                  if (i_phi.ne.1) then ! .and. i_phi.ne.mphi) then
+                     write(88,*) u_proj,-v_proj,emi,emi_abs ! symmetry???
+                  endif
+                  read(56,*) u_proj,v_proj,emi,emi_abs
+                  write(89,*) u_proj,v_proj,emi,emi_abs  
+                  if (i_phi.ne.1) then !.and. i_phi.ne.mphi) then
+                     write(89,*) u_proj,-v_proj,emi,emi_abs ! symmetry???
+                  endif
+                  read(57,*) u_proj,v_proj,emi,emi_abs
+                  write(90,*) u_proj,v_proj,emi,emi_abs  
+                  if (i_phi.ne.1) then !.and. i_phi.ne.mphi) then
+                     write(90,*) u_proj,-v_proj,emi,emi_abs ! symmetry???
+                  endif
+               end do
+               close(55)
+               close(56)
+               close(57)
+            endif
             ! -----------------------------------------------------------------------------
             !------------------------------------------------------------------------------
 
             phi = phi + delta_phi           
          end do
 
-         write(*,*) 'The total L_IC_st is:'
-         write(*,80) 'L_IC_st = ', LIC_all ! 
-
-         write(*,*) ''
+         if (radic_ir_calc) then
+            print *, 'The total L_IC_st is:'
+            write(*,80) 'L_IC_st = ', LIC_all ! 
+            print *, ''
+         endif
 
          close(88) ! maps for conv
          close(89)
@@ -330,9 +316,9 @@ PROGRAM main
             end do
             close(51)
 
-            write(*,*) 'Calculate the luminosity btw 1-10 keV'
+            print *, 'Calculate the luminosity btw 1-10 keV'
             write(*,80) 'L_X= ', L_X_int
-            write(*,*) ''
+            print *, ''
          end if
 
       endif
@@ -342,20 +328,20 @@ PROGRAM main
 
    ! -----------------------------------------------------------------------------
    !------------------------------------------------------------------------------  
- !  if (convolution) then
- !     write(*,*) 'Convolution of the emission map with the instrument response'
- !     call SW_conv1G_run
- !     call SW_conv3G_run  
- !     call SW_conv5G_run  
- !     call SW_spex_run  
+   if (convolution) then
+      print *, 'Convolution of the emission map with the instrument response'
+      !call SW_conv1G_run
+      call SW_conv3G_run  
+      !call SW_conv5G_run  
+      !call SW_spex_run  
+   endif
 
- !  endif
    ! -----------------------------------------------------------------------------
    !------------------------------------------------------------------------------
    !--------------------------------
 
    IF (protons) then
-      write(*,*) '\n PROTONS:'
+      print *, '\n PROTONS:'
 
       if (distp_calc) call CD_distp_run(shock) 
 
