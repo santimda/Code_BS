@@ -22,7 +22,7 @@ module CD_diste
       character(LEN=*), intent(in) :: shock
       integer :: l_min,l2,m_theta_inj_max
       real(dp) :: t_cell(m_theta),t_adv(m_theta),t_coole(m_theta,mE_e),t_loss(m_theta,mE_e),t_th(m_theta)
-      real(dp) :: t_ic_st,t_ic_IR,t_ic,t_sy,t_ac,t_br,D_diff,t_diff,t_esc,t_adi(m_theta)
+      real(dp) :: t_ic_st,t_ic_IR,t_ic,t_sy,t_ac,t_br,D_diff,t_diff,t_esc,t_adi(m_theta),t_ion
       real(dp) :: lambda_T(m_theta)
       real(dp) :: cte_sy, gamm, cte_IC, C_ic_st,kC_ic_st, C_ic_IR(m_theta),kC_ic_IR
       real(dp) :: log_coul,gdot_coul,cte_coul,t_coul
@@ -60,7 +60,7 @@ module CD_diste
       allocate( efi_ac_sh(m_theta) )
       allocate( alpha_sh(m_theta) )
 
-      write(*,*) 'Calculate the non-thermal electron distribution in the shock'
+      print *, 'Calculate the non-thermal electron distribution in the shock'
 
       !---------------------------------------------------------------------------------
       !  Read the position of the shock and cell size: theta, r_norm(theta), dR(theta); 
@@ -78,7 +78,6 @@ module CD_diste
       open(11,file='termo_'//shock//'.dat') 
       do l = 1, m_theta
          read(11,*) l2,rho(l),P(l),v_t(l),T(l),B(l),v_perp(l),theta(l),Mach(l),r(l),rho_med(l) ! all in CGS units
-         print*, rho_med(l)
       end do
       close (11)
       B_par = B*par        ! For synchrotron, only the parallel component of B is relevant
@@ -161,7 +160,6 @@ module CD_diste
             t_th(l) = k*T(l)/( r(l) * n_ISM * lambda_T(l) )
          end if
 
-         print*, l, T(l), lambda_T(l), t_th(l), t_adv(l)
       write(65,*) theta(l),t_th(l)/t_adv(l)
       end do
 
@@ -187,7 +185,7 @@ module CD_diste
             Emax_e0(l) = 1.001d0*Emin_e ! Dummy value, no particle acceleration
          endif
 
-         if (Emax_e0(l) >= 0.5*Emax_e) write(*,*) 'Emax_e in global.f90 is too small!'
+         if (Emax_e0(l) >= 0.5*Emax_e) print *, 'Emax_e in global.f90 is too small!'
 
          rg_e_max(l) = Emax_e0(l)/qe/B(l)     ! Max gyroradius
 
@@ -209,14 +207,16 @@ module CD_diste
             gdot_coul = cte_coul/sqrt(gamm**2-1.d0) ! Pittard2006
             t_coul = gamm/gdot_coul
 
-            t_coole(l,i) = 1./(1./t_sy + 1./t_ic + 1./t_br + 1./t_adi(l) + 1./t_coul)
+            t_ion = (4.8d7/n_a(l)) * (E_e(i)/(1.d9*eV)) * yr ! Kornecki+2020
+
+            t_coole(l,i) = 1./(1./t_sy + 1./t_ic + 1./t_br + 1./t_adi(l) + 1./t_coul + 1./t_ion)
 
             t_loss(l,i) = 1.d0/(1.d0/t_coole(l,i) + 1.d0/t_esc) ! general losses
 
             t_ac = efi_ac_sh(l)*E_e(i)/(B(l)*c*qe)
 
 
-            write(70,*) l,E_e(i)/eV,t_ic,t_sy,t_br,t_diff,t_ac,t_coole(l,i),t_adv(l),t_cell(l),t_ic_st,t_ic_IR,t_esc,t_loss(l,i),t_adi(l),t_coul
+            write(70,*) l,E_e(i)/eV,t_ic,t_sy,t_br,t_diff,t_ac,t_coole(l,i),t_adv(l),t_cell(l),t_ic_st,t_ic_IR,t_esc,t_loss(l,i),t_adi(l),t_coul,t_ion
 
             E_dot(l,i) = E_e(i)/t_coole(l,i)
 
@@ -443,7 +443,7 @@ module CD_diste
       allocate( efi_ac_sh(m_theta) )
       allocate( alpha_sh(m_theta) )
 
-      write(*,*) 'Calculate the non-thermal electron distribution in the shock'
+      print *, 'Calculate the non-thermal electron distribution in the shock'
 
       !---------------------------------------------------------------------------------
       !  Read the position of the shock and cell size: theta, r_norm(theta), dR(theta); 
@@ -512,7 +512,7 @@ module CD_diste
       do l = 1, m_theta
          cte_sy = 6.*pi*mec2**2/(c*sigma_T*B(l)**2)   ! Valid for isotropic e- distribution
          Emax_e0(l) = MIN( sqrt(cte_sy*c*qe*B(l)/efi_ac_sh(l)), qe*B(l)*R_acel(l)*sqrt(1.5d0/efi_ac_sh(l)) )
-         if (Emax_e0(l) >= 0.5*Emax_e) write(*,*) 'Emax_e in global.f90 is too small!'
+         if (Emax_e0(l) >= 0.5*Emax_e) print *, 'Emax_e in global.f90 is too small!'
          do i = 1, mE_e
             D_diff = E_e(i)*c/(3.d0*qe*B(l)) ! Bohm
             t_diff = R_acel(l)**2/(2.d0*D_diff) ! Diffusion losses
