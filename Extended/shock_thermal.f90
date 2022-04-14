@@ -28,7 +28,7 @@ contains
 80  format(A12,X,Es10.2)
 
 
-     write(*,*) 'Calculate the total thermal emission from the shocked wind'
+     write(*,*) 'Calculate the total thermal emission from each shock'
     !------------------------------------------------------------
     !     
     !    Read shock position and thermodynamical quantities   
@@ -127,7 +127,7 @@ contains
     allocate( theta(m_theta),r_norm(m_theta),R_theta(m_theta),H_theta(m_theta) )
     allocate( rho(m_theta),T(m_theta) )
    
-    write(*,*) 'Calculate the spectrum of the thermal emission from the shocked wind'
+    write(*,*) 'Calculate the spectrum of the thermal emission from each shock'
 
     LX_sh = 0.d0
     L_tot = 0.d0
@@ -193,12 +193,12 @@ contains
     Eph_max = Eph_0*4.d1
     
     call vector_log(Eph_min,Eph_max,Eph_int,Eph)
-    
-    ! Calculate the luminosity using Eq. 24 from Christie+2016:
-    ! L = 2*pi*integral(f1_theta), with: f1_theta = sin(theta)*f_R, with:
-    ! f_R = integral(f2_theta), with: f2_theta = R'(theta)**2.*emi_ff(theta), with:
+
+    ! Calculate the luminosity using an adaptation of Eq. 24 from Christie+2016:
+    ! L = integral(f_int(theta)
+    ! f_int(theta) = emi_ff_nu * dV_ring(theta)
     ! emi_ff_nu= dW/dt/dV/dnu the specific emissivity given by Eq. 5.14b from Rybicki
-    ! Then: f_R = emi_ff_nu*(Rmax**3.-R**3.)/3.
+    ! and dV_ring(l) the volume of the shocked ring element
 
     open(19,file=''//shock//'_ff.dat')
     do i_ph=1,mE_ph
