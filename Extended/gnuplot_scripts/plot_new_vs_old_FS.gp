@@ -3,7 +3,7 @@ set title '' #'Comparison btw P, rho and v_t new vs old FS'
 set key box opaque width 0.4 height 0.5 top right
 set key samplen 0.7 spacing 1. font ",20" 
 set xrange [0:3.]
-set yrange [0:4.]
+set yrange [0:]
 set xtics 0.5; set mxtics 5; set xtics nomirror font ",16"
 set ytics 2.; set mytics 2; set ytics font ",16"
 set xlabel '{/Symbol q} [rad]'; set xlabel offset 0,0.25 font ",18"
