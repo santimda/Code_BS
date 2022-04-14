@@ -78,9 +78,9 @@ PROGRAM main
    80 format(A9,X,Es10.2)
 
    character(LEN=*), intent(in) :: shock 
-   real(dp) :: Lsy_one,Lbr_one,Lpp_one, LIC_one,LIC_all,LIC_int,L_X_int
+   real(dp) :: Lsy_one,Lbr_one,Lpp_one, LIC_one,LIC_all,LIC_int,L_X_int,L_syn_E_one
    real(dp) :: E_IC_st(mE_f),E_IC_IR(mE_f),LIC_st_tot(mE_f),LIC_IR_tot(mE_f)
-   real(dp) :: E_sy(m_nu),Lsy_sh_tot(m_nu) 
+   real(dp) :: E_sy(m_nu),Lsy_sh_tot(m_nu),L_syn_E_tot(m_nu)
    real(dp) :: Lsy_sh_abs(m_nu), Lsy_sh_unabs(m_nu), Lsy_unabs, Lsy_abs
    real(dp) :: E_br(mE_f),Lbr_sh_tot(mE_f)
    real(dp) :: E_pp(mE_f),Lpp_sh_tot(mE_f)
@@ -100,8 +100,8 @@ PROGRAM main
    if (termo_calc) call CD_termo_run(shock)
 
    if (Xrad_calc) then
-      call shock_thermal_run_total
-      call shock_thermal_run_spectrum
+      call shock_thermal_run_total(shock)
+      call shock_thermal_run_spectrum(shock)
    endif
 
 
@@ -258,11 +258,12 @@ PROGRAM main
             open (51,file='radsyn_'//shock//'_tot.dat')
             open (41,file='radsyn_'//shock//'.dat')
             do i_E = 1,m_nu
-               read(41,*) E_sy(i_E),Lsy_one
+               read(41,*) E_sy(i_E),Lsy_one,L_syn_E_one
                Lsy_sh_tot(i_E) = Lsy_one*mphi * 4.d0
+               L_syn_E_tot(i_E) = L_syn_E_one*mphi * 4.d0
                ! Multiply by a factor 4 because of the axial symmetry in the SW 
                ! and "mirroring" for y < 0
-               write(51,*) E_sy(i_E),Lsy_sh_tot(i_E)
+               write(51,*) E_sy(i_E),Lsy_sh_tot(i_E),L_syn_E_tot(i_E)
             end do
             close(41)
             close(51)
