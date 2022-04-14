@@ -33,13 +33,13 @@ module global
 
    ! CD
    real(dp), dimension(:), allocatable :: x,y,z
-   real(dp), dimension(:), allocatable :: theta,r_norm,R_theta,H_norm,H_theta
+   real(dp), dimension(:), allocatable :: theta,r_norm,R_theta,H_norm
 
    ! termo
    real(dp), dimension(:), allocatable :: P,rho,T,v_t,v_perp,B,B_par,alpha_sh,P_th_w
    real(dp), dimension(:), allocatable :: P_med, rho_med, C_s_med,Mach,C_s_sh,r
    real(dp), dimension(:), allocatable :: v_t_old, P_old, rho_old, B_old, rho_min
-   real(dp), dimension(:), allocatable :: H_new, y_eff
+   real(dp), dimension(:), allocatable :: H_theta, y_eff
 
    ! dist
    real(dp), parameter :: Emin_e = 2.d0*mec2   ! ~1 MeV

@@ -29,20 +29,20 @@ module CD_termo
       real(dp) :: A_z,A_omega,st,ct
       real(dp) :: cte_P,cte_T,cte_rho,cte_ad
       real(dp) :: Beq0,v_sh
-      real(dp) :: dtheta,dR(m_theta),dV_ring(m_theta),dA_perp 
-      real(dp) :: L_inj(m_theta), L_inj_tot, L_sh, R_acel(m_theta)
+      real(dp) :: dtheta,dR(m_theta),dA_perp 
+      real(dp) :: L_inj(m_theta), L_inj_tot, L_sh, R_acel(m_theta), dV_ring(m_theta)
       real(dp) :: v_vec(2), n_perp(2), n_t(2)
       real(dp) :: e_flux, sin_alpha
       real(dp) :: dot_M, dM, drho, P_th_med, Omega_in, theta_min
       integer :: l_crit, l_transition, l_min
       logical :: transition
-      allocate( theta(m_theta),r_norm(m_theta),H_norm(m_theta),R_theta(m_theta) )
+      allocate( theta(m_theta),r_norm(m_theta),R_theta(m_theta),H_norm(m_theta),H_theta(m_theta) )
       allocate( x(m_theta), y(m_theta) )
       allocate( Mach(m_theta),C_s_med(m_theta),C_s_sh(m_theta),r(m_theta) )
       allocate( rho_med(m_theta) )
       allocate( P(m_theta),rho(m_theta),T(m_theta),B(m_theta),v_t(m_theta),v_perp(m_theta) )
       allocate( v_t_old(m_theta), P_old(m_theta), rho_old(m_theta), B_old(m_theta), rho_min(m_theta) )
-      allocate( H_new(m_theta), y_eff(m_theta) )
+      allocate( y_eff(m_theta) )
 
       80    format(A13,X,Es10.2)
       81    format(A18,X,Es10.2)
@@ -83,7 +83,7 @@ module CD_termo
 
       !-----------------------------------------------------------------
       ! Calculate the normal and tangential vectors at each position
-      ! using Eqs.12-16 from Christie+16; we also calculate H(theta)/R(theta)
+      ! using Eqs.12-16 from Christie+16; we also calculate H(theta)/R(theta) (not used)
 
       !open(18,file='Hnorm_'//shock//'.dat') ! normalized
       do l = 1, m_theta
@@ -291,19 +291,19 @@ module CD_termo
          dM = (rho_med(l) * v_sh) * dA_perp
          !dM = rho_med(l)*v_perp(l)*2.*pi*R_theta(l)*sin(theta(l))*dR(l)
          dot_M = dot_M + dM
-         H_new(l) = dot_M/(2.*pi*y_eff(l)*rho(l)*v_t(l))   ! dot_M = 2*pi*y_eff(l)*H_new(l)*rho(l)*v_t(l)
+         H_theta(l) = dot_M/(2.*pi*y_eff(l)*rho(l)*v_t(l))   ! dot_M = 2*pi*y_eff(l)*H(l)*rho(l)*v_t(l)
       end do
 
       ! For theta < theta_min, we use the value obtained at theta_min
       do l = 1, l_min
-         H_new(l) = H_new(l_min)
+         H_theta(l) = H_theta(l_min)
       end do
 
       open(18,file='Hnorm_'//shock//'.dat') ! normalized
       do l = 1, m_theta
          st = sin(theta(l))
-         dV_ring(l) = (2.d0*pi*R_theta(l)*st) * dR(l) * H_new(l) ! Volume of the ring
-         write(18,*) theta(l), H_new(l), R_acel(l)*R0, H_new(l)/R_theta(l), dV_ring(l)
+         dV_ring(l) = (2.d0*pi*R_theta(l)*st) * dR(l) * H_theta(l) ! Volume of the ring
+         write(18,*) theta(l), H_theta(l), R_acel(l)*R0, H_theta(l)/R_theta(l), dV_ring(l)
       end do
       close(18)
 
@@ -313,20 +313,17 @@ module CD_termo
       open(16,file='termo_'//shock//'.dat')
       open(17,file='termonorm_'//shock//'.dat') ! normalized
       open(18, file='new_vs_old_'//shock//'.dat') ! comparison btw P, rho and v_t new vs old
-      open(19, file='H_'//shock//'.dat')
       do l = 1, m_theta
          write(16,*) l,rho(l),P(l),v_t(l),T(l),B(l),v_perp(l),theta(l),Mach(l),r(l),rho_med(l)
          write(17,*) theta(l),rho(l)/rho(1),P(l)/P(1),v_t(l)/v_sh,T(l)/T(1),B(l)/B(1),v_perp(l)/v_sh,C_s_sh(l)/v_sh
          write(18,*) theta(l),v_t(l)/v_t_old(l), P(l)/P_old(l), rho(l)/rho_old(l)
-         write(19,*) theta(l), H_new(l), H_new(l)/R_theta(l)
       end do
       close(16)
       close(17)
       close(18)
-      close(19)
 
       
-      write(*,*) 'At the stagnation point (sw):'
+      write(*,*) 'At the stagnation point:'
       write(*,41) 'R0[pc] =',R0/pc
       write(*,41) 'R0/Rst =', R0/R_st
       if (shock == 'RS') then
@@ -344,8 +341,8 @@ module CD_termo
       write(*,41) 'B_st <',(B(1)/4.d0)*(R0/R_st)*(v_w/v_st_rot)*r_A_st 
       41  format (A12,ES9.2)
 
-      deallocate( P,rho,T,B,v_t,v_perp,theta,r_norm,H_norm,R_theta,Mach,r,rho_med,C_s_med,C_s_sh,rho_min )
-      deallocate( x, y, H_new, y_eff )
+      deallocate( P,rho,T,B,v_t,v_perp,theta,r_norm,H_norm,H_theta,R_theta,Mach,r,rho_med,C_s_med,C_s_sh,rho_min )
+      deallocate( x, y, y_eff )
       deallocate( v_t_old, P_old, rho_old, B_old )
       
    END subroutine CD_termo_run
