@@ -197,12 +197,8 @@ module CD_termo
             if ( rho(l) < 1.1d0 * rho_min(l)) then
                transition = .false.
                l_transition = l 
-               print*,'*******************'
-               print*, theta(l)*180./pi
-               print*,l_transition
-               print*,'*******************'   
-               !   print*,'\n UNREALISTIC DENSITY! theta_max IS TOO LARGE, ABORT'
-               !   stop
+               print *, 'theta_transition [deg] = ', theta(l)*180./pi
+               print *, 'l_transition = ', l_transition  
             end if
          else 
             drho = (rho_min(l)/rho(l-1))**(1.d0/float(m_theta-l_transition))

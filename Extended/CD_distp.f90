@@ -24,7 +24,7 @@ module CD_distp
       real(dp) :: t_cell(m_theta),t_adv(m_theta),t_adi(m_theta),t_adi_pp
       real(dp) :: t_ac,t_pp,t_diff,t_esc,t_loss(m_theta,mE_p),t_coolp(m_theta,mE_p)
       real(dp) :: log10Emaxl,R_acel(m_theta),D_diff,integral,Q
-      real(dp) :: E_dot(m_theta,mE_p),Emax_p0(m_theta),rg_p_max(m_theta),max,Ka,E_NT,U_NT
+      real(dp) :: E_dot(m_theta,mE_p),Emax_p0(m_theta),rg_p_max(m_theta),Ka,E_NT,U_NT
       real(dp) :: N_p0(mE_p),n_a(m_theta),L_inj(m_theta),dR(m_theta),dV_ring(m_theta)
       real(dp) :: L_inj_p(m_theta), suma, b_pp, L1, f1, f2, f
       real(dp) :: dE_aprox, cool
@@ -57,7 +57,7 @@ module CD_distp
       allocate( efi_ac_sh(m_theta) )
       allocate( alpha_sh(m_theta) )
       
-      write(*,*) 'Calculate the non-thermal proton distribution in the Shock'
+      print *, 'Calculate the non-thermal proton distribution in the Shock'
 
       !---------------------------------------------------------------------------------
       !  Read the position of the shock and cell size: theta, r_norm(theta), dR(theta); 
@@ -141,7 +141,7 @@ module CD_distp
             Emax_p0(l) = 1.0001d0*Emin_p ! Dummy value, no particle acceleration
          endif
 
-         if (Emax_p0(l) >= 0.5*Emax_p) write(*,*) 'Emax_p in global.f90 is too small!'
+         if (Emax_p0(l) >= 0.5*Emax_p) print *, 'Emax_p in global.f90 is too small!'
 
          rg_p_max(l) = Emax_p0(l)/qe/B(l)    ! Max gyroradius
          
@@ -357,11 +357,9 @@ module CD_distp
       real(dp) :: t_cell(m_theta),t_adv(m_theta)
       real(dp) :: t_diff,t_esc,t_loss(m_theta,mE_p)
       real(dp) :: R_acel(m_theta),D_diff,integral,Q
-      real(dp) :: E_dot(m_theta,mE_p),Emax_p0(m_theta),max,Ka,E_NT,dV_ring(m_theta),U_NT
+      real(dp) :: Emax_p0(m_theta),Ka,E_NT,dV_ring(m_theta),U_NT
       real(dp) :: N_p0(mE_p),n_a(m_theta),L_inj(m_theta),dR(m_theta),N_total_i
       real(dp) :: L_inj_p(m_theta), f1, f2, f
-      real(dp) :: dE_aprox
-      real(dp), parameter :: k_pp = 0.5d0
       
       interface
       function fQp(E,Emax,alpha) ! function Q(E)
@@ -378,7 +376,7 @@ module CD_distp
       allocate( efi_ac_sh(m_theta) )
       allocate( alpha_sh(m_theta) )
       
-      write(*,*) 'Calculate the approximate non-thermal proton distribution in the shock'
+      print *, 'Calculate the approximate non-thermal proton distribution in the shock'
 
       !---------------------------------------------------------------------------------
       !  Read the position of the shock and cell size: theta, r_norm(theta), dR(theta); 
@@ -436,7 +434,7 @@ module CD_distp
       do l = 1, m_theta
          ! advection or diffusion determine E_max
          Emax_p0(l) = MIN( t_adv(l)*(B(l)*c*qe)/efi_ac_sh(l), qe*B(l)*R_acel(l)*sqrt(1.5d0/efi_ac_sh(l)) )
-         if (Emax_p0(l) >= 0.5*Emax_p) write(*,*) 'Emax_p in global.f90 is too small!'
+         if (Emax_p0(l) >= 0.5*Emax_p) print *, 'Emax_p in global.f90 is too small!'
          do i = 1, mE_p
             D_diff = E_p(i)*c/(3.d0*qe*B(l))
             t_diff = R_acel(l)**2/(2.d0*D_diff)      ! Diffusion losses
