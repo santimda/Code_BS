@@ -63,7 +63,7 @@ module CD_distp
       
       open(12,file='Linj_'//shock//'.dat')
       do l=1,m_theta
-         read(12,*) theta(l),R_theta(l),L_inj(l),dR(l)
+         read(12,*) dummy,dummy,L_inj(l),dR(l)
       end do
       close(12)
       dR = R0*dR               ! The file contained dR/R0, not dR [cm]

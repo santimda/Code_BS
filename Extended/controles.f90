@@ -19,17 +19,17 @@ logical, parameter :: opacff_calc = no!yes  !also calculates emi_ff(wind), needs
 
 logical, parameter :: CD_calc = yes
 logical, parameter :: termo_calc = yes
-logical, parameter :: Xrad_calc = no!yes ! shock thermal emission
+logical, parameter :: Xrad_calc = yes ! shock thermal emission
 logical, parameter :: rotate = yes
 
 !----------
 
-logical, parameter :: electrons = no!yes
+logical, parameter :: electrons = yes
 
 logical, parameter :: diste_calc = yes
-logical, parameter :: radsyn_sw_calc = no!yes
-logical, parameter :: radbr_sw_calc = no!yes
-logical, parameter :: radic_st_calc = no!yes
+logical, parameter :: radsyn_sw_calc = yes
+logical, parameter :: radbr_sw_calc = yes
+logical, parameter :: radic_st_calc = yes
 logical, parameter :: radic_IR_calc = no!yes
 logical, parameter :: abssyn_calc = no!yes
 logical, parameter :: maps_calc = no !yes

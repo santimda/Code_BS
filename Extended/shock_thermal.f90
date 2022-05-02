@@ -1,9 +1,7 @@
 module shock_thermal
-  ! This module calculates the shock's thermal bremsstrahlung emission
   use global
-  
   implicit none
-  private
+  
   public :: shock_thermal_run_total, shock_thermal_run_spectrum
   
 contains
@@ -11,10 +9,10 @@ contains
   !============================================================================
   ! shock_thermal_run_total (START)
   !============================================================================
-  
+  ! This module calculates the shock's total thermal bremsstrahlung luminosity
+  !============================================================================
+
   subroutine shock_thermal_run_total(shock)
-    use global
-    implicit none
     character(LEN=*), intent(in) :: shock
     real(dp) :: ne,ni,n_a(m_theta),emi_ff
     real(dp) :: f_int(m_theta),dtheta,integral, L_tot
@@ -27,7 +25,7 @@ contains
 
 80  format(A12,X,Es10.2)
 
-    print*, 'Calculate the total thermal emission from each shock'
+    print*, 'Calculate the total thermal luminosity from each shock'
     !------------------------------------------------------------
     !     
     !    Read shock position and thermodynamical quantities   
@@ -86,10 +84,10 @@ contains
   !============================================================================
   ! shock_thermal_run_spectrum (START)
   !============================================================================
+  ! This module calculates the shock's thermal bremsstrahlung SED
+  !============================================================================
   
   subroutine shock_thermal_run_spectrum(shock)
-    use global
-    implicit none
     character(LEN=*), intent(in) :: shock
     integer, parameter :: mE_ph = 256
     real(dp) :: n_a(m_theta),emi_ff_nu, cte_l(m_theta)
@@ -250,7 +248,7 @@ contains
     
     !---------------------------------
       
-    deallocate ( theta,r_norm,R_theta,H_theta )
+    deallocate ( H_theta )
     deallocate ( rho,T )
 
  

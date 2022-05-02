@@ -26,7 +26,7 @@ module CD_radic
 
     allocate ( LIC(mE_f),LIC_tot(mE_f) )
     allocate ( E_e(mE_e),N_etot(m_theta,mE_e),N_e(mE_e) )
-    allocate ( theta(m_theta),R_theta(m_theta),x(m_l),y(m_l),z(m_l) )
+    allocate ( x(m_l),y(m_l),z(m_l) )
 
     80  format(A9,X,Es10.2)
 
@@ -35,18 +35,10 @@ module CD_radic
     L_unabs_tot = 0.d0
 
     print *, 'Calculate the IC(st) emission'
+
     !------------------------------------------------------------------------
-    !
     !  Reading information here  
-    !
-
-    open(11,file='CD.dat')
-    do l=1,m_theta
-      read(11,*) theta(l),R_theta(l),dummy  ! Read r_norm, not R_theta
-    enddo
-    close(11)
-    R_theta = R0*R_theta  
-
+  
     open(11,file='CDrot.dat')
     do l=1,m_l     ! "up" and "down"
       read(11,*) x(l),y(l),z(l)
@@ -69,9 +61,7 @@ module CD_radic
     Eint_e = E_e(2)/E_e(1)
 
     !------------------------------------------------------------------------
-    !
     !  Calculate IC radiation next
-    !
 
     ! Define a logarithmically-spaced photon energy vector
     call vector_log( k*T_st,E_e(mE_e),Ef_int,Ef)
@@ -124,7 +114,7 @@ module CD_radic
 
     deallocate ( LIC,LIC_tot )
     deallocate ( E_e,N_etot,N_e )
-    deallocate ( theta,R_theta,x,y,z )
+    deallocate ( x,y,z )
 
 
   END subroutine CD_radic_st_run
