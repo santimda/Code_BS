@@ -1,11 +1,7 @@
-
-  
 module CD_termo
-
    use global
-
    implicit none
-   private
+
    public :: CD_termo_run
 
  contains
@@ -21,10 +17,7 @@ module CD_termo
    !___________________________________________________________________________
 
    subroutine CD_termo_run(shock)
-
-      use global
       !$ use omp_lib
-      implicit none
       character(LEN=*), intent(in) :: shock
       real(dp) :: A_z,A_omega,st,ct
       real(dp) :: cte_P,cte_T,cte_ad
@@ -37,7 +30,7 @@ module CD_termo
       real(dp) :: dot_M, dM, drho, P_th_med, Omega_in, theta_min
       integer :: l_crit, l_transition, l_min
       logical :: transition
-      allocate( theta(m_theta),r_norm(m_theta),R_theta(m_theta),H_norm(m_theta),H_theta(m_theta) )
+      allocate( H_norm(m_theta),H_theta(m_theta) )
       allocate( x(m_theta), y(m_theta) )
       allocate( Mach(m_theta),C_s_med(m_theta),C_s_sh(m_theta),r(m_theta) )
       allocate( rho_med(m_theta) )
@@ -69,7 +62,6 @@ module CD_termo
       open(11,file='CD.dat')
       do l = 1, m_theta
          read(11,*) theta(l), r_norm(l), dR(l), dummy, R_acel(l)
-         R_theta(l) = r_norm(l) * R0
       end do
       close(11)
       dtheta = theta(2)-theta(1)    ! Constant step in theta
@@ -90,7 +82,7 @@ module CD_termo
       do l = 1, m_theta
          st = sin(theta(l))
          ct = cos(theta(l))
-         call A_theta(shock,theta(l),st,ct,r_norm(l),A_z,A_omega)!,H_norm(l))
+         call A_theta(theta(l),st,ct,r_norm(l),A_z,A_omega)!,shock,H_norm(l))
          if (shock == 'RS') then
             n_perp = (/ -A_omega, -A_z /)! Internal perpendicular vector to the BS surface
             n_t = (/ -A_z, A_omega /)     ! Tangential vector to the BS surface
@@ -348,7 +340,7 @@ module CD_termo
       write(*,41) 'B_st <',(B(1)/4.d0)*(R0/R_st)*(v_w/v_st_rot)*r_A_st 
       41  format (A12,ES9.2)
 
-      deallocate( P,rho,T,B,v_t,v_perp,theta,r_norm,H_norm,R_theta,Mach,r,rho_med,C_s_med,C_s_sh,rho_min )
+      deallocate( P,rho,T,B,v_t,v_perp,H_theta,H_norm,Mach,r,rho_med,C_s_med,C_s_sh,rho_min )
       deallocate( x, y, H_new, y_eff )
       deallocate( v_t_RH, P_RH, rho_RH, B_RH )
       
@@ -357,13 +349,12 @@ module CD_termo
 END module CD_termo
 
 
-
 !============================================================================
 
-SUBROUTINE A_theta(shock,theta0,st,ct,r1,A_z,A_omega)!,H0_norm)
-
+SUBROUTINE A_theta(theta0,st,ct,r1,A_z,A_omega)!,shock,H0_norm)
    use global
-   character(LEN=*), intent(in) :: shock
+   implicit none
+   !character(LEN=*), intent(in) :: shock
    real(dp), intent(in) :: theta0,st,ct,r1
    real(dp), intent(out) :: A_z,A_omega!,H0_norm
    real(dp) :: f_theta,g_theta
@@ -384,7 +375,6 @@ SUBROUTINE A_theta(shock,theta0,st,ct,r1,A_z,A_omega)!,H0_norm)
    !      H0_norm = 0.3 * sin(theta(l))
    !   end if
    !end if
-
 END SUBROUTINE A_theta
 
 

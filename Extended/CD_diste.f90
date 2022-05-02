@@ -1,6 +1,7 @@
 module CD_diste
+   use global
+   implicit none
 
-   private
    public :: CD_diste_run 
 
    contains
@@ -16,9 +17,6 @@ module CD_diste
    !============================================================================
 
    subroutine CD_diste_run(shock)  
-
-      use global
-      implicit none
       character(LEN=*), intent(in) :: shock
       integer :: l_min,l2,m_theta_inj_max
       real(dp) :: t_cell(m_theta),t_adv(m_theta),t_coole(m_theta,mE_e),t_loss(m_theta,mE_e),t_th(m_theta)
@@ -53,7 +51,7 @@ module CD_diste
       end function fQ
       end interface
 
-      allocate( theta(m_theta),R_theta(m_theta),H_theta(m_theta) )
+      allocate( H_theta(m_theta) )
       allocate( P(m_theta),rho(m_theta),T(m_theta),B(m_theta),v_t(m_theta),v_perp(m_theta),r(m_theta),Mach(m_theta),rho_med(m_theta) )
       allocate( N_e(mE_e),E_e(mE_e),B_par(m_theta),N_etot(m_theta,mE_e) )
       allocate( T_IR(m_theta),T_IR_ad(m_theta) )
@@ -71,7 +69,6 @@ module CD_diste
          read(12,*) theta(l),R_theta(l),L_inj(l),dR(l)
       end do
       close(12)
-      R_theta = R0*R_theta     ! The file contained r_norm, not R_theta
       dR = R0*dR               ! The file contained dR/R0, not dR [cm]
       L_inj_e = inj_e*L_inj    ! The cell size is already taken into account in L_inj
 
@@ -381,7 +378,7 @@ module CD_diste
 
       !------------------------------------------------------------
 
-      deallocate( theta,R_theta,H_theta,B,B_par,rho,P,v_t,T,v_perp,r,Mach,rho_med )
+      deallocate( H_theta,B,B_par,rho,P,v_t,T,v_perp,r,Mach,rho_med )
       deallocate( N_e,E_e,N_etot ) 
       deallocate( T_IR, T_IR_ad, efi_ac_sh, alpha_sh )
 
@@ -411,7 +408,6 @@ module CD_diste
       integer :: l_min,l2,m_theta_inj_max
       real(dp) :: t_cell(m_theta),t_adv(m_theta),t_coole(m_theta,mE_e),t_loss(m_theta,mE_e)
       real(dp) :: D_diff,t_diff,t_esc
-      real(dp) :: lambda_T(m_theta)
       real(dp) :: cte_sy
       real(dp) :: R_acel(m_theta),Q,integral
       real(dp) :: E_dot(m_theta,mE_e),Emax_e0(m_theta),Ka,E_NT,dV_ring(m_theta),U_NT
@@ -494,7 +490,6 @@ module CD_diste
       end do
       close(114)
       close(20)
-
 
       !--------------------------------------------------------------------
       ! Build an energy vector that is common for all linear-emitters: 
@@ -631,7 +626,6 @@ END module CD_diste
 !--------------------------------------------------------------------------!
 
 subroutine Ne_bin(Ee,Ne_tot,ang,shock)
-
    use global
    implicit none
    character(LEN=*), intent(in) :: shock
@@ -671,7 +665,6 @@ subroutine Ne_bin(Ee,Ne_tot,ang,shock)
       write(82,*) 
    end do
    close(82)
-
 end subroutine Ne_bin
 
 
@@ -710,8 +703,6 @@ Subroutine Biseccion(csy,Bl,x3,c1,c2,T1,t_br,t_adv,xi,Rdiff)
       end if
    end do
    x3=b_
-   return
-
 end Subroutine Biseccion
 
 !=========================================================================
@@ -740,14 +731,13 @@ Function resta(log10E,csy,Bl,c1,c2,T1,t_br,t_adv,xi,Rdiff)
 
    t_ac = xi*E_l/(Bl*c*qe)  !      t_ac = (efiac*B_l*c*qe/E_l)**(-1)
    resta = t_loss - t_ac
-
-   return
 end Function resta
 
 !=========================================================================
 
 Function fQ(E, Emin, Emax, alpha)
    use global  
+   implicit none
    real(dp) :: fQ
    real(dp),intent(in) :: E, Emin, Emax, alpha
    if (E < Emin) then

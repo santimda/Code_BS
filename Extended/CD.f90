@@ -1,6 +1,7 @@
 module CD
-
-   private
+   use global
+   implicit none
+   
    public :: CD_run
 
 contains
@@ -14,8 +15,6 @@ contains
    !============================================================================
 
    subroutine CD_run
-      use global
-      implicit none
       real(dp) :: dtheta, dR(m_theta), Length(m_theta), R_acel(m_theta), r_aprox
 
       interface
@@ -27,10 +26,9 @@ contains
          end Subroutine RK
       end interface
 
-      allocate( theta(m_theta), r_norm(m_theta) )
       allocate( x(m_theta), y(m_theta) )
 
-      write(*,*) 'Calculate the CD position'
+      print*, 'Calculate the CD position'
 
       !write(*,80) 'alpha = ', k*T_ISM/(mp*mu_ISM*v_ISM**2) ! P_thermal_ISM /P_kin_ISM kT_ISM/(mu*m_p*v_ISM**2)
       !-----------------------------------------------------------------------------
@@ -58,7 +56,6 @@ contains
       dR(1) = R0*r_norm(1)*theta(1)  ! theta(1) =/ 0
       Length(1) = 0.d0
       do i = 2, m_theta
-
          theta(i) = theta(i-1) + dtheta
          ! The subroutine RK obtains r(i) using theta(i-1),r(i-1), and dtheta. 
          ! The function dr/dtheta given by Eq. 11 of Christie+16 is defined as 
@@ -68,6 +65,8 @@ contains
          dR(i) = R0*sqrt( r_norm(i-1)**2 + r_norm(i)**2 - 2.*r_norm(i)*r_norm(i-1)*cos(dtheta) ) ! cosine theorem
          Length(i) = Length(i-1) + dR(i)   
       end do
+      R_theta = r_norm*R0
+
       write(*,100) 'R0_proj[arcmin] =', R0_proj/60./abs(cos(incli)), ' (no cos(i))'
       write(*,90) 'R0[pc] =', R0/pc
       write(*,80) 'Length[R0] =', Length(m_theta)/R0
@@ -99,7 +98,6 @@ contains
       close(14)
 
       deallocate(x,y)
-      deallocate(theta,r_norm)
       
    End subroutine CD_run
 
@@ -110,7 +108,6 @@ End module CD
 !============================================================================
 
 Subroutine RK(xi,yi,dx,yf)
-
    implicit none
    integer, parameter :: dp = kind(1.d0)
    real(dp), intent(in) :: xi,yi,dx
@@ -139,9 +136,6 @@ Subroutine RK(xi,yi,dx,yf)
       y(i+1) = y(i) + (k1 + 2.*k2 + 2.*k3 + k4)/6.d0
    end do
    yf = y(n)
-
-   return
-   
 End subroutine RK
 
 !============================================================================
@@ -162,7 +156,6 @@ Function g(theta_i,r_i)
    den = (1.-lambda*r_i**2) * (theta_i - st*ct)*ct - st**3*(1.-r_i**2)
 
    g = num/den ! dr/dtheta
-   return
 End function g
 
 !============================================================================

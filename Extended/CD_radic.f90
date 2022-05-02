@@ -1,8 +1,7 @@
 module CD_radic
-  ! This module calculates the intrinsic IC emission using as an 
-  ! input the electron distribution in diste_sw.dat.
+  use global
+  implicit none
 
-  private
   public :: CD_radic_st_run,CD_radic_IR_run
 
   ! radic_st uses the stellar photon field, while radic_IR uses the IR 
@@ -13,10 +12,12 @@ module CD_radic
   !============================================================================
   ! CD_radic_st_run (start)
   !============================================================================
+  ! This module calculates the intrinsic IC emission using as an 
+  ! input the electron distribution in diste_<shock>.dat and the  
+  ! (anisotropic) stellar photon field
+  !============================================================================
 
   subroutine CD_radic_st_run(LIC_int,shock)  
-    use global
-    implicit none
     character(LEN=*), intent(in) :: shock
     real(dp),intent(out) :: LIC_int
     real(dp) :: ang,L_unabs,L_unabs_tot,Ef(mE_f),Ef_int
@@ -133,17 +134,16 @@ module CD_radic
   !============================================================================
 
 
-  !/////////////////////////////////////////////////////////////////////////////
-
 
   !============================================================================
   ! CD_radic_IR_run (start)
   !============================================================================
+  ! This module calculates the intrinsic IC emission using as an 
+  ! input the electron distribution in diste_<shock>.dat and the  
+  ! (isotropic) IR photon field
+  !============================================================================
 
   subroutine CD_radic_IR_run(shock)  
-
-    use global
-    implicit none
     character(LEN=*), intent(in) :: shock
     real(dp) :: L_unabs,L_unabs_tot,Ef(mE_f),Ef_int
 
@@ -246,7 +246,7 @@ SUBROUTINE IC_ani(Ee,Ne,Ef,Kappa,T_ad,ang,L_IC,L_unabs)
   ! Calculate anisotropic IC emission from interactions with BB photon field,
   ! using the formalism of Khangulyan+ 2014
   use global
-  Implicit none
+  implicit none
   Real(dp), intent(in) :: Ee(mE_e),Ne(mE_e),Ef(mE_f),Kappa,T_ad,ang
   Real(dp), intent(out) :: L_IC(mE_f),L_unabs
   Real(dp) :: Eps(mE_f),dEps,Eps_int
@@ -293,8 +293,6 @@ SUBROUTINE IC_ani(Ee,Ne,Ef,Kappa,T_ad,ang,L_IC,L_unabs)
     L_unabs = L_unabs + sum*dEps*mec2
   ENDDO
 
-  RETURN
-
 END SUBROUTINE IC_ani
 
 
@@ -305,7 +303,7 @@ SUBROUTINE IC_iso(Ee,Ne,Ef,Kappa,T_ad,L_IC,L_unabs)
   ! Calculate isotropic IC emission from interactions with BB photon field,
   ! using the formalism of Khangulyan+ 2014
   use global
-  Implicit none
+  implicit none
   Real(dp), intent(in) :: Ee,Ne,Ef,Kappa,T_ad
   Real(dp), intent(out) :: L_IC(mE_f),L_unabs
   Real(dp) :: Eps(mE_f),dEps,Eps_int
@@ -350,7 +348,5 @@ SUBROUTINE IC_iso(Ee,Ne,Ef,Kappa,T_ad,L_IC,L_unabs)
     L_IC(i) = sum  ! Especific luminosity (plot E(j)*LIC(Ej))
     L_unabs = L_unabs + sum*dEps*mec2
   ENDDO
-
-  RETURN
 
 END SUBROUTINE IC_iso

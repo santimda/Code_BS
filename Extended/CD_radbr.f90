@@ -1,6 +1,7 @@
 module CD_radbr
+   use global
+   implicit none
 
-   private
    public :: CD_radbr_run
 
 contains
@@ -14,8 +15,6 @@ contains
    !============================================================================
 
    subroutine CD_radbr_run(screened, shock) 
-      use global
-      Implicit none
       logical, intent(in) :: screened
       character(LEN=*), intent(in) :: shock
       Real(dp) :: n_a(m_theta),dsigma_Br,cte_sigma,u_br
@@ -39,7 +38,7 @@ contains
 
       80    format(A7,X,Es10.2)
 
-      write(*,*) '\n Calculate the (unabsorbed) rel. brem. emission in the '//shock//''
+      print*, '\n Calculate the (unabsorbed) rel. brem. emission in the '//shock//''
 
       !------------------------------------------------------------------------
       !  Read information (thermodynamical quantities and relativist electrons)
@@ -79,7 +78,6 @@ contains
    
       !===========================================================
       ! Calculate the relativistic Bremsstrahlung spectra
-
 
       Lbr_tot = 0.d0
 
@@ -157,8 +155,6 @@ Function Phi_Br(u,g_e,screened)
       else                    ! un-screened nuclei 
       Phi_Br = ( 1. + (1.-u)**2 - (2./3.d0)*(1.-u))*( log(2.*g_e*(1./u-1.)) -0.5d0 )
    endif
-
-   return
 End function Phi_Br
 
 !========================================

@@ -1,6 +1,7 @@
 module CD_distp
+   use global
+   implicit none
 
-   private
    public :: CD_distp_run
 
    contains
@@ -16,9 +17,6 @@ module CD_distp
    !============================================================================
    
    subroutine CD_distp_run(shock) 
-
-      use global
-      implicit none
       character(LEN=*), intent(in) :: shock
       integer :: l_min,l2,m_theta_inj_max
       real(dp) :: t_cell(m_theta),t_adv(m_theta),t_adi(m_theta),t_adi_pp
@@ -51,7 +49,7 @@ module CD_distp
       end function fQp
       end interface
 
-      allocate( theta(m_theta),R_theta(m_theta),H_theta(m_theta) )
+      allocate( H_theta(m_theta) )
       allocate( P(m_theta),rho(m_theta),T(m_theta),B(m_theta),v_t(m_theta) )
       allocate( N_p(mE_p),E_p(mE_p),N_ptot(m_theta,mE_p) )
       allocate( efi_ac_sh(m_theta) )
@@ -68,7 +66,6 @@ module CD_distp
          read(12,*) theta(l),R_theta(l),L_inj(l),dR(l)
       end do
       close(12)
-      R_theta = R0*R_theta     ! The file contained r_norm, not R_theta
       dR = R0*dR               ! The file contained dR/R0, not dR [cm]
       L_inj_p = inj_p*L_inj    ! The cell size is already taken into account in L_inj
       
@@ -327,7 +324,7 @@ module CD_distp
 
       !------------------------------------------------------------
 
-      deallocate( theta,R_theta,H_theta,B,rho,P,v_t,T )
+      deallocate( H_theta,B,rho,P,v_t,T )
       deallocate( N_p,E_p, N_ptot, efi_ac_sh, alpha_sh )
       
       !call CD_distp_approx_run(shock) ! JUST FOR A CHECK
@@ -349,9 +346,6 @@ module CD_distp
    !============================================================================
    
    subroutine CD_distp_approx_run(shock) 
-
-      use global
-      implicit none
       character(LEN=*), intent(in) :: shock
       integer :: l_min,l2,m_theta_inj_max
       real(dp) :: t_cell(m_theta),t_adv(m_theta)
@@ -370,7 +364,7 @@ module CD_distp
       end function fQp
       end interface
 
-      allocate( theta(m_theta),R_theta(m_theta),H_theta(m_theta) )
+      allocate( H_theta(m_theta) )
       allocate( P(m_theta),rho(m_theta),T(m_theta),B(m_theta),v_t(m_theta) )
       allocate( N_p(mE_p),E_p(mE_p),N_ptot(m_theta,mE_p) )
       allocate( efi_ac_sh(m_theta) )
@@ -531,7 +525,7 @@ module CD_distp
       end do
       close(81)
 
-      deallocate( theta,R_theta,H_theta,B,rho,P,v_t,T )
+      deallocate( H_theta,B,rho,P,v_t,T )
       deallocate( N_p,E_p, N_ptot, efi_ac_sh, alpha_sh )
 
    END subroutine CD_distp_approx_run
@@ -550,7 +544,6 @@ END module CD_distp
 !--------------------------------------------------------------------------!
 
 subroutine Np_bin(Ep,Np_tot,ang, shock)
-
    use global
    implicit none
    character(LEN=*), intent(in) :: shock
@@ -629,9 +622,6 @@ Subroutine Biseccion_p(Be,x3,t_pp,t_adv,xi,Rdiff)
       end if
    end do
    x3=b_
-
-   return
-
 end Subroutine Biseccion_p
 
 !=========================================================================
@@ -655,14 +645,13 @@ Function resta_p(log10E,B_l,t_pp,t_adv,xi,Rdiff)
 
    t_ac = xi*E_l/(B_l*c*qe)    
    resta_p = t_loss - t_ac
-   
-   return
 end Function resta_p
 
 !=========================================================================
 
 Function fQp(E, Emax, alpha)
-   use global  
+   use global 
+   implicit none 
    real(dp) :: fQp
    real(dp),intent(in) :: E, Emax, alpha
    

@@ -17,32 +17,27 @@ contains
     implicit none
     character(LEN=*), intent(in) :: shock
     real(dp) :: ne,ni,n_a(m_theta),emi_ff
-    real(dp) :: f_R,f_int(m_theta),dtheta,integral, L_tot
+    real(dp) :: f_int(m_theta),dtheta,integral, L_tot
     real(dp) :: dV_ring(m_theta)
     integer :: nl
     real(dp), parameter :: g_average = 1.2 ! Rybicki, Eq. 5.15 b
 
-    allocate( theta(m_theta),r_norm(m_theta),R_theta(m_theta),H_theta(m_theta) )
+    allocate( H_theta(m_theta) )
     allocate( rho(m_theta),T(m_theta) )
 
 80  format(A12,X,Es10.2)
 
-
-     write(*,*) 'Calculate the total thermal emission from each shock'
+    print*, 'Calculate the total thermal emission from each shock'
     !------------------------------------------------------------
     !     
     !    Read shock position and thermodynamical quantities   
     !
     !------------------------------------------------------------
 
-    open(12,file='CD.dat')
     open(13,file='Hnorm_'//shock//'.dat') 
     do l=1,m_theta
-       read(12,*) theta(l),r_norm(l)
        read(13,*) dummy, H_theta(l), dummy, dummy, dV_ring(l)
-       R_theta(l) = r_norm(l)*R0
     enddo
-    close(12)
     close(13)
     
     dtheta = (theta_max-theta(1))/float(m_theta)
@@ -101,7 +96,7 @@ contains
     real(dp) :: v_sh
     real(dp) :: Eph_0, Eph_min, Eph_max, Eph_int, Eph(mE_ph), dEph
     real(dp) :: dV_ring(m_theta)
-    real(dp) :: f_R,f_int(m_theta),dtheta,integral
+    real(dp) :: f_int(m_theta),dtheta,integral
     real(dp) :: LX_sh(mE_ph), L_tot
     integer :: nl, i_ph
     integer, parameter :: nu_mu=146,nu_mga=81 ! # data in table gauntff.dat
@@ -127,7 +122,7 @@ contains
     allocate( theta(m_theta),r_norm(m_theta),R_theta(m_theta),H_theta(m_theta) )
     allocate( rho(m_theta),T(m_theta) )
    
-    write(*,*) 'Calculate the spectrum of the thermal emission from each shock'
+    print*, 'Calculate the spectrum of the thermal emission from each shock'
 
     LX_sh = 0.d0
     L_tot = 0.d0

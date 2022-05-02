@@ -1,6 +1,6 @@
 module CD_abssyn
-
-  private
+  use global      
+  implicit none
   public :: CD_abssyn_run
 
   contains
@@ -10,20 +10,15 @@ module CD_abssyn
     !========================================================================
   	!This module calculates the f-f absorption of radio emission from the shock.
     ! This program calculates the total radio opacity for a radio photon 
-      ! emitted from a position (x(l),y(l)) in the CD. The output is the file
-      ! radsyn.dat which contains E(i), L_sy(E(i), L_sy_abs(E(i)).
-      ! The program uses the results of f-f opacity (tauffw); we have an estimate 
-      ! if the wind alpha(r,nu_i), with "r" tabulated in r.dat is the distance to 
-      ! the star. The f-f absorption in the shock is negligible given the large T
+    ! emitted from a position (x(l),y(l)) in the CD. The output is the file
+    ! radsyn.dat which contains E(i), L_sy(E(i), L_sy_abs(E(i)).
+    ! The program uses the results of f-f opacity (tauffw); we have an estimate 
+    ! if the wind alpha(r,nu_i), with "r" tabulated in r.dat is the distance to 
+    ! the star. The f-f absorption in the shock is negligible given the large T
     !========================================================================
   
     subroutine CD_abssyn_run(shock)
-      use global
-
-      !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-
       !$ use omp_lib
-      Implicit none
       character(LEN=*), intent(in) :: shock
 !      real(dp), intent(in) :: phi
       real(dp) :: dtheta, alphaffw(mr_ff,mE_ff)
@@ -39,7 +34,6 @@ module CD_abssyn
  
       allocate( tauff(m_l,m_nu) ) 
       allocate( x(m_l),y(m_l),z(m_l) )
-      allocate( theta(m_theta),r_norm(m_theta) )
       allocate( nu(m_nu),Lsy(m_l,m_nu),Lsy_tot(m_nu),Lsy_tot_abs(m_nu) )
   
 !100  format(A15,X,Es10.2)
@@ -48,27 +42,21 @@ module CD_abssyn
       Lsy_tot = 0.d0
       Lsy_tot_abs = 0.d0
       convert = 206265/distance             ! image to angular size ["]
-      flux = 1.d26/(4.d0*pi*(distance)**2.) ! luminosity to flux in mJy
+      flux = 1.d26/(4.d0*pi*(distance)**2) ! luminosity to flux in mJy
 
 !      write(*,100) 'R0_proj[arcmin] =',R0_proj/60
 
       tginc = tan(incli)
       sinc = sin(incli)
       cinc = cos(incli)
+      dtheta = theta(2)-theta(1)  ! Equiesp.
       ! set omp threads number
       !$ call omp_set_num_threads(nth)  
 
       !======================================================
       !
-      !    Read the position and opacity table
+      !    Read the opacity table
       
-      open(10,file='CD.dat')
-      do l=1,m_theta
-         read(10,*) theta(l),r_norm(l),dummy
-      end do
-      close(10)
-      dtheta = theta(2)-theta(1)  ! Equiesp.
-
       open(11,file='CDrot.dat')
       do l=1,m_l     ! "up" and "down"
          read(11,*) x(l),y(l),z(l)
@@ -225,9 +213,7 @@ module CD_abssyn
 
       deallocate( tauff ) 
       deallocate( x,y,z,nu,Lsy,Lsy_tot,Lsy_tot_abs )
-      deallocate( theta,r_norm )
    
-
     END subroutine CD_abssyn_run
     
   END module CD_abssyn

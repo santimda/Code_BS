@@ -1,9 +1,11 @@
 PROGRAM main
    use global
    use controls
+   use initialize
    use CD, only: CD_run
    use BB, only: BB_run
    implicit none
+   logical, parameter :: verbose=.True.
    
    interface
       subroutine calculate(shock) 
@@ -15,6 +17,10 @@ PROGRAM main
    print *, '\n ============================'
    print *, ' START'
    print *, '============================\n '
+
+   ! Initialize vectors   
+   if (verbose) print *, '\n Allocate vectors'    
+   call initialize_allocate()
 
    if (BBrad_calc) call BB_run
 
@@ -33,6 +39,9 @@ PROGRAM main
       print *, '----------------------------'
       call calculate('FS')
    endif
+
+   if (verbose) print *, '\n Deallocate vectors'    
+   call initialize_deallocate()
 
    print *, '\n ======================================'
    print *, '         END'

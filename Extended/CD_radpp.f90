@@ -1,14 +1,7 @@
 module CD_radpp
-
-  !============================================================================
-  ! This module calculates the intrinsic and absorbed p-p emission using as an 
-  ! input the proton distribution in distp(number).dat. The integrated 
-  ! luminosity (unabs and abs) for the linear emitter is stored in radpp.dat.
-  !============================================================================
-
   use global
   implicit none
-  private
+  
   public :: CD_radpp_run
 
   contains
@@ -16,10 +9,12 @@ module CD_radpp
   !============================================================================
   ! CD_radpp_run (START)
   !============================================================================
+  ! This module calculates the intrinsic and absorbed p-p emission using as an 
+  ! input the proton distribution in distp(number).dat. The integrated 
+  ! luminosity (unabs and abs) for the linear emitter is stored in radpp.dat.
+  !============================================================================
 
   subroutine CD_radpp_run(shock)  
-    use global
-    implicit none
     character(LEN=*), intent(in) :: shock
     real(dp) :: n_a(m_theta),Q_Ef,Q_phi,dx_pp,x_pp,qpi
     real(dp) :: Ef_int,dEf,Ef(mE_f),sum_pp,Epp,L1
@@ -43,7 +38,7 @@ module CD_radpp
 
     80    format(A7,X,Es10.2)
 
-    write(*,*) 'Calculate the p-p emission in the Shock'
+    print*, 'Calculate the p-p emission in the Shock'
 
     !------------------------------------------------------------------
     ! Read thermodynamical quantites at each position
@@ -172,7 +167,6 @@ Function F(x,L)
   integer, parameter :: dp = kind(1.d0)
   real(dp), intent(in) :: x,L
   real(dp) :: B,k,beta,F,L2
-
   L2 = L**2
   B = 1.30d0 + 0.14d0*L + 0.011d0*L2
   beta = 1.d0/(1.79d0 + 0.11d0*L + 0.008d0*L2)
@@ -180,7 +174,5 @@ Function F(x,L)
   F = B*log(x)/x*((1.d0-x**beta)/(1.d0+k*x**beta*(1.d0-x**beta)))**4* &
     (1.d0/log(x)-(4.d0*beta*x**beta)/(1.d0-x**beta)- &
     (4.d0*k*beta*x**beta*(1.d0-2.d0*x**beta)/(1.d0+k*x**beta*(1.d0-x**beta))))
-
-  return
 end Function F
 
