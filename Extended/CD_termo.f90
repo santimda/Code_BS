@@ -27,10 +27,11 @@ module CD_termo
       implicit none
       character(LEN=*), intent(in) :: shock
       real(dp) :: A_z,A_omega,st,ct
-      real(dp) :: cte_P,cte_T,cte_rho,cte_ad
-      real(dp) :: Beq0,v_sh
-      real(dp) :: dtheta,dR(m_theta),dV_ring(m_theta),dA_perp 
+      real(dp) :: cte_P,cte_T,cte_ad
+      real(dp) :: Beq0,Beq0_RH,v_sh
+      real(dp) :: dtheta,dR(m_theta),dV_ring(m_theta),dA_perp
       real(dp) :: L_inj(m_theta), L_inj_tot, L_sh, R_acel(m_theta)
+      real(dp) :: v_A(m_theta), v_ARH(m_theta)
       real(dp) :: v_vec(2), n_perp(2), n_t(2)
       real(dp) :: e_flux, sin_alpha
       real(dp) :: dot_M, dM, drho, P_th_med, Omega_in, theta_min
@@ -41,7 +42,7 @@ module CD_termo
       allocate( Mach(m_theta),C_s_med(m_theta),C_s_sh(m_theta),r(m_theta) )
       allocate( rho_med(m_theta) )
       allocate( P(m_theta),rho(m_theta),T(m_theta),B(m_theta),v_t(m_theta),v_perp(m_theta) )
-      allocate( v_t_old(m_theta), P_old(m_theta), rho_old(m_theta), B_old(m_theta), rho_min(m_theta) )
+      allocate( v_t_RH(m_theta), P_RH(m_theta), rho_RH(m_theta), B_RH(m_theta), rho_min(m_theta) )
       allocate( H_new(m_theta), y_eff(m_theta) )
 
       80    format(A13,X,Es10.2)
@@ -49,10 +50,11 @@ module CD_termo
       82    format(A16,X,Es10.2)
       83    format(A18,X,Es10.2)
 
-      write(*,*) '\n Calculate thermodynamic variables in the shocks'
+      print *, '\n Calculate thermodynamic variables in the shocks'
 
       !-----------------------------------------------------------------
       !Define some values first
+
       if (shock == 'RS') then
          v_sh = v_w
          L_sh = L_wind
@@ -83,33 +85,31 @@ module CD_termo
 
       !-----------------------------------------------------------------
       ! Calculate the normal and tangential vectors at each position
-      ! using Eqs.12-16 from Christie+16; we also calculate H(theta)/R(theta)
+      ! using Eqs.12-16 from Christie+16
 
-      !open(18,file='Hnorm_'//shock//'.dat') ! normalized
       do l = 1, m_theta
          st = sin(theta(l))
          ct = cos(theta(l))
-         call A_theta(shock,theta(l),st,ct,r_norm(l),A_z,A_omega,H_norm(l))
+         call A_theta(shock,theta(l),st,ct,r_norm(l),A_z,A_omega)!,H_norm(l))
          if (shock == 'RS') then
             n_perp = (/ -A_omega, -A_z /)! Internal perpendicular vector to the BS surface
             n_t = (/ -A_z, A_omega /)     ! Tangential vector to the BS surface
             v_vec = v_sh * (/ -ct, st /)
             !v_perp(l) = v_sh * ( -st*A_z + ct*A_omega ) !Eq 18
-            v_t_old(l) = v_sh * ( ct*A_z + st*A_omega )
+            v_t_RH(l) = v_sh * ( ct*A_z + st*A_omega )
          else if (shock == 'FS') then
             n_perp =  (/ A_omega, A_z /) ! External perpendicular vector to the BS surface
             n_t = (/ -A_z, A_omega /)    ! Tangential vector to the BS surface
             v_vec = v_sh * (/1.d0, 0.d0/)
-            v_t_old(l) = v_sh*max(-A_z,0.)
+            v_t_RH(l) = v_sh*max(-A_z,0.)
          end if
          v_perp(l) = max( DOT_PRODUCT(v_vec,n_perp), 0.d0 )
          !v_t(l) = max( DOT_PRODUCT(v_vec,n_t), 1.d-10 ) ! Just so we don't get a zero value in l=1
-         !dV_ring(l) = (2.d0*pi*R_theta(l)*st) * dR(l) * (H_norm(l)*R_theta(l)) ! Volume of the ring
-         !write(18,*) theta(l), H_norm(l)*R_theta(l), R_acel(l)*R0, H_norm(l), dV_ring(l)
       end do
-      !close(18)
 
+      !-----------------------------------------------------------------
       ! particle accel. efficiency at the shock, depending on theta
+
       allocate( efi_ac_sh(m_theta) )
       open (18,file='efi_ac_'//shock//'.dat')
       do l = 1,m_theta
@@ -119,7 +119,6 @@ module CD_termo
       close(18)
       deallocate( efi_ac_sh )
 
-
       !-----------------------------------------------------------------
       !
       !  Thermodynamical quantities (shock)
@@ -128,7 +127,6 @@ module CD_termo
 
       cte_P = 2./(g_ad+1.)
       cte_T = ( (g_ad-1.)/(g_ad+1.)**2 ) * (mp/k)
-      cte_rho = (g_ad+1.)/(g_ad-1.)*(v_ISM/v_w)**2/(1.-lambda)
       cte_ad = g_ad/(g_ad-1.)
 
       if (shock == 'RS') then
@@ -141,19 +139,23 @@ module CD_termo
          C_s_med(1) = sqrt(g_ad*P_th_med/rho_med(1))
       end if
       
-      P(1) = rho_med(1)*v_sh*v_perp(1)
+      P(1) = rho_med(1) * v_sh * v_perp(1)
       rho_min(1) = rho_med(1)
-      rho(1) = cte_ad*2*P(1)/v_sh**2            ! 0.5*v_sh**2 = 0.5*v_t(l)**2 + (g_ad/(g_ad-1.))*P(l)/rho(l), v_t(1) = 0.
-      P_old(1) = cte_P*rho_med(1)*v_perp(1)**2
-      rho_old(1) = (g_ad+1.)/(g_ad-1.)*rho_med(1)
-      T(1) = cte_T*v_perp(1)**2
+      rho(1) = cte_ad * 2.d0 * P(1)/v_sh**2            ! 0.5*v_sh**2 = 0.5*v_t(l)**2 + (g_ad/(g_ad-1.))*P(l)/rho(l), v_t(1) = 0.
+      T(1) = cte_T * v_perp(1)**2
       Mach(1) = v_perp(1)/C_s_med(1)
-      r(1) = (g_ad+1.)*Mach(1)**2/((g_ad-1.)*Mach(1)**2+2.)
-      Beq0 = sqrt(8.d0*pi*P(1))
-      B(1) = frac_sh*Beq0
-      B_old(1) = frac_sh*Beq0
-      C_s_sh(1) = sqrt(g_ad*P(1)/rho(1))
+      r(1) = ( (g_ad+1.) * Mach(1)**2 )/ ((g_ad-1.)*Mach(1)**2 + 2.)
+      Beq0 = sqrt( 8.d0 * pi * P(1) )
+      B(1) = frac_sh * Beq0
+      v_A(1) = B(1) / sqrt(4.d0*pi*rho(1)) ! Alfven speed
+      C_s_sh(1) = sqrt( g_ad * P(1)/rho(1) )
       v_t(1) = 0.d0
+
+      P_RH(1) = cte_P*rho_med(1)*v_perp(1)**2
+      rho_RH(1) = r(1)*rho_med(1)
+      Beq0_RH = sqrt( 8.d0 * pi * P_RH(1) )
+      B_RH(1) = frac_sh * Beq0_RH
+      v_ARH(1) = B_RH(1) / sqrt(4.d0*pi*rho_RH(1)) ! Alfven speed
 
       transition = .true. 
       do l = 2, m_theta                                ! Calculo para la mitad de arriba
@@ -165,12 +167,6 @@ module CD_termo
             rho_med(l) = rho_ISM
             c_s_med(l) = sqrt(g_ad*P_th_med/rho_med(l))         ! Speed of sound in the ISM
          end if
-
-         P_old(l) = cte_P*rho_med(l)*v_perp(l)**2
-         rho_old(l) = (g_ad+1.)/(g_ad-1.)*rho_med(l)
-
-         Mach(l) = v_perp(l)/C_s_med(l)
-         r(l) = (g_ad+1.)*Mach(l)**2/((g_ad-1.)*Mach(l)**2+2.) ! Compression factor (Caprioli 2014, Eq. 1)
 
          if ( v_t(l-1) <= C_s_sh(l-1) ) then                 ! Check whether the shocked fluid is subsonic or not
             P(l) = rho_med(l)*v_sh*v_perp(l) !*r_norm(l)**2
@@ -209,20 +205,30 @@ module CD_termo
 
          C_s_sh(l) = sqrt(g_ad*P(l)/rho(l))           ! Sound speed in the shocked fluid     
          T(l) = cte_T*v_perp(l)**2                    ! Eq. 20
-         ! If U_mag = frac*U_th -> B^2/4pi = frac*(g_ad/g_ad - 1)*P 
-         ! If P_mag = frac*P_th -> B^2/8pi = frac*P 
-         Beq0 = sqrt(8.d0*pi*P(l))     ! sqrt(4.d0*pi*rho(l)*v(l)**2)
-         ! B_old(l) = frac_sh*Beq0     ! Move Beq0 outside if conditional if this quantiy is needed
 
          ! Kinetic energy p/ unit mass in the upstream region = Kinetic p/ unit mass + specific enthalpy in the downstream region
          v_t(l) = sqrt( 2.d0 * (0.5d0*v_sh**2-cte_ad*P(l)/rho(l)) )
 
+         ! If U_mag = frac*U_th -> B^2/4pi = frac*(g_ad/g_ad - 1)*P 
+         ! If P_mag = frac*P_th -> B^2/8pi = frac*P 
+         Beq0 = sqrt(8.d0*pi*P(l))     ! sqrt(4.d0*pi*rho(l)*v(l)**2)
          if ( v_t(l-1) <= C_s_sh(l-1) ) then
             B(l) = frac_sh*Beq0
          else       
             B(l) = B(l-1)*sqrt(rho(l)*v_t(l-1)/rho(l-1)/v_t(l))   ! Frozen-in conditions
          end if
-         
+         v_A(l) = B(l) / sqrt(4.d0*pi*rho(l)) ! Alfven speed
+
+         Mach(l) = v_perp(l)/C_s_med(l)
+         r(l) = (g_ad+1.)*Mach(l)**2/((g_ad-1.)*Mach(l)**2+2.) ! Compression factor (Caprioli 2014, Eq. 1)
+
+         P_RH(l) = cte_P * rho_med(l) * v_perp(l)**2
+         rho_RH(l) = r(l) * rho_med(l)
+         Beq0_RH = sqrt( 8.d0 * pi * P_RH(l) )
+         B_RH(l) = frac_sh * Beq0_RH
+         v_ARH(l) = B_RH(l) / sqrt(4.d0*pi*rho_RH(l)) ! Alfven speed
+
+         !print *, r(l), r(l)/(1.d0 + r(l)*v_A(l)/v_sh)
       end do
 
       !-----------------------------------------------------------------
@@ -260,15 +266,18 @@ module CD_termo
       
       !------------------------------
       !Calculate injection spectral index at the shocks
+
       allocate( alpha_sh(m_theta) )
       open(20,file='alpha_'//shock//'.dat')
       do l = 1, m_theta
          alpha_sh(l) = (r(l)+2.d0)/(r(l)-1.d0)
+         !dummy = r(l)/(1.d0 + r(l)*v_A(l)/v_sh)         
+         !print *, r(l), r(l)/(1.d0 + r(l)*v_ARH(l)/v_sh)
+         !print *, alpha_sh(l), (dummy+2.d0)/(dummy-1.d0)
          write(20,*) theta(l),alpha_sh(l)
       end do
       close(20)
       deallocate( alpha_sh )
-
 
       !------------------------------
       ! Calculate shock's width
@@ -308,12 +317,12 @@ module CD_termo
 
       open(16,file='termo_'//shock//'.dat')
       open(17,file='termonorm_'//shock//'.dat') ! normalized
-      open(18, file='new_vs_old_'//shock//'.dat') ! comparison btw P, rho and v_t new vs old
+      open(18, file='new_vs_RH_'//shock//'.dat') ! comparison btw P, rho and v_t new vs old
       open(19, file='H_'//shock//'.dat')
       do l = 1, m_theta
          write(16,*) l,rho(l),P(l),v_t(l),T(l),B(l),v_perp(l),theta(l),Mach(l),r(l),rho_med(l)
          write(17,*) theta(l),rho(l)/rho(1),P(l)/P(1),v_t(l)/v_sh,T(l)/T(1),B(l)/B(1),v_perp(l)/v_sh,C_s_sh(l)/v_sh
-         write(18,*) theta(l),v_t(l)/v_t_old(l), P(l)/P_old(l), rho(l)/rho_old(l)
+         write(18,*) theta(l),v_t(l)/v_t_RH(l), P(l)/P_RH(l), rho(l)/rho_RH(l)
          write(19,*) theta(l), H_new(l), H_new(l)/R_theta(l)
       end do
       close(16)
@@ -322,7 +331,7 @@ module CD_termo
       close(19)
 
       
-      write(*,*) 'At the stagnation point (sw):'
+      print *, 'At the stagnation point (sw):'
       write(*,41) 'R0[pc] =',R0/pc
       write(*,41) 'R0/Rst =', R0/R_st
       if (shock == 'RS') then
@@ -342,7 +351,7 @@ module CD_termo
 
       deallocate( P,rho,T,B,v_t,v_perp,theta,r_norm,H_norm,R_theta,Mach,r,rho_med,C_s_med,C_s_sh,rho_min )
       deallocate( x, y, H_new, y_eff )
-      deallocate( v_t_old, P_old, rho_old, B_old )
+      deallocate( v_t_RH, P_RH, rho_RH, B_RH )
       
    END subroutine CD_termo_run
 
@@ -352,12 +361,12 @@ END module CD_termo
 
 !============================================================================
 
-SUBROUTINE A_theta(shock,theta0,st,ct,r1,A_z,A_omega,H0_norm)
+SUBROUTINE A_theta(shock,theta0,st,ct,r1,A_z,A_omega)!,H0_norm)
 
    use global
    character(LEN=*), intent(in) :: shock
    real(dp), intent(in) :: theta0,st,ct,r1
-   real(dp), intent(out) :: A_z,A_omega,H0_norm
+   real(dp), intent(out) :: A_z,A_omega!,H0_norm
    real(dp) :: f_theta,g_theta
 
    f_theta = sqrt( (theta0-st*ct)**2*(1.-lambda*r1**2)**2+st**4*(1.-r1**2)**2 ) ! Eq.15
@@ -367,18 +376,15 @@ SUBROUTINE A_theta(shock,theta0,st,ct,r1,A_z,A_omega,H0_norm)
 
    g_theta = 2.*(v_ISM/v_w)*(1.-ct) !+ r1**2.*st**2.*(1.-lambda) ! Eq. 22
 
-   if (shock == 'RS') then
-      H0_norm = 0.5*(g_ad-1.)/(g_ad+1.) * (v_w/v_ISM)**2* (g_theta**2)/(f_theta*st) ! Eq. 23
-      !H0_norm = 0.2d0 ! + (theta0/2./pi)**2.
-   else if (shock == 'FS') then
-      if (theta(l) <= pi/2) then
-         H0_norm = 0.3
-      else
-         H0_norm = 0.3 * sin(theta(l))
-      end if
-   end if
-
-   RETURN
+   !if (shock == 'RS') then
+   !   H0_norm = 0.5*(g_ad-1.)/(g_ad+1.) * (v_w/v_ISM)**2* (g_theta**2)/(f_theta*st) ! Eq. 23
+   !else if (shock == 'FS') then
+   !   if (theta(l) <= pi/2) then
+   !      H0_norm = 0.3
+   !   else
+   !      H0_norm = 0.3 * sin(theta(l))
+   !   end if
+   !end if
 
 END SUBROUTINE A_theta
 
