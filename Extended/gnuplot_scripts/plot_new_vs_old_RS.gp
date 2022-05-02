@@ -1,10 +1,10 @@
 set encoding utf8
-set size ratio 0.8
+set size ratio 0.75
 set title '' #'Comparison btw P, rho and v_t new vs old RS'
 set key box opaque width 0.4 height 0.5 top left
 set key samplen 0.9 spacing 1.2 font ",20" 
-set xrange [0.:3.]
-set yrange [0.5:2.5]
+set xrange [0.:2.4]
+set yrange [0.5:]
 set xtics 0.5; set mxtics 5; set xtics nomirror font ",16"
 set ytics 1.; set mytics 10; set ytics font ",16"
 set xlabel '{/Symbol q} [rad]'; set xlabel offset 0,0.25 font ",18"

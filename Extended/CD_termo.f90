@@ -37,7 +37,7 @@ module CD_termo
       real(dp) :: dot_M, dM, drho, P_th_med, Omega_in, theta_min
       integer :: l_crit, l_transition, l_min
       logical :: transition
-      allocate( theta(m_theta),r_norm(m_theta),H_norm(m_theta),R_theta(m_theta) )
+      allocate( theta(m_theta),r_norm(m_theta),R_theta(m_theta),H_norm(m_theta),H_theta(m_theta) )
       allocate( x(m_theta), y(m_theta) )
       allocate( Mach(m_theta),C_s_med(m_theta),C_s_sh(m_theta),r(m_theta) )
       allocate( rho_med(m_theta) )
@@ -296,19 +296,19 @@ module CD_termo
          dM = (rho_med(l) * v_sh) * dA_perp
          !dM = rho_med(l)*v_perp(l)*2.*pi*R_theta(l)*sin(theta(l))*dR(l)
          dot_M = dot_M + dM
-         H_new(l) = dot_M/(2.*pi*y_eff(l)*rho(l)*v_t(l))   ! dot_M = 2*pi*y_eff(l)*H_new(l)*rho(l)*v_t(l)
+         H_theta(l) = dot_M/(2.*pi*y_eff(l)*rho(l)*v_t(l))   ! dot_M = 2*pi*y_eff(l)*H(l)*rho(l)*v_t(l)
       end do
 
       ! For theta < theta_min, we use the value obtained at theta_min
       do l = 1, l_min
-         H_new(l) = H_new(l_min)
+         H_theta(l) = H_theta(l_min)
       end do
 
       open(18,file='Hnorm_'//shock//'.dat') ! normalized
       do l = 1, m_theta
          st = sin(theta(l))
-         dV_ring(l) = (2.d0*pi*R_theta(l)*st) * dR(l) * H_new(l) ! Volume of the ring
-         write(18,*) theta(l), H_new(l), R_acel(l)*R0, H_new(l)/R_theta(l), dV_ring(l)
+         dV_ring(l) = (2.d0*pi*R_theta(l)*st) * dR(l) * H_theta(l) ! Volume of the ring
+         write(18,*) theta(l), H_theta(l), R_acel(l)*R0, H_theta(l)/R_theta(l), dV_ring(l)
       end do
       close(18)
 
@@ -330,7 +330,6 @@ module CD_termo
       close(18)
       close(19)
 
-      
       print *, 'At the stagnation point (sw):'
       write(*,41) 'R0[pc] =',R0/pc
       write(*,41) 'R0/Rst =', R0/R_st

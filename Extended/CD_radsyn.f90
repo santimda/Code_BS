@@ -144,7 +144,7 @@ contains
     ! Total SED
     open(17,file='radsyn_'//shock//'.dat')
     do i = 1,m_nu
-      write(17,*) Eps(i)*mec2/eV,Lsy_tot(i)
+      write(17,*) Eps(i)*mec2/eV,Lsy_tot(i),Lsy_tot(i)/(Eps(i)*mec2)
     enddo
     close(17)
 
