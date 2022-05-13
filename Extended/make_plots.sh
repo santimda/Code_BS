@@ -6,11 +6,6 @@ echo "2: B1-1-d"
 echo "3: B1-1-h"
 echo "4: B1-1-mc"
 echo "5: B2-60-d"
-#echo "6: B0-05-d warm"
-#echo "7: B1-1-d warm" 
-#echo "8: B1-1-h warm"
-#echo "9: B1-1-nm warm" 
-#echo "10: B2-60-d warm"
 
 echo -n "Enter the integer value and press [ENTER]: " 
 read name_number
@@ -61,7 +56,7 @@ script_list+=(plot_Emaxe_RS.gp plot_Emaxe_FS.gp)
 script_list+=(plot_Emaxp_RS.gp plot_Emaxp_FS.gp)
 script_list+=(plot_diste_RS.gp plot_diste_FS.gp plot_diste_RS_bin.gp plot_diste_FS_bin.gp)
 script_list+=(plot_distp_RS.gp plot_distp_FS.gp plot_distp_RS_bin.gp plot_distp_FS_bin.gp)
-script_list+=(plot_SED_RS_vs_FS.gp)
+script_list+=(plot_SED_th_NT.gp)
 
 # For each gnuplot script we create a temporary file to rename the name tag
 for script in "${script_list[@]}"
