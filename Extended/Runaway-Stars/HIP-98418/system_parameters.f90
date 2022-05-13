@@ -26,7 +26,7 @@ module system_parameters
    real(dp), parameter :: L_st = 1.9d5*L_sun      ! 
    real(dp), parameter :: R_st = 9.82*R_sun        ! 
    real(dp), parameter :: Mdot = 2.4d-8*M_sun_yr    ! Van den Eijnden 2021
-   real(dp), parameter :: v_w = 2545                ! Van den Eijnden 2021
+   real(dp), parameter :: v_w = 2545.d5                ! Van den Eijnden 2021
    real(dp), parameter :: L_wind = 0.5d0*(Mdot*v_w**2) ! Wind kinetic power
    real(dp), parameter :: T_wind = 0.3*T_st        ! Drew1990
    real(dp), parameter :: v_st_rot = 0.1d0*v_w     ! Rule-of-thumb
