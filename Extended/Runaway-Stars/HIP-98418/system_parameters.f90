@@ -42,9 +42,7 @@ module system_parameters
    real(dp), parameter :: n_ISM = 380.d0           ! VdE 2021
    real(dp), parameter :: T_ISM = 1.d2             ! MC?
    real(dp), parameter :: T_ISM_ad = k*T_ISM/mec2  ! Adimensional ISM temperature 
-   real(dp), parameter :: alpha_ISM = 5.d-2        ! P_thermal_ISM = alpha*P_kin_ISM ~ kT_ISM/(mu*m_p*v_ISM**2)
-   real(dp), parameter :: lambda = alpha_ISM/(alpha_ISM + 1.d0)
-   real(dp), parameter :: mu_ISM = 1.38_dp          ! K2018; 0.5 for pure H ionized
+   real(dp), parameter :: mu_ISM = 2.35             ! MC?
    real(dp), parameter :: Zq_ISM = 1.0_dp           ! Z = rms ionic charge
    real(dp), parameter :: gamma_ISM = 1.0_dp        ! Pure H
 
