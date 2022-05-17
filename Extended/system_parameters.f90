@@ -8,7 +8,7 @@ module system_parameters
    ! This module contains the parameters of the specific system modelled
    !====================================================================
 
-   real(dp), parameter :: distance = 2.99d0*kpc          ! source distance (Gaia)
+   real(dp), parameter :: distance = 1.46d0*kpc          ! source distance (Gaia)
    real(dp), parameter :: inclination = 60.d0*pi/180.d0  ! angle between the star motion and the LOS in rad   
    ! i = 0° is face-on, i = 90° corresponds to BS in front of the star, i = -90° is BS behind the star
    real(dp), parameter :: incli = pi/2.d0 - inclination  ! angle that I use
@@ -19,14 +19,14 @@ module system_parameters
 
    !--------------------------------------------------------------------------------------
    ! Star
-   ! Catalogued as O6.5V star by Sota+2011
-   real(dp), parameter :: v_st = 39.d5            ! Gaia3 + Moutzouri+2022 + Green+2013 estimations
-   real(dp), parameter :: T_st = 3.83d4            ! http://www.pas.rochester.edu/~emamajek/EEM_dwarf_UBVIJHK_colors_Teff.txt
+   ! Catalogued as O9.57Ib by Sota+ 2011
+   real(dp), parameter :: v_st = 40.d5            ! Gaia3 - Gontcharov 2006 (radial v) - Comeron & Pascquali 2007 ctes
+   real(dp), parameter :: T_st = 3.19d4            ! http://www.pas.rochester.edu/~emamajek/EEM_dwarf_UBVIJHK_colors_Teff.txt
    real(dp), parameter :: T_st_ad = k*T_st/mec2    ! Adimensional stellar temperature
-   real(dp), parameter :: L_st = 1.9d5*L_sun      ! 
-   real(dp), parameter :: R_st = 9.82*R_sun        ! 
-   real(dp), parameter :: Mdot = 1.3d-6*M_sun_yr    ! Toalá+2020
-   real(dp), parameter :: v_w = 2545.d5                ! Van den Eijnden 2021
+   real(dp), parameter :: L_st = 5.2d4*L_sun      ! 
+   real(dp), parameter :: R_st = 7.5*R_sun        ! 
+   real(dp), parameter :: Mdot = 5.d-8*M_sun_yr    ! Van den Eijnden 2021
+   real(dp), parameter :: v_w = 1535.d5                ! Peri+ 2012
    real(dp), parameter :: L_wind = 0.5d0*(Mdot*v_w**2) ! Wind kinetic power
    real(dp), parameter :: T_wind = 0.3*T_st        ! Drew1990
    real(dp), parameter :: v_st_rot = 0.1d0*v_w     ! Rule-of-thumb
@@ -39,11 +39,12 @@ module system_parameters
    !--------------------------------------------------------------------------------------
    ! ISM
    real(dp), parameter :: v_ISM = v_st             ! 
-   real(dp), parameter :: n_ISM = 50.d0            ! Moutzouri+ 2022
-   real(dp), parameter :: T_ISM = 1.d4             ! 
-   real(dp), parameter :: T_ISM_ad = k*T_ISM/mec2  ! Adimensional ISM temperature 
-   real(dp), parameter :: alpha_ISM = k*T_ISM/(v_ISM**2*mp*mu_ISM)! = P_thermal_ISM/P_kin_ISM
-   real(dp), parameter :: mu_ISM = 1.38_dp          ! K2018; 0.5 for pure H ionized
+   real(dp), parameter :: n_ISM = 2.d0           ! Peri+ 2012
+   real(dp), parameter :: T_ISM = 1.d4             ! Warm ISM
+   real(dp), parameter :: T_ISM_ad = k*T_ISM/mec2  ! Adimensional ISM temperature
+   real(dp), parameter :: mu_ISM = 1.28
+   real(dp), parameter :: alpha_ISM = k*T_ISM/(v_ISM**2*mp*mu_ISM)! = P_thermal_ISM/P_kin_ISM             ! 
+   real(dp), parameter :: lambda = alpha_ISM/(alpha_ISM + 1.d0)
    real(dp), parameter :: Zq_ISM = 1.0_dp           ! Z = rms ionic charge
    real(dp), parameter :: gamma_ISM = 1.0_dp        ! Pure H
 

@@ -44,8 +44,9 @@ module system_parameters
    real(dp), parameter :: n_ISM = 9.d0             ! Ben2021
    real(dp), parameter :: T_ISM = 1.d4             ! warm ISM (Brookes p.136 uses T=8e3)
    real(dp), parameter :: T_ISM_ad = k*T_ISM/mec2  ! Adimensional ISM temperature
-   real(dp), parameter :: alpha_ISM = k*T_ISM/(v_ISM**2*mp*mu_ISM)! = P_thermal_ISM/P_kin_ISM
    real(dp), parameter :: mu_ISM = 1.38_dp          ! K2018; 0.5 for pure H ionized
+   real(dp), parameter :: alpha_ISM = k*T_ISM/(v_ISM**2*mp*mu_ISM)! = P_thermal_ISM/P_kin_ISM
+   real(dp), parameter :: lambda = alpha_ISM/(alpha_ISM + 1.d0)
    real(dp), parameter :: Zq_ISM = 1.0_dp           ! Z = rms ionic charge
    real(dp), parameter :: gamma_ISM = 1.0_dp        ! Pure H
 

@@ -42,8 +42,9 @@ module system_parameters
    real(dp), parameter :: n_ISM = 2.d0           ! Peri+ 2012
    real(dp), parameter :: T_ISM = 1.d4             ! Warm ISM
    real(dp), parameter :: T_ISM_ad = k*T_ISM/mec2  ! Adimensional ISM temperature
-   real(dp), parameter :: alpha_ISM = k*T_ISM/(v_ISM**2*mp*mu_ISM)! = P_thermal_ISM/P_kin_ISM
    real(dp), parameter :: mu_ISM = 1.28             ! 
+   real(dp), parameter :: alpha_ISM = k*T_ISM/(v_ISM**2*mp*mu_ISM)! = P_thermal_ISM/P_kin_ISM
+   real(dp), parameter :: lambda = alpha_ISM/(alpha_ISM + 1.d0)
    real(dp), parameter :: Zq_ISM = 1.0_dp           ! Z = rms ionic charge
    real(dp), parameter :: gamma_ISM = 1.0_dp        ! Pure H
 
