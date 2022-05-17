@@ -4,6 +4,7 @@ echo "Choose one of the following scenarios"
 echo "1: BD+43°3654"
 echo "2: HIP-98418"
 echo "3: BD+60°2522"
+echo "4: HIP-88652"
 
 echo -n "Enter the integer value and press [ENTER]: " 
 read name_number
@@ -18,6 +19,9 @@ case $name_number in
 	;;
 	3)
 	name='BD+60°2522'
+	;;
+	4)
+	name='HIP-88652'
 	;;
 	*)
 	echo "Unknown scenario, exit"
