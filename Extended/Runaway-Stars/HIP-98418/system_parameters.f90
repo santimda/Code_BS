@@ -13,8 +13,6 @@ module system_parameters
    ! i = 0° is face-on, i = 90° corresponds to BS in front of the star, i = -90° is BS behind the star
    real(dp), parameter :: incli = pi/2.d0 - inclination  ! angle that I use
    ! incli = 90° is BS in front of the star, incli = 0° is edge-on,  incli = -90° is BS behind the star
-   !real(dp), parameter :: R0_proj = 5.d0*60.d3          ! projected BS distance to the star (5') in mas  
-   !real(dp), parameter :: R0 = R0_proj*(distance/kpc)*UA/abs(cos(incli)) ! linear distance to the BS stagnation point
    real(dp), parameter :: theta_max = (170.d0/180.d0)*pi ! ~ extension of the BS modelled ~ pi/2
 
    !--------------------------------------------------------------------------------------
@@ -78,16 +76,8 @@ module system_parameters
    !--------------------------------------------------------------------------------------
    ! Non-thermal particles
    real(dp), dimension(:), allocatable :: efi_ac_sh! particle accel. efficiency at the shocks  (l)
-   !real(dp), parameter :: frac_sw = sqrt(0.999_dp) ! fraction sqrt(UB_sw/UB_equipartition_sw)
    real(dp), parameter :: frac_sh = sqrt(0.1)      ! fraction sqrt(UB_sw/UB_equipartition_sw), f_NT=1
-   !real(dp), parameter :: alpha_sw = 2.2_dp        ! injection spectral index in the sw 
-   !real(dp), parameter :: frac_NT = 1.53d-1       ! Fraction L_NT/L_inj_perp, alpha=0.05, eta_B=1
-   real(dp), parameter :: frac_NT = 1.14d-1          ! Fraction L_NT/L_inj_perp, alpha=0.35, eta_B=0.1
-   !real(dp), parameter :: frac_NT = 7.8d-1          ! Fraction L_NT/L_inj_perp, alpha=0.35, eta_B=0.01
-   !real(dp), parameter :: frac_NT = 4.6d-2          ! Fraction L_NT/L_inj_perp, alpha=0.01, eta_B=1
-   !real(dp), parameter :: frac_NT = 4.28d-2          ! Fraction L_NT/L_inj_perp, alpha=0.05, eta_B=1
-   !real(dp), parameter :: frac_NT = 2.86d-2          ! Fraction L_NT/L_inj_perp, alpha=0.2, eta_B=1
-   !real(dp), parameter :: frac_NT = 1.33d-2          ! Fraction L_NT/L_inj_perp, alpha=0.35, eta_B=1
+   real(dp), parameter :: frac_NT = 1.d-1          ! Fraction L_NT/L_inj_perp, alpha=0.35, eta_B=0.1
    real(dp), parameter :: inj_e = frac_NT*0.1d0   ! Fraction L_NT_e/L_iny_perp 
    real(dp), parameter :: inj_p = frac_NT-inj_e    ! Fraction L_NT_p/L_iny_perp 
 

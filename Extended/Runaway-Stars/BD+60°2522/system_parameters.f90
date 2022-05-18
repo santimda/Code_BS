@@ -12,15 +12,12 @@ module system_parameters
    real(dp), parameter :: inclination = 60.d0*pi/180.d0  ! angle between the star motion and the LOS in rad   
    ! i = 0° is face-on, i = 90° corresponds to BS in front of the star, i = -90° is BS behind the star
    real(dp), parameter :: incli = pi/2.d0 - inclination  ! angle that I use
-   ! incli = 90° is BS in front of the star, incli = 0° is edge-on,  incli = -90° is BS behind the star
-   !real(dp), parameter :: R0_proj = 5.d0*60.d3          ! projected BS distance to the star (5') in mas  
-   !real(dp), parameter :: R0 = R0_proj*(distance/kpc)*UA/abs(cos(incli)) ! linear distance to the BS stagnation point
    real(dp), parameter :: theta_max = (170.d0/180.d0)*pi ! ~ extension of the BS modelled ~ pi/2
 
    !--------------------------------------------------------------------------------------
    ! Star
    ! Catalogued as O6.5V star by Sota+2011
-   real(dp), parameter :: v_st = 39.d5            ! Gaia3 + Moutzouri+2022 + Green+2013 estimations
+   real(dp), parameter :: v_st = 40.d5            ! Gaia3 + Moutzouri+2022 + Green+2013 estimations
    real(dp), parameter :: T_st = 3.83d4            ! http://www.pas.rochester.edu/~emamajek/EEM_dwarf_UBVIJHK_colors_Teff.txt
    real(dp), parameter :: T_st_ad = k*T_st/mec2    ! Adimensional stellar temperature
    real(dp), parameter :: L_st = 1.9d5*L_sun      ! 
@@ -70,7 +67,6 @@ module system_parameters
 
    !--------------------------------------------------------------------------------------
    ! Heated dust (IR)   
-   !real(dp), parameter :: L_IR = 5.7d36 ! Dust luminosity, observed ?????
    real(dp), parameter :: L_IR = L_st/350.d0     ! Dust luminosity, K2017
    real(dp), parameter :: mu_SISM = 0.615d0        ! Assume solar abundance (?)
    real(dp), dimension(:), allocatable :: T_IR,T_IR_ad
@@ -78,16 +74,8 @@ module system_parameters
    !--------------------------------------------------------------------------------------
    ! Non-thermal particles
    real(dp), dimension(:), allocatable :: efi_ac_sh! particle accel. efficiency at the shocks  (l)
-   !real(dp), parameter :: frac_sw = sqrt(0.999_dp) ! fraction sqrt(UB_sw/UB_equipartition_sw)
    real(dp), parameter :: frac_sh = sqrt(0.1)      ! fraction sqrt(UB_sw/UB_equipartition_sw), f_NT=1
-   !real(dp), parameter :: alpha_sw = 2.2_dp        ! injection spectral index in the sw 
-   !real(dp), parameter :: frac_NT = 1.53d-1       ! Fraction L_NT/L_inj_perp, alpha=0.05, eta_B=1
-   real(dp), parameter :: frac_NT = 1.14d-1          ! Fraction L_NT/L_inj_perp, alpha=0.35, eta_B=0.1
-   !real(dp), parameter :: frac_NT = 7.8d-1          ! Fraction L_NT/L_inj_perp, alpha=0.35, eta_B=0.01
-   !real(dp), parameter :: frac_NT = 4.6d-2          ! Fraction L_NT/L_inj_perp, alpha=0.01, eta_B=1
-   !real(dp), parameter :: frac_NT = 4.28d-2          ! Fraction L_NT/L_inj_perp, alpha=0.05, eta_B=1
-   !real(dp), parameter :: frac_NT = 2.86d-2          ! Fraction L_NT/L_inj_perp, alpha=0.2, eta_B=1
-   !real(dp), parameter :: frac_NT = 1.33d-2          ! Fraction L_NT/L_inj_perp, alpha=0.35, eta_B=1
+   real(dp), parameter :: frac_NT = 1.d-1          ! Fraction L_NT/L_inj_perp, alpha=0.35, eta_B=0.1
    real(dp), parameter :: inj_e = frac_NT*0.1d0   ! Fraction L_NT_e/L_iny_perp 
    real(dp), parameter :: inj_p = frac_NT-inj_e    ! Fraction L_NT_p/L_iny_perp 
 
