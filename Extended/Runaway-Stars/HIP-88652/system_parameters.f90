@@ -18,12 +18,12 @@ module system_parameters
    !--------------------------------------------------------------------------------------
    ! Star
    ! Catalogued as O9.57Ib by Sota+ 2011
-   real(dp), parameter :: v_st = 40.d5            ! Gaia3 - Gontcharov 2006 (radial v) - Comeron & Pascquali 2007 ctes
+   real(dp), parameter :: v_st = 38.d5            ! Gaia3 - Gontcharov 2006 (radial v) - Comeron & Pascquali 2007 ctes
    real(dp), parameter :: T_st = 3.19d4            ! http://www.pas.rochester.edu/~emamajek/EEM_dwarf_UBVIJHK_colors_Teff.txt
    real(dp), parameter :: T_st_ad = k*T_st/mec2    ! Adimensional stellar temperature
    real(dp), parameter :: L_st = 5.2d4*L_sun      ! 
    real(dp), parameter :: R_st = 7.5*R_sun        ! 
-   real(dp), parameter :: Mdot = 5.d-8*M_sun_yr    ! Van den Eijnden 2021
+   real(dp), parameter :: Mdot = 5.d-7*M_sun_yr    ! Peri+2012
    real(dp), parameter :: v_w = 1535.d5                ! Peri+ 2012
    real(dp), parameter :: L_wind = 0.5d0*(Mdot*v_w**2) ! Wind kinetic power
    real(dp), parameter :: T_wind = 0.3*T_st        ! Drew1990

@@ -23,7 +23,7 @@ module system_parameters
    real(dp), parameter :: L_st = 1.9d5*L_sun      ! 
    real(dp), parameter :: R_st = 9.82*R_sun        ! 
    real(dp), parameter :: Mdot = 1.3d-6*M_sun_yr    ! Toalá+2020
-   real(dp), parameter :: v_w = 2545.d5                ! Van den Eijnden 2021
+   real(dp), parameter :: v_w = 2500.d5                ! Green & Mackey 2019
    real(dp), parameter :: L_wind = 0.5d0*(Mdot*v_w**2) ! Wind kinetic power
    real(dp), parameter :: T_wind = 0.3*T_st        ! Drew1990
    real(dp), parameter :: v_st_rot = 0.1d0*v_w     ! Rule-of-thumb
@@ -36,7 +36,7 @@ module system_parameters
    !--------------------------------------------------------------------------------------
    ! ISM
    real(dp), parameter :: v_ISM = v_st             ! 
-   real(dp), parameter :: n_ISM = 50.d0            ! Moutzouri+ 2022
+   real(dp), parameter :: n_ISM = 50.d0            ! Moutzouri+ 2022 - Green & Mackey 2019
    real(dp), parameter :: T_ISM = 1.d4             ! 
    real(dp), parameter :: T_ISM_ad = k*T_ISM/mec2  ! Adimensional ISM temperature
    real(dp), parameter :: mu_ISM = 1.38_dp          ! K2018; 0.5 for pure H ionized

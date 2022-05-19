@@ -18,13 +18,13 @@ module system_parameters
    !--------------------------------------------------------------------------------------
    ! Star
    ! Catalogued as O6.5V by Maíz Apellániz+ 2016
-   real(dp), parameter :: v_st = 138.d5            ! Gaia3 - Peri+2015
+   real(dp), parameter :: v_st = 60.d5            ! Gaia3 - Peri+2015
    real(dp), parameter :: T_st = 3.83d4            ! http://www.pas.rochester.edu/~emamajek/EEM_dwarf_UBVIJHK_colors_Teff.txt
    real(dp), parameter :: T_st_ad = k*T_st/mec2    ! Adimensional stellar temperature
    real(dp), parameter :: L_st = 1.9d5*L_sun      ! 
    real(dp), parameter :: R_st = 9.82*R_sun        ! 
-   real(dp), parameter :: Mdot = 2.4d-8*M_sun_yr    ! Van den Eijnden 2021
-   real(dp), parameter :: v_w = 2545.d5                ! Van den Eijnden 2021
+   real(dp), parameter :: Mdot = 2.4d-7*M_sun_yr    ! Peri+2015
+   real(dp), parameter :: v_w = 2545.d5                ! Peri+2015
    real(dp), parameter :: L_wind = 0.5d0*(Mdot*v_w**2) ! Wind kinetic power
    real(dp), parameter :: T_wind = 0.3*T_st        ! Drew1990
    real(dp), parameter :: v_st_rot = 0.1d0*v_w     ! Rule-of-thumb
@@ -42,7 +42,7 @@ module system_parameters
    real(dp), parameter :: T_ISM_ad = k*T_ISM/mec2  ! Adimensional ISM temperature
    real(dp), parameter :: mu_ISM = 2.35             ! MC?
    real(dp), parameter :: alpha_ISM = k*T_ISM/(v_ISM**2*mp*mu_ISM)! = P_thermal_ISM/P_kin_ISM
-   real(dp), parameter :: alpha_ISM = k*T_ISM/(v_ISM**2*mp*mu_ISM)! = P_thermal_ISM/P_kin_ISM
+   real(dp), parameter :: lambda = alpha_ISM/(alpha_ISM + 1.d0)
    real(dp), parameter :: Zq_ISM = 1.0_dp           ! Z = rms ionic charge
    real(dp), parameter :: gamma_ISM = 1.0_dp        ! Pure H
 
