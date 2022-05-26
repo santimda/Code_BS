@@ -37,7 +37,7 @@ module system_parameters
    !--------------------------------------------------------------------------------------
    ! ISM
    real(dp), parameter :: v_ISM = v_st             ! 
-   real(dp), parameter :: n_ISM = 380.d0           ! VdE 2021
+   real(dp), parameter :: n_ISM = 90.d0           ! VdE 2021
    real(dp), parameter :: T_ISM = 1.d2             ! MC?
    real(dp), parameter :: T_ISM_ad = k*T_ISM/mec2  ! Adimensional ISM temperature
    real(dp), parameter :: mu_ISM = 2.35             ! MC?

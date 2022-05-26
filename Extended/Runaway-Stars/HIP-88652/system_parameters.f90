@@ -37,7 +37,7 @@ module system_parameters
    !--------------------------------------------------------------------------------------
    ! ISM
    real(dp), parameter :: v_ISM = v_st             ! 
-   real(dp), parameter :: n_ISM = 2.d0           ! Peri+ 2012
+   real(dp), parameter :: n_ISM = 3.1d0           ! Peri+ 2012
    real(dp), parameter :: T_ISM = 1.d4             ! Warm ISM
    real(dp), parameter :: T_ISM_ad = k*T_ISM/mec2  ! Adimensional ISM temperature
    real(dp), parameter :: mu_ISM = 1.28             ! 
