@@ -6,6 +6,7 @@ echo "2: HIP-98418"
 echo "3: BD+60°2522"
 echo "4: HIP-88652"
 echo "5: HD-319881"
+echo "6: IRAS-20321+4009"
 
 echo -n "Enter the integer value and press [ENTER]: " 
 read name_number
@@ -26,6 +27,9 @@ case $name_number in
 	;;
 	5)
 	name='HD-319881'
+	;;
+	6)
+	name='IRAS-20321+4009'
 	;;
 	*)
 	echo "Unknown scenario, exit"
