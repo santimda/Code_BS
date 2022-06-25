@@ -1,3 +1,4 @@
+
 module system_parameters
 
    use constants
@@ -6,9 +7,10 @@ module system_parameters
 
    !====================================================================
    ! This module contains the parameters of the specific system modelled
+   ! G3 according to Peri+ 2015
    !====================================================================
 
-   real(dp), parameter :: distance = 1.79d0*kpc          ! source distance (Gaia)
+   real(dp), parameter :: distance = 1.79d0*kpc  ! +- 0.03 kpc source distance (Gaia)
    real(dp), parameter :: inclination = 60.d0*pi/180.d0  ! angle between the star motion and the LOS in rad   
    ! i = 0° is face-on, i = 90° corresponds to BS in front of the star, i = -90° is BS behind the star
    real(dp), parameter :: incli = pi/2.d0 - inclination  ! angle that I use
@@ -18,7 +20,7 @@ module system_parameters
    !--------------------------------------------------------------------------------------
    ! Star
    ! Classified as O5V (Peri+ 2015)
-   real(dp), parameter :: v_st = 21.d5            ! Gaia3
+   real(dp), parameter :: v_st = 22.d5            ! Gaia3
    real(dp), parameter :: T_st = 41.1d4            ! http://www.pas.rochester.edu/~emamajek/EEM_dwarf_UBVIJHK_colors_Teff.txt
    real(dp), parameter :: T_st_ad = k*T_st/mec2    ! Adimensional stellar temperature
    real(dp), parameter :: L_st = 3.5d5*L_sun       ! http://www.pas.rochester.edu/~emamajek/EEM_dwarf_UBVIJHK_colors_Teff.txt

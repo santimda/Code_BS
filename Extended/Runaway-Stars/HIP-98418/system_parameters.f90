@@ -8,7 +8,7 @@ module system_parameters
    ! This module contains the parameters of the specific system modelled
    !====================================================================
 
-   real(dp), parameter :: distance = 2.21d0*kpc          ! source distance (Gaia)
+   real(dp), parameter :: distance = 2.21d0*kpc  !+- 0.03 kpc source distance (Gaia)
    real(dp), parameter :: inclination = 60.d0*pi/180.d0  ! angle between the star motion and the LOS in rad   
    ! i = 0° is face-on, i = 90° corresponds to BS in front of the star, i = -90° is BS behind the star
    real(dp), parameter :: incli = pi/2.d0 - inclination  ! angle that I use
