@@ -8,7 +8,7 @@ module system_parameters
    ! This module contains the parameters of the specific system modelled
    !====================================================================
 
-   real(dp), parameter :: distance = 2.99d0*kpc          ! source distance (Gaia)
+   real(dp), parameter :: distance = 2.99d0*kpc  !+- 0.05kpc  source distance (Gaia)
    real(dp), parameter :: inclination = 60.d0*pi/180.d0  ! angle between the star motion and the LOS in rad   
    ! i = 0° is face-on, i = 90° corresponds to BS in front of the star, i = -90° is BS behind the star
    real(dp), parameter :: incli = pi/2.d0 - inclination  ! angle that I use
@@ -37,7 +37,7 @@ module system_parameters
    ! ISM
    real(dp), parameter :: v_ISM = v_st             ! 
    real(dp), parameter :: n_ISM = 50.d0            ! Moutzouri+ 2022 - Green & Mackey 2019
-   real(dp), parameter :: T_ISM = 1.d4             ! 
+   real(dp), parameter :: T_ISM = 3.d1             ! 
    real(dp), parameter :: T_ISM_ad = k*T_ISM/mec2  ! Adimensional ISM temperature
    real(dp), parameter :: mu_ISM = 1.38_dp          ! K2018; 0.5 for pure H ionized
    real(dp), parameter :: alpha_ISM = k*T_ISM/(v_ISM**2*mp*mu_ISM)! = P_thermal_ISM/P_kin_ISM
