@@ -20,7 +20,7 @@ module global
    integer, parameter :: mE_e = 400    ! energy resolution for electrons
    integer, parameter :: mE_p = 400    ! energy resolution for protons < mE_f 
    integer, parameter :: mE_f = 600    ! it is the same for br, p-p and IC
-   integer, parameter :: mphi = 4      ! amount of linear-emitters
+   integer, parameter :: mphi = 30      ! amount of linear-emitters
    real(dp) :: delta_phi = 0.5*pi/(mphi-1.d0) ! angular separation between linear-emitters
    real(dp) :: d_phi = 0.5*pi/mphi     ! angular width of each linear-emitter or wedge
 
@@ -62,7 +62,7 @@ module global
 
    ! syn
    integer, parameter :: m_nu = 600  ! frequency resolution for synchrotron photons
-   real(dp), dimension(:,:), allocatable :: Lsy      ! L_sy(l,E_i)
+   real(dp), dimension(:,:), allocatable :: Lsy,Lsy_RS,Lsy_FS      ! L_sy(l,E_i)
    real(dp), dimension(:), allocatable :: nu,Lsy_tot,Lsy_tot_abs ! Lsy_tot(i) = sum_l L_sy(l,i)
 
    ! IC

@@ -19,9 +19,10 @@ module CD_abssyn
   
     subroutine CD_abssyn_run(shock)
       !$ use omp_lib
-      character(LEN=*), intent(in) :: shock
 !      real(dp), intent(in) :: phi
+      character(LEN=*), intent(in) :: shock
       real(dp) :: dtheta, alphaffw(mr_ff,mE_ff)
+!      real(dp) :: alpha_FS(mr_ff,mE_ff)
       Real(dp) :: r_ff(mr_ff),dr_ff
       Real(dp) :: theta1,x1,y1,z1,r1,dr0,x1_0,y1_0,z1_0
       Real(dp) :: dr_x,dr_y,tginc,sinc,cinc
@@ -35,6 +36,7 @@ module CD_abssyn
       allocate( tauff(m_l,m_nu) ) 
       allocate( x(m_l),y(m_l),z(m_l) )
       allocate( nu(m_nu),Lsy(m_l,m_nu),Lsy_tot(m_nu),Lsy_tot_abs(m_nu) )
+      allocate( Lsy_RS(m_l,m_nu),Lsy_FS(m_l,m_nu) )
   
 !100  format(A15,X,Es10.2)
 
@@ -153,29 +155,63 @@ module CD_abssyn
 
       !/////////////////////////////////////////////////////////////////////
 
-      open (31,file='emisyn_'//shock//'.dat')
-      do l=1,m_theta
-         do i=1,m_nu
-            read(31,*) nl,Ef(i),Lsy(l,i)  ! Lsy is already multiplied by Ef(i)
-            Lsy(l+m_theta,i) = Lsy(l,i)   ! symmetry 
-        end do
-      end do
-      close(31)
+      !open (31,file='emisyn_'//shock//'.dat')
+      if (shock == 'RS') then
+         open (32,file='emisyn_RS.dat')
+         do l=1,m_theta
+            do i=1,m_nu
+               read(32,*) nl,Ef(i),Lsy(l,i)  ! Lsy is already multiplied by Ef(i)
+               Lsy(l+m_theta,i) = Lsy(l,i)   ! symmetry 
+         end do
+         end do
+         close(32)
+      
+      else if (shock == 'FS') then
+         open (33,file='emisyn_FS.dat')
+         do l=1,m_theta
+            do i=1,m_nu
+               read(33,*) nl,Ef(i),Lsy(l,i)  ! Lsy is already multiplied by Ef(i)
+               Lsy(l+m_theta,i) = Lsy(l,i)   ! symmetry 
+         end do
+         end do
+         close(33)
+
+      else if (shock == 'BOTH') then
+         open (32,file='emisyn_RS.dat')
+         !open (33,file='emisyn_FS.dat')
+         do l=1,m_theta
+            do i=1,m_nu
+               read(32,*) nl,Ef(i),Lsy_RS(l,i)  ! Lsy is already multiplied by Ef(i)
+               !read(33,*) nl,Ef(i),Lsy_FS(l,i)
+               Lsy(l,i) = Lsy_RS(l,i)! + Lsy_FS(l,i)
+               Lsy(l+m_theta,i) = Lsy(l,i)   ! symmetry 
+         end do
+         end do
+         close(32)
+         !close(33)
+      end if
 
       i_1G = int(log(1.42d9/nu(1))/log_nu_int) + 1        ! 1.4 GHz
       i_3G = int(log(3.00d9/nu(1))/log_nu_int) + 1         ! 3.0 GHz
       i_5G = int(log(4.86d9/nu(1))/log_nu_int) + 1        ! 4.8 GHz
       flux1 = flux/nu(i_1G)   
       flux2 = flux/nu(i_3G) 
-      flux3 = flux/nu(i_5G) 
+      flux3 = flux/nu(i_5G)
 
       !-----------------------------------------------------------------------
       ! Calculate the total and absorbed emission for each linear emitter. 
       ! Also stores the emission projected in the plane of the sky, (u_proj,v_proj)
 
-      open(70,file='CD_radiomap_1GHz.dat')
-      open(71,file='CD_radiomap_3GHz.dat')
-      open(72,file='CD_radiomap_5GHz.dat')
+      if (shock /= 'BOTH') then
+         open(70,file='CD_radiomap_'//shock//'1GHz.dat') ! 1.4 GHz
+         open(71,file='CD_radiomap_'//shock//'3GHz.dat') ! 3.0 GHz
+         open(72,file='CD_radiomap_'//shock//'5GHz.dat') ! 4.8 GHz
+      else if (shock == 'BOTH') then
+         open(70,file='CD_radiomap_1GHz.dat') ! 1.4 GHz
+         open(71,file='CD_radiomap_3GHz.dat') ! 3.0 GHz
+         open(72,file='CD_radiomap_5GHz.dat') ! 4.8 GHz
+      end if
+
       do l=1,m_l
 !         u_proj = (y(l)+x(l)/tginc)*sinc *convert ! ?
          u_proj = (y(l)+x(l)/abs(tginc))*abs(sinc) *convert 
@@ -205,14 +241,18 @@ module CD_abssyn
       close(71)
       close(72)
 
-      open(33,file='radsyn_abs_'//shock//'.dat')
+      if (shock /= 'BOTH') then
+         open(34,file='radsyn_abs_'//shock//'.dat')
+      else if (shock == 'BOTH') then
+         open(34,file='radsyn_abs.dat')
+      end if
       do i=1,m_nu
-         write(33,*) Ef(i),Lsy_tot(i),Lsy_tot_abs(i)
+         write(34,*) Ef(i),Lsy_tot(i),Lsy_tot_abs(i)
       end do
-     close(33)
+     close(34)
 
       deallocate( tauff ) 
-      deallocate( x,y,z,nu,Lsy,Lsy_tot,Lsy_tot_abs )
+      deallocate( x,y,z,nu,Lsy,Lsy_tot,Lsy_tot_abs,Lsy_RS,Lsy_FS )
    
     END subroutine CD_abssyn_run
     

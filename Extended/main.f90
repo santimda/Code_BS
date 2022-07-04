@@ -13,6 +13,11 @@ PROGRAM main
       end subroutine calculate
    end interface
    
+   interface
+      subroutine abs_maps(shock)
+         character(LEN=*), intent(in) :: shock
+      end subroutine abs_maps
+   end interface
 
    print *, '\n ============================'
    print *, ' START'
@@ -31,6 +36,14 @@ PROGRAM main
       print *, ' Reverse Shock'
       print *, '----------------------------'
       call calculate('RS')
+      if (maps_calc) then
+         if (BOTH .eqv. no) then
+            print *, '\n--------------------------------------'
+            print *, ' Calculate absorption and emission maps'
+            print *, '----------------------------------------'
+            call abs_maps('RS')
+         end if
+      end if
    endif
 
    if (FS) then 
@@ -38,8 +51,25 @@ PROGRAM main
       print *, ' Forward shock'
       print *, '----------------------------'
       call calculate('FS')
+      if (maps_calc) then
+         if (BOTH .eqv. no) then
+            print *, '\n--------------------------------------'
+            print *, ' Calculate absorption and emission maps'
+            print *, '----------------------------------------'
+            call abs_maps('FS')
+         end if
+      end if  
    endif
 
+   if (maps_calc) then
+      if (BOTH) then
+         print *, '\n--------------------------------------'
+         print *, ' Calculate absorption and emission maps'
+         print *, '----------------------------------------'
+         call abs_maps('BOTH')
+      end if
+   end if
+      
    if (verbose) print *, '\n Deallocate vectors'    
    call initialize_deallocate()
 
@@ -66,9 +96,7 @@ PROGRAM main
    use CD_radic, only: CD_radic_st_run,CD_radic_IR_run
    use CD_radpp, only: CD_radpp_run
    use opac_ff, only: opac_ff_run
-   use CD_abssyn, only: CD_abssyn_run
    use CD_rot, only: CD_rot_run
-   use SW_conv, only: SW_conv1G_run, SW_conv3G_run, SW_conv5G_run, SW_spex_run
    
    implicit none
    80 format(A9,X,Es10.2)
@@ -110,20 +138,13 @@ PROGRAM main
    IF (electrons) then
       print *, '\n ELECTRONS:'
 
-      !------------------------------------------------------------------------------
-      if (maps_calc) then      
-         open(88,file='SW_radiomap_1GHz.dat')
-         open(89,file='SW_radiomap_3GHz.dat')
-         open(90,file='SW_radiomap_5GHz.dat')
-      endif
       ! -----------------------------------------------------------------------------
-
 
       if (diste_calc) call CD_diste_run(shock) 
 
       if (radsyn_sw_calc) call CD_radsyn_run(shock)       ! Just one linear emitter      
 
-      if (opacff_calc) call opac_ff_run
+      if (opacff_calc .and. RS) call opac_ff_run
 
       if (radbr_sw_calc) call CD_radbr_run(unscr,shock)  ! Just one linear emitter  
 
@@ -153,45 +174,6 @@ PROGRAM main
                LIC_all = LIC_all + LIC_int
             endif
 
-            if (abssyn_calc) then
-               print *, 'Calculate the free-free synchrotron absorption'
-               call CD_abssyn_run(shock) !(phi)
-               open (45,file='radsyn_abs_'//shock//'.dat')
-               do i_E = 1,m_nu    ! SED --> sum emission from different phi
-                  read(45,*) E_sy(i_E),Lsy_unabs,Lsy_abs
-                  Lsy_sh_unabs(i_E) = Lsy_sh_unabs(i_E) + Lsy_unabs
-                  Lsy_sh_abs(i_E) = Lsy_sh_abs(i_E) + Lsy_abs
-               end do
-               close(45)
-            endif
-            ! -----------------------------------------------------------------------------
-            !------------------------------------------------------------------------------ 
-            if (maps_calc) then           
-               print *, 'Save synthetic radio emission maps'
-               open(55,file='CD_radiomap_1GHz.dat') ! 1.4 GHz
-               open(56,file='CD_radiomap_3GHz.dat') ! 3.0 GHz
-               open(57,file='CD_radiomap_5GHz.dat') ! 4.8 GHz
-               do i_l = 1,2*m_theta
-                  read(55,*) u_proj,v_proj,emi,emi_abs
-                  write(88,*) u_proj,v_proj,emi,emi_abs
-                  if (i_phi.ne.1) then ! .and. i_phi.ne.mphi) then
-                     write(88,*) u_proj,-v_proj,emi,emi_abs ! symmetry???
-                  endif
-                  read(56,*) u_proj,v_proj,emi,emi_abs
-                  write(89,*) u_proj,v_proj,emi,emi_abs  
-                  if (i_phi.ne.1) then !.and. i_phi.ne.mphi) then
-                     write(89,*) u_proj,-v_proj,emi,emi_abs ! symmetry???
-                  endif
-                  read(57,*) u_proj,v_proj,emi,emi_abs
-                  write(90,*) u_proj,v_proj,emi,emi_abs  
-                  if (i_phi.ne.1) then !.and. i_phi.ne.mphi) then
-                     write(90,*) u_proj,-v_proj,emi,emi_abs ! symmetry???
-                  endif
-               end do
-               close(55)
-               close(56)
-               close(57)
-            endif
             ! -----------------------------------------------------------------------------
             !------------------------------------------------------------------------------
 
@@ -264,16 +246,6 @@ PROGRAM main
             close(51)
          endif
 
-         if (abssyn_calc) then       ! This has the full 3D geometry in the abs
-            open (51,file='radsynabs_'//shock//'_tot.dat')
-            do i_E = 1,m_nu
-               ! Multiply by a factor 2 because of the axial symmetry in the SW
-               ! (this one already considers "mirroring" for y < 0 in the calculation)
-               write(51,*) E_sy(i_E),2.d0*Lsy_sh_unabs(i_E),2.d0*Lsy_sh_abs(i_E)
-            end do
-            close(51)
-         endif
-
 
          if (radbr_sw_calc) then
             open (42,file='radbr_'//shock//'.dat')     ! One linear-emitter
@@ -338,13 +310,6 @@ PROGRAM main
 
    ! -----------------------------------------------------------------------------
    !------------------------------------------------------------------------------  
-   if (convolution) then
-      print *, 'Convolution of the emission map with the instrument response'
-      !call SW_conv1G_run
-      call SW_conv3G_run  
-      !call SW_conv5G_run  
-      !call SW_spex_run  
-   endif
 
    ! -----------------------------------------------------------------------------
    !------------------------------------------------------------------------------
@@ -387,3 +352,122 @@ End Subroutine Calculate
 
 
 
+!============================================================================
+!============================================================================
+
+Subroutine abs_maps(SHOCK)
+   use global
+   use controls
+   use CD_abssyn, only: CD_abssyn_run
+   use CD_rot, only: CD_rot_run
+   use SW_conv, only: SW_conv1G_run, SW_conv3G_run, SW_conv5G_run, SW_spex_run
+
+   implicit none
+
+   character(LEN=*), intent(in) :: shock
+   real(dp) :: Lsy_sh_abs(m_nu), Lsy_sh_unabs(m_nu), Lsy_unabs, Lsy_abs
+   real(dp) :: E_sy(m_nu)
+   real(dp) :: u_proj,v_proj,emi,emi_abs
+   real(dp) :: phi
+   integer :: i_phi,i_E,i_l 
+
+   Lsy_sh_unabs = 0.d0
+   Lsy_sh_abs = 0.d0
+
+   if (shock /= 'BOTH') then    
+      open(88,file='SW_radiomap_'//shock//'_1GHz.dat')
+      open(89,file='SW_radiomap_'//shock//'_3GHz.dat')
+      open(90,file='SW_radiomap_'//shock//'_5GHz.dat')
+   else if (shock == 'BOTH') then
+      open(88,file='SW_radiomap_1GHz.dat')
+      open(89,file='SW_radiomap_3GHz.dat')
+      open(90,file='SW_radiomap_5GHz.dat')
+   end if
+
+
+phi = 0.d0
+      if (rotate) then
+         DO i_phi = 1, mphi
+            print *, 'i(phi)=',i_phi,'/',mphi
+
+            call CD_rot_run(phi)   
+
+            if (abssyn_calc) then
+               print *, 'Calculate the free-free synchrotron absorption'
+               call CD_abssyn_run(shock) !(phi)
+               if (shock /= 'BOTH') then
+                  open (45,file='radsyn_abs_'//shock//'.dat')
+               else if (shock == 'BOTH') then
+                  open (45,file='radsyn_abs.dat')
+               end if
+               do i_E = 1,m_nu    ! SED --> sum emission from different phi
+                  read(45,*) E_sy(i_E),Lsy_unabs,Lsy_abs
+                  Lsy_sh_unabs(i_E) = Lsy_sh_unabs(i_E) + Lsy_unabs
+                  Lsy_sh_abs(i_E) = Lsy_sh_abs(i_E) + Lsy_abs
+               end do
+               close(45)
+            endif
+            ! -----------------------------------------------------------------------------
+            !------------------------------------------------------------------------------ 
+            if (maps_calc) then           
+               print *, 'Save synthetic radio emission maps'
+               if (shock /= 'BOTH') then
+                  open(55,file='CD_radiomap_'//shock//'1GHz.dat') ! 1.4 GHz
+                  open(56,file='CD_radiomap_'//shock//'3GHz.dat') ! 3.0 GHz
+                  open(57,file='CD_radiomap_'//shock//'5GHz.dat') ! 4.8 GHz
+               else if (shock == 'BOTH') then
+                  open(55,file='CD_radiomap_1GHz.dat') ! 1.4 GHz
+                  open(56,file='CD_radiomap_3GHz.dat') ! 3.0 GHz
+                  open(57,file='CD_radiomap_5GHz.dat') ! 4.8 GHz
+               end if
+               do i_l = 1,2*m_theta
+                  read(55,*) u_proj,v_proj,emi,emi_abs
+                  write(88,*) u_proj,v_proj,emi,emi_abs
+                  if (i_phi.ne.1) then ! .and. i_phi.ne.mphi) then
+                     write(88,*) u_proj,-v_proj,emi,emi_abs ! symmetry???
+                  endif
+                  read(56,*) u_proj,v_proj,emi,emi_abs
+                  write(89,*) u_proj,v_proj,emi,emi_abs  
+                  if (i_phi.ne.1) then !.and. i_phi.ne.mphi) then
+                     write(89,*) u_proj,-v_proj,emi,emi_abs ! symmetry???
+                  endif
+                  read(57,*) u_proj,v_proj,emi,emi_abs
+                  write(90,*) u_proj,v_proj,emi,emi_abs  
+                  if (i_phi.ne.1) then !.and. i_phi.ne.mphi) then
+                     write(90,*) u_proj,-v_proj,emi,emi_abs ! symmetry???
+                  endif
+               end do
+               close(55)
+               close(56)
+               close(57)
+            endif
+            ! -----------------------------------------------------------------------------
+            !------------------------------------------------------------------------------
+
+            phi = phi + delta_phi           
+         end do
+   end if
+
+
+   if (abssyn_calc) then       ! This has the full 3D geometry in the abs
+            open (51,file='radsynabs_'//shock//'_tot.dat')
+            do i_E = 1,m_nu
+               ! Multiply by a factor 2 because of the axial symmetry in the SW
+               ! (this one already considers "mirroring" for y < 0 in the calculation)
+               write(51,*) E_sy(i_E),2.d0*Lsy_sh_unabs(i_E),2.d0*Lsy_sh_abs(i_E)
+            end do
+            close(51)
+   endif
+
+
+
+   if (convolution) then
+      print *, 'Convolution of the emission map with the instrument response'
+      call SW_conv1G_run
+      call SW_conv3G_run  
+      call SW_conv5G_run  
+      call SW_spex_run  
+   endif
+
+
+   END subroutine abs_maps

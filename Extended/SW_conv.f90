@@ -15,7 +15,8 @@ module SW_conv
 
    subroutine SW_conv1G_run  
       integer, parameter :: m_tot = (2*(mphi-1))*(m_theta*2)   ! Total number of data
-      real(dp), parameter :: sigma_x = 12.d0, sigma_y = 12.d0  ! Benaglia2010
+      !real(dp), parameter :: sigma_x = 12.d0, sigma_y = 12.d0  ! Benaglia2010
+      real(dp), parameter :: sigma_x = 20.2d0, sigma_y = 12.5d0  ! Benaglia2021
       !    real(dp), parameter :: coc = sqrt(8.d0*log(2.d0))        ! Benaglia gives sigma, not theta!
       !    real(dp), parameter :: theta_x = sigma_x*coc, theta_y = sigma_y*coc ! HPBW = Resolution (Ben2010)  
       real(dp) :: x_map(m_tot),y_map(m_tot)
@@ -161,7 +162,8 @@ module SW_conv
       !real(dp), parameter :: coc = sqrt(8.d0*log(2.d0))         ! theta to sigma
       !real(dp), parameter :: theta_x = 20.2d0, theta_y = 12.5d0   ! HPBW = Resolution 
       !real(dp), parameter :: sigma_x = theta_x/coc, sigma_y = theta_y/coc   ! Benaglia2010
-      real(dp), parameter :: sigma_x = 20.2d0, sigma_y = 12.5d0   ! Benaglia2020
+      !real(dp), parameter :: sigma_x = 20.2d0, sigma_y = 12.5d0   ! Benaglia2020
+      real(dp), parameter :: sigma_x = 20.2d0, sigma_y = 12.5d0  ! Benaglia2021
       real(dp) :: x_map(m_tot),y_map(m_tot)
       real(dp) :: F_3Gabs(m_tot),F_3Gun(m_tot)
       real(dp) :: ancho_x, ancho_y, D_x, D_y,ci
@@ -297,7 +299,8 @@ module SW_conv
 
    subroutine SW_conv5G_run  
       integer, parameter :: m_tot = (2*(mphi-1))*(m_theta*2)   ! Total number of data
-      real(dp), parameter :: sigma_x = 12.d0, sigma_y = 12.d0   ! Benaglia2010
+      !real(dp), parameter :: sigma_x = 12.d0, sigma_y = 12.d0   ! Benaglia2010
+      real(dp), parameter :: sigma_x = 20.2d0, sigma_y = 12.5d0  ! Benaglia2021
       !    real(dp), parameter :: coc = sqrt(8.d0*log(2.d0))        ! Benaglia gives sigma, not theta!
       !    real(dp), parameter :: theta_x = sigma_x*coc, theta_y = sigma_y*coc ! HPBW = Resolution (Ben2010)  
       real(dp) :: x_map(m_tot),y_map(m_tot)
@@ -435,7 +438,8 @@ module SW_conv
    !============================================================================
 
    subroutine SW_spex_run  
-      real(dp), parameter :: sigma_x = 12.d0, sigma_y = 12.d0   ! Benaglia2010
+      !real(dp), parameter :: sigma_x = 12.d0, sigma_y = 12.d0   ! Benaglia2010
+      real(dp), parameter :: sigma_x = 20.2d0, sigma_y = 12.5d0  ! Benaglia2021
       !    real(dp), parameter :: coc = sqrt(8.d0*log(2.d0))        ! Benaglia gives sigma, not theta!
       !    real(dp), parameter :: theta_x = sigma_x*coc, theta_y = sigma_y*coc ! HPBW = Resolution (Ben2010)
       real(dp) :: ancho_x, ancho_y, D_x, D_y, lognu2nu1, ci
