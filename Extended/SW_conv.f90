@@ -173,6 +173,7 @@ module SW_conv
       integer :: m_x,m_y
       integer, parameter:: m_map = mphi*mr_map
       real(dp) :: A_beam,A_cell, suma2,x_map2(m_map),y_map2(m_map),S_map2(m_map)
+      real(dp) :: x_map3(m_map),y_map3(m_map),S_map3(m_map),suma3
       real(dp) :: w_x, w_y
 
       A_beam = 2*pi*sigma_x*sigma_y     ! = Gaussian normalization factor 
@@ -219,6 +220,16 @@ module SW_conv
       write(*,80) 'S_ff(3.0G)=',sum,'mJy'
       close(133)
 
+      sum = 0.d0
+      open(233,file='SH_ff_radiomap_3GHz.dat')
+      do l = 1, m_map
+         read(233,*) x_map3(l),y_map3(l),S_map3(l)
+         sum = sum + S_map3(l)
+      enddo
+      write(*,*) 'Pre-conv:'
+      write(*,80) 'S_th(3.0G)=',sum,'mJy'
+      close(233)
+
       !------------------------------------------
 
       w_x = 2.d0*sigma_x**2! Weight in x distance
@@ -256,7 +267,20 @@ module SW_conv
                suma2 = suma2 + D_F
             enddo
 
-            F_map3Gabs(i,j) = suma + suma2 ! >>>>> CHECK! FF FLUX TOO HIGH!
+            suma3 = 0.d0
+            do l = 1, m_map
+               d_pesada2 = ((x_map2(l)-x_c(i))**2)/w_x + ((y_map2(l)-y_c(j))**2)/w_y
+               if (d_pesada2 < 6.d0) then      
+                  ! Gaussian beam -> /(sigma*sqrt(2*pi)), both in x and y
+                  atenua = exp( -d_pesada2 ) !/ norm
+                  D_F = S_map3(l)*atenua
+               else
+                  D_F = 0.d0 ! flux drops < 1e-3 farther from there, no need to sum
+               endif
+               suma2 = suma3 + D_F
+            enddo
+
+            F_map3Gabs(i,j) = suma + suma2 + suma3! >>>>> CHECK! FF FLUX TOO HIGH!
          enddo
 
       enddo

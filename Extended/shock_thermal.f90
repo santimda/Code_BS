@@ -80,14 +80,20 @@ module shock_thermal
 
   subroutine shock_thermal_run_spectrum(shock)
     character(LEN=*), intent(in) :: shock
-    integer, parameter :: mE_ph = 256
+    integer, parameter :: mE_ph = 400
+    integer, parameter :: m_l = 2*m_theta  ! CD position, both sides
     real(dp) :: n_a(m_theta),emi_ff_nu, cte_l(m_theta)
     real(dp) :: v_sh
     real(dp) :: Eph_0, Eph_min, Eph_max, Eph_int, Eph(mE_ph), dEph
+    real(dp) :: nu(mE_ph)
+    real(dp) :: log_nu_int,flux,flux1,flux2,flux3
     real(dp) :: dV_ring(m_theta)
     real(dp) :: f_int(m_theta),dtheta,integral
+    !real(dp) :: F_nu(m_l,mE_ph),F_nu_phi(m_l,mE_ph)
     real(dp) :: LX_sh(mE_ph), L_tot
+    real(dp) :: S1,S2,S3
     integer :: nl, i_ph
+    Integer :: i_1G,i_3G,i_5G
     integer, parameter :: nu_mu=146,nu_mga=81 ! # data in table gauntff.dat
     real(dp) :: gamma2,dg,dmu,mu_ff,gff(nu_mu,nu_mga),gffinter
     integer :: j_mu,j_g
@@ -109,6 +115,9 @@ module shock_thermal
     end interface  
 
     allocate( H_theta(m_theta), rho(m_theta), T(m_theta) )
+    allocate( F_nu(m_l,mE_ph),F_nu_phi(m_l,mE_ph))
+
+  90  format(A19,X,Es10.3)
 
     print*, 'Calculate the spectrum of the thermal emission from each shock'
 
@@ -168,7 +177,25 @@ module shock_thermal
     Eph_min = 10.d6*h          ! 10 MHz
     Eph_max = Eph_0*4.d1
 
+
     call vector_log(Eph_min,Eph_max,Eph_int,Eph)
+
+    !------------------------------------------------------------
+    do i_ph=1,mE_ph
+      nu(i_ph) = Eph(i_ph)/h
+    end do
+    
+    log_nu_int = log(nu(2)/nu(1))
+
+    flux = 1.d26/(4.d0*pi*(distance)**2) ! luminosity to flux in mJy
+
+    i_1G = int(log(1.42d9/nu(1))/log_nu_int) + 1        ! 1.4 GHz
+    i_3G = int(log(3.00d9/nu(1))/log_nu_int) + 1        ! 3.0 GHz
+    i_5G = int(log(4.86d9/nu(1))/log_nu_int) + 1        ! 4.8 GHz
+    flux1 = flux/nu(i_1G)   
+    flux2 = flux/nu(i_3G) 
+    flux3 = flux/nu(i_5G)
+    !------------------------------------------------------------
 
     ! Calculate the luminosity using an adaptation of Eq. 24 from Christie+2016:
     ! L = integral(f_int(theta), with f_int(theta) = emi_ff_nu * dV_ring(theta),
@@ -202,6 +229,8 @@ module shock_thermal
 
         ! emi_ff_nu = ( cte_l(l) * exp(-Eph(i_ph)/(k*T(l))) * g_ff(Eph(i_ph),T(l)) )/h ! erg/s/cm3/erg
         f_int(l) = emi_ff_nu*dV_ring(l)
+        F_nu(l,i_ph) = f_int(l)*Eph(i_ph)
+        F_nu(l+m_theta,i_ph) = F_nu(l,i_ph)
       enddo
 
       call integrate(m_theta,dtheta,f_int,integral)
@@ -213,10 +242,36 @@ module shock_thermal
     enddo
     close(19)
 
+    write(*,90) 'S_1.4GHz[mJy]=',LX_sh(i_1G)*Eph(i_1G)*flux1
+    write(*,90) 'S_3.0GHz[mJy]=',LX_sh(i_3G)*Eph(i_3G)*flux2
+    write(*,90) 'S_4.86GHz[mJy]=',LX_sh(i_5G)*Eph(i_5G)*flux3
+
     write(*,80) 'L_tot =',L_tot
 
-    deallocate ( H_theta, rho, T )
+    !------------------------------------------------------------
+    ! Emission maps
+    if (shock /= 'BOTH') then
+         open(30,file='CD_th_'//shock//'_1GHz.dat') ! 1.4 GHz
+         open(31,file='CD_th_'//shock//'_3GHz.dat') ! 3.0 GHz
+         open(32,file='CD_th_'//shock//'_5GHz.dat') ! 4.8 GHz
+    end if
 
+    do l = 1,m_l
+      do i_ph=1,mE_ph
+        F_nu_phi(l,i_ph) = F_nu(l,i_ph)/mphi/4.d0   ! 4 cuadrants
+      end do
+      S1 = F_nu_phi(l,i_1G)*flux1
+      S2 = F_nu_phi(l,i_3G)*flux2
+      S3 = F_nu_phi(l,i_5G)*flux3
+      write(30,*) S1
+      write(31,*) S2
+      write(32,*) S3
+    end do
+
+    !------------------------------------------------------------  
+
+    deallocate ( H_theta, rho, T )
+    deallocate ( F_nu,F_nu_phi )
   END subroutine shock_thermal_run_spectrum
 
   !============================================================================

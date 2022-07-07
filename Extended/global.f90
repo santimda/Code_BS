@@ -92,6 +92,7 @@ module global
    integer, parameter :: mE_ff = m_nu, mr_ff = 1640, mr_map = 1000
    real(dp), dimension(:,:), allocatable :: tauff
    real(dp) :: alphaff_w(mr_ff,m_nu), r_w(mr_ff)
+   real(dp), dimension(:,:), allocatable :: F_nu,F_nu_phi
    !real(dp) :: Lsy_sw(m_theta,m_nu),Lsy_sism(m_theta,m_nu),Lsy_tot_abs(m_nu) 
 
    !=======================================================

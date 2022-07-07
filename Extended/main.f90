@@ -366,6 +366,7 @@ Subroutine abs_maps(SHOCK)
 
    character(LEN=*), intent(in) :: shock
    real(dp) :: Lsy_sh_abs(m_nu), Lsy_sh_unabs(m_nu), Lsy_unabs, Lsy_abs
+   real(dp) :: S_th_RS,S_th_FS,S_th
    real(dp) :: E_sy(m_nu)
    real(dp) :: u_proj,v_proj,emi,emi_abs
    real(dp) :: phi
@@ -378,10 +379,16 @@ Subroutine abs_maps(SHOCK)
       open(88,file='SW_radiomap_'//shock//'_1GHz.dat')
       open(89,file='SW_radiomap_'//shock//'_3GHz.dat')
       open(90,file='SW_radiomap_'//shock//'_5GHz.dat')
+      open(98,file='SH_ff_radiomap_'//shock//'_1GHz.dat')
+      open(99,file='SH_ff_radiomap_'//shock//'_3GHz.dat')
+      open(100,file='SH_ff_radiomap_'//shock//'_5GHz.dat')
    else if (shock == 'BOTH') then
       open(88,file='SW_radiomap_1GHz.dat')
       open(89,file='SW_radiomap_3GHz.dat')
       open(90,file='SW_radiomap_5GHz.dat')
+      open(98,file='SH_ff_radiomap_1GHz.dat')
+      open(99,file='SH_ff_radiomap_3GHz.dat')
+      open(100,file='SH_ff_radiomap_5GHz.dat')
    end if
 
 
@@ -411,10 +418,16 @@ phi = 0.d0
             !------------------------------------------------------------------------------ 
             if (maps_calc) then           
                print *, 'Save synthetic radio emission maps'
+               open(61,file='CD_th_RS_1GHz.dat') ! 1.4 GHz
+               open(62,file='CD_th_RS_3GHz.dat') ! 3.0 GHz
+               open(63,file='CD_th_RS_5GHz.dat') ! 4.8 GHz
+               open(64,file='CD_th_FS_1GHz.dat') ! 1.4 GHz
+               open(65,file='CD_th_FS_3GHz.dat') ! 3.0 GHz
+               open(66,file='CD_th_FS_5GHz.dat') ! 4.8 GHz
                if (shock /= 'BOTH') then
-                  open(55,file='CD_radiomap_'//shock//'1GHz.dat') ! 1.4 GHz
-                  open(56,file='CD_radiomap_'//shock//'3GHz.dat') ! 3.0 GHz
-                  open(57,file='CD_radiomap_'//shock//'5GHz.dat') ! 4.8 GHz
+                  open(55,file='CD_radiomap_'//shock//'1GHz.dat') ! 1.4 GHz sync
+                  open(56,file='CD_radiomap_'//shock//'3GHz.dat') ! 3.0 GHz sync
+                  open(57,file='CD_radiomap_'//shock//'5GHz.dat') ! 4.8 GHz sync
                else if (shock == 'BOTH') then
                   open(55,file='CD_radiomap_1GHz.dat') ! 1.4 GHz
                   open(56,file='CD_radiomap_3GHz.dat') ! 3.0 GHz
@@ -422,24 +435,45 @@ phi = 0.d0
                end if
                do i_l = 1,2*m_theta
                   read(55,*) u_proj,v_proj,emi,emi_abs
+                  read(61,*) S_th_RS
+                  !read(64,*) S_th_FS
+                  S_th = S_th_RS! + S_th_FS
                   write(88,*) u_proj,v_proj,emi,emi_abs
+                  write(98,*) u_proj,v_proj,S_th
                   if (i_phi.ne.1) then ! .and. i_phi.ne.mphi) then
                      write(88,*) u_proj,-v_proj,emi,emi_abs ! symmetry???
+                     write(98,*) u_proj,-v_proj,S_th
                   endif
                   read(56,*) u_proj,v_proj,emi,emi_abs
-                  write(89,*) u_proj,v_proj,emi,emi_abs  
+                  read(62,*) S_th_RS
+                  read(65,*) S_th_FS
+                  S_th = S_th_RS + S_th_FS
+                  write(89,*) u_proj,v_proj,emi,emi_abs
+                  write(99,*) u_proj,v_proj,S_th
                   if (i_phi.ne.1) then !.and. i_phi.ne.mphi) then
                      write(89,*) u_proj,-v_proj,emi,emi_abs ! symmetry???
+                     write(99,*) u_proj,-v_proj,S_th
                   endif
                   read(57,*) u_proj,v_proj,emi,emi_abs
+                  read(63,*) S_th_RS
+                  read(66,*) S_th_FS
+                  S_th = S_th_RS + S_th_FS
                   write(90,*) u_proj,v_proj,emi,emi_abs  
+                  write(100,*) u_proj,v_proj,S_th
                   if (i_phi.ne.1) then !.and. i_phi.ne.mphi) then
                      write(90,*) u_proj,-v_proj,emi,emi_abs ! symmetry???
+                     write(100,*) u_proj,-v_proj,S_th
                   endif
                end do
                close(55)
                close(56)
                close(57)
+               close(61)
+               close(62)
+               close(63)
+               close(64)
+               close(65)
+               close(66)
             endif
             ! -----------------------------------------------------------------------------
             !------------------------------------------------------------------------------
@@ -463,10 +497,10 @@ phi = 0.d0
 
    if (convolution) then
       print *, 'Convolution of the emission map with the instrument response'
-      call SW_conv1G_run
+      !call SW_conv1G_run
       call SW_conv3G_run  
-      call SW_conv5G_run  
-      call SW_spex_run  
+      !call SW_conv5G_run  
+      !call SW_spex_run  
    endif
 
 
