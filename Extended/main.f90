@@ -436,8 +436,8 @@ phi = 0.d0
                do i_l = 1,2*m_theta
                   read(55,*) u_proj,v_proj,emi,emi_abs
                   read(61,*) S_th_RS
-                  !read(64,*) S_th_FS
-                  S_th = S_th_RS! + S_th_FS
+                  read(64,*) S_th_FS
+                  S_th = S_th_RS + S_th_FS
                   write(88,*) u_proj,v_proj,emi,emi_abs
                   write(98,*) u_proj,v_proj,S_th
                   if (i_phi.ne.1) then ! .and. i_phi.ne.mphi) then
