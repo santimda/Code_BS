@@ -366,7 +366,7 @@ Subroutine abs_maps(SHOCK)
 
    character(LEN=*), intent(in) :: shock
    real(dp) :: Lsy_sh_abs(m_nu), Lsy_sh_unabs(m_nu), Lsy_unabs, Lsy_abs
-   real(dp) :: S_th_RS,S_th_FS,S_th
+   real(dp) :: S_th_RS, S_th_FS, S_th
    real(dp) :: E_sy(m_nu)
    real(dp) :: u_proj,v_proj,emi,emi_abs
    real(dp) :: phi
@@ -469,7 +469,7 @@ phi = 0.d0
                close(56)
                close(57)
                close(61)
-               close(62)
+               close(62)  
                close(63)
                close(64)
                close(65)
@@ -497,10 +497,10 @@ phi = 0.d0
 
    if (convolution) then
       print *, 'Convolution of the emission map with the instrument response'
-      !call SW_conv1G_run
+      call SW_conv1G_run
       call SW_conv3G_run  
-      !call SW_conv5G_run  
-      !call SW_spex_run  
+      call SW_conv5G_run  
+      call SW_spex_run  
    endif
 
 

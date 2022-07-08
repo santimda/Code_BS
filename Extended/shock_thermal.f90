@@ -91,7 +91,7 @@ module shock_thermal
     real(dp) :: f_int(m_theta),dtheta,integral
     !real(dp) :: F_nu(m_l,mE_ph),F_nu_phi(m_l,mE_ph)
     real(dp) :: LX_sh(mE_ph), L_tot
-    real(dp) :: S1,S2,S3
+    real(dp) :: S(mE_ph),S1,S2,S3
     integer :: nl, i_ph
     Integer :: i_1G,i_3G,i_5G
     integer, parameter :: nu_mu=146,nu_mga=81 ! # data in table gauntff.dat
@@ -203,6 +203,7 @@ module shock_thermal
     ! and dV_ring(l) the volume of the shocked ring element
 
     open(19,file=''//shock//'_ff.dat')
+    open(20,file='S_ff_'//shock//'.dat')
     do i_ph=1,mE_ph
 
       do l=1,m_theta     
@@ -235,12 +236,16 @@ module shock_thermal
 
       call integrate(m_theta,dtheta,f_int,integral)
       LX_sh(i_ph) = integral
+      S(i_ph) = LX_sh(i_ph)*Eph(i_ph)*flux/nu(i_ph)  ! Total flux at a certain freq. in mJy
+      
       write(19,*) Eph(i_ph)/eV, Eph(i_ph)*LX_sh(i_ph), LX_sh(i_ph)
+      write(20,*) nu(i_ph), S(i_ph)
 
       dEph = Eph(i_ph)*(Eph_int - 1.d0)
       L_tot = L_tot + LX_sh(i_ph)*dEph
     enddo
     close(19)
+    close(20)
 
     write(*,90) 'S_1.4GHz[mJy]=',LX_sh(i_1G)*Eph(i_1G)*flux1
     write(*,90) 'S_3.0GHz[mJy]=',LX_sh(i_3G)*Eph(i_3G)*flux2
@@ -258,7 +263,7 @@ module shock_thermal
 
     do l = 1,m_l
       do i_ph=1,mE_ph
-        F_nu_phi(l,i_ph) = F_nu(l,i_ph)/mphi/4.d0   ! 4 cuadrants
+        F_nu_phi(l,i_ph) = F_nu(l,i_ph)/mphi/4.d0   ! 4 quadrants
       end do
       S1 = F_nu_phi(l,i_1G)*flux1
       S2 = F_nu_phi(l,i_3G)*flux2
@@ -267,6 +272,12 @@ module shock_thermal
       write(31,*) S2
       write(32,*) S3
     end do
+
+    if (shock /= 'BOTH') then
+      close(30)
+      close(31)
+      close(32)
+    end if
 
     !------------------------------------------------------------  
 
