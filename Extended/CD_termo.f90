@@ -16,25 +16,28 @@ module CD_termo
    ! the injected luminosity at each shock segment.
    !___________________________________________________________________________
 
-   subroutine CD_termo_run(shock)
+   subroutine CD_termo_run(shock, radiative)
       !$ use omp_lib
       character(LEN=*), intent(in) :: shock
+      logical, intent(in) :: radiative
       real(dp) :: A_z,A_omega,st,ct
-      real(dp) :: cte_P,cte_T,cte_ad
-      real(dp) :: Beq0,Beq0_RH,v_sh
+      real(dp) :: cte_P,cte_T,cte_ad, frac_mu
+      real(dp) :: Beq0,Beq0_new,Beq0_RH,v_sh
       real(dp) :: dtheta,dR(m_theta),dV_ring(m_theta),dA_perp
       real(dp) :: L_inj(m_theta), L_inj_tot, L_sh, R_acel(m_theta)
-      real(dp) :: v_A(m_theta), v_ARH(m_theta)
+      real(dp) :: v_A_new(m_theta), v_ARH(m_theta), V_A(m_theta)
       real(dp) :: v_vec(2), n_perp(2), n_t(2)
       real(dp) :: e_flux, sin_alpha
-      real(dp) :: dot_M, dM, drho, P_th_med, Omega_in, theta_min
+      real(dp) :: dot_M, dM, drho, P_th_med, Omega_in, theta_min, T_med
+      real(dp) :: t_th(m_theta), lambda_T(m_theta), t_adv(m_theta), T_min(l), T_RH(m_theta), T_new(m_theta)
       integer :: l_crit, l_transition, l_min
       logical :: transition
       allocate( H_norm(m_theta),H_theta(m_theta) )
       allocate( x(m_theta), y(m_theta) )
-      allocate( Mach(m_theta),C_s_med(m_theta),C_s_sh(m_theta),r(m_theta) )
+      allocate( Mach(m_theta),C_s_med(m_theta),C_s_sh(m_theta),C_s_sh_new(m_theta),r(m_theta) )
       allocate( rho_med(m_theta) )
       allocate( P(m_theta),rho(m_theta),T(m_theta),B(m_theta),v_t(m_theta),v_perp(m_theta) )
+      allocate( P_new(m_theta),rho_new(m_theta),B_new(m_theta),v_t_new(m_theta) )
       allocate( v_t_RH(m_theta), P_RH(m_theta), rho_RH(m_theta), B_RH(m_theta), rho_min(m_theta) )
       allocate( H_new(m_theta), y_eff(m_theta) )
 
@@ -51,9 +54,11 @@ module CD_termo
       if (shock == 'RS') then
          v_sh = v_w
          L_sh = L_wind
+         frac_mu = mu_sw/mu_w
       else if (shock == 'FS') then
          v_sh = v_ISM
          L_sh = L_ISM
+         frac_mu = mu_SISM/mu_ISM
       end if
          
       !-----------------------------------------------------------------
@@ -124,26 +129,29 @@ module CD_termo
       if (shock == 'RS') then
          rho_med(1) = Mdot/(4.d0*pi*R_theta(1)**2*v_w)
          P_th_med = rho_med(1)*k*T_wind/mu_w/mp             ! Stellar wind thermal pressure at R0
-         c_s_med(1) = sqrt(g_ad*P_th_med/rho_med(1))       
+         c_s_med(1) = sqrt(g_ad*P_th_med/rho_med(1))
+         T_med = T_wind
       else if (shock == 'FS') then
          rho_med(1) = rho_ISM  
          P_th_med = P_th_ISM  
          C_s_med(1) = sqrt(g_ad*P_th_med/rho_med(1))
+         T_med = T_ISM
       end if
       
-      P(1) = rho_med(1) * v_sh * v_perp(1)
+      P_new(1) = rho_med(1) * v_sh * v_perp(1)
       rho_min(1) = rho_med(1)
-      rho(1) = cte_ad * 2.d0 * P(1)/v_sh**2            ! 0.5*v_sh**2 = 0.5*v_t(l)**2 + (g_ad/(g_ad-1.))*P(l)/rho(l), v_t(1) = 0.
-      T(1) = cte_T * v_perp(1)**2
+      rho_new(1) = cte_ad * 2.d0 * P_new(1)/v_sh**2 ! 0.5*v_sh**2 = 0.5*v_t(l)**2 + (g_ad/(g_ad-1.))*P(l)/rho(l), v_t(1) = 0.
       Mach(1) = v_perp(1)/C_s_med(1)
-      r(1) = ( (g_ad+1.) * Mach(1)**2 )/ ((g_ad-1.)*Mach(1)**2 + 2.)
-      Beq0 = sqrt( 8.d0 * pi * P(1) )
-      B(1) = frac_sh * Beq0
-      v_A(1) = B(1) / sqrt(4.d0*pi*rho(1)) ! Alfven speed
-      C_s_sh(1) = sqrt( g_ad * P(1)/rho(1) )
+      T_new(1) = P_new(1)*mp*mu_sw/rho_new(1)/k     ! mu_SISM = mu_sw
+      Beq0_new = sqrt( 8.d0 * pi * P_new(1) )
+      B_new(1) = frac_sh * Beq0_new
+      v_A_new(1) = B_new(1) / sqrt(4.d0*pi*rho_new(1)) ! Alfven speed
+      C_s_sh_new(1) = sqrt( g_ad * P_new(1)/rho_new(1) )
       v_t(1) = 0.d0
 
-      P_RH(1) = cte_P*rho_med(1)*v_perp(1)**2
+      T_RH(1) = ((g_ad-1.d0)*Mach(1)**2+2.d0)*(2.d0*g_ad*Mach(1)**2-(g_ad-1.d0))*mp*C_s_med(1)**2*frac_mu/g_ad/k/((g_ad+1.d0)**2 * Mach(1)**2)
+      r(1) = ( (g_ad+1.) * Mach(1)**2 )/ ((g_ad-1.)*Mach(1)**2 + 2.)
+      P_RH(1) = cte_P*rho_med(1)*v_perp(1)**2 - (g_ad-1.)*P_th_med/(g_ad+1.)
       rho_RH(1) = r(1)*rho_med(1)
       Beq0_RH = sqrt( 8.d0 * pi * P_RH(1) )
       B_RH(1) = frac_sh * Beq0_RH
@@ -155,23 +163,25 @@ module CD_termo
             rho_med(l) = Mdot/(4.d0*pi*R_theta(l)**2*v_w)
             P_th_med = rho_med(l)*k*T_wind/mu_w/mp             ! SW thermal pressure at R0
             c_s_med(l) = sqrt(g_ad*P_th_med/rho_med(l))        ! Speed of sound along the stellar wind
+            T_med = T_wind
          else if (shock == 'FS') then
             rho_med(l) = rho_ISM
             c_s_med(l) = sqrt(g_ad*P_th_med/rho_med(l))         ! Speed of sound in the ISM
-         end if
-
-         if ( v_t(l-1) <= C_s_sh(l-1) ) then                 ! Check whether the shocked fluid is subsonic or not
-            P(l) = rho_med(l)*v_sh*v_perp(l) !*r_norm(l)**2
-            l_crit = l                                      ! l for which shocked fluid becomes supersonic           
-         else
-            P(l) = rho_med(l)*v_perp(l)**2/(v_perp(l_crit)/v_sh)   !*r_norm(l)**2   ! sin(ang0) = v_perp(l_crit)/v_sh
+            T_med = T_ISM
          end if
          
-         if (P(l) < 2.d0 * P_th_med) then
-            print*, '\n ABORT'
-            print*, 'The ambient medium pressure is too high at position l=',l 
-            stop
-         endif
+         if ( v_t_new(l-1) <= C_s_sh_new(l-1) ) then                 ! Check whether the shocked fluid is subsonic or not
+            P_new(l) = rho_med(l)*v_sh*v_perp(l) !*r_norm(l)**2
+            l_crit = l                                      ! l for which shocked fluid becomes supersonic           
+         else
+            P_new(l) = rho_med(l)*v_perp(l)**2/(v_perp(l_crit)/v_sh)   !*r_norm(l)**2   ! sin(ang0) = v_perp(l_crit)/v_sh
+         end if
+         
+         !if (P_new(l) < 2.d0 * P_th_med) then
+         !   print*, '\n ABORT'
+         !   print*, 'The ambient medium pressure is too high at position l=',l 
+         !   stop
+         !endif
 
          if (shock == 'RS') then
             Omega_in = 2.d0*( 1.d0-cos(pi-theta(l)) ) ! Solid angle of the inner region (divided by pi)
@@ -181,40 +191,41 @@ module CD_termo
          end if
 
          if (transition) then
-            rho(l) = rho(1)*(P(l)/P(1))**(1.d0/g_ad)       ! Adiabatic relation
-            if ( rho(l) < 1.1d0 * rho_min(l)) then
+            rho_new(l) = rho_new(1)*(P_new(l)/P_new(1))**(1.d0/g_ad)       ! Adiabatic relation
+            if ( rho_new(l) < 1.1d0 * rho_min(l)) then
                transition = .false.
                l_transition = l 
                print *, 'theta_transition [deg] = ', theta(l)*180./pi
                print *, 'l_transition = ', l_transition  
             end if
          else 
-            drho = (rho_min(l)/rho(l-1))**(1.d0/float(m_theta-l_transition))
-            rho(l) = rho(l-1)*drho
+            drho = (rho_min(l)/rho_new(l-1))**(1.d0/float(m_theta-l_transition))
+            rho_new(l) = rho_new(l-1)*drho
             !rho(l) = rho(1)*(P(l)/P(1))**(1.d0/g_ad)       ! Adiabatic relation
             !print*,rho(l)/(rho(1)*(P(l)/P(1))**(1.d0/g_ad))       
          endif
 
-         C_s_sh(l) = sqrt(g_ad*P(l)/rho(l))           ! Sound speed in the shocked fluid     
-         T(l) = cte_T*v_perp(l)**2                    ! Eq. 20
+         C_s_sh_new(l) = sqrt(g_ad*P_new(l)/rho_new(l))           ! Sound speed in the shocked fluid 
+         T_new(l) = P_new(l)*mp*mu_sw/rho_new(l)/k     ! mu_SISM = mu_sw    
+         Mach(l) = v_perp(l)/C_s_med(l)
 
          ! Kinetic energy p/ unit mass in the upstream region = Kinetic p/ unit mass + specific enthalpy in the downstream region
-         v_t(l) = sqrt( 2.d0 * (0.5d0*v_sh**2-cte_ad*P(l)/rho(l)) )
+         v_t_new(l) = sqrt( 2.d0 * (0.5d0*v_sh**2-cte_ad*P_new(l)/rho_new(l)) )
 
          ! If U_mag = frac*U_th -> B^2/4pi = frac*(g_ad/g_ad - 1)*P 
          ! If P_mag = frac*P_th -> B^2/8pi = frac*P 
-         Beq0 = sqrt(8.d0*pi*P(l))     ! sqrt(4.d0*pi*rho(l)*v(l)**2)
-         if ( v_t(l-1) <= C_s_sh(l-1) ) then
-            B(l) = frac_sh*Beq0
+         Beq0_new = sqrt(8.d0*pi*P_new(l))     ! sqrt(4.d0*pi*rho(l)*v(l)**2)
+         if ( v_t_new(l-1) <= C_s_sh_new(l-1) ) then
+            B_new(l) = frac_sh*Beq0_new
          else       
-            B(l) = B(l-1)*sqrt(rho(l)*v_t(l-1)/rho(l-1)/v_t(l))   ! Frozen-in conditions
+            B_new(l) = B_new(l-1)*sqrt(rho_new(l)*v_t_new(l-1)/rho_new(l-1)/v_t_new(l))   ! Frozen-in conditions
          end if
-         v_A(l) = B(l) / sqrt(4.d0*pi*rho(l)) ! Alfven speed
+         v_A_new(l) = B_new(l) / sqrt(4.d0*pi*rho_new(l)) ! Alfven speed
 
-         Mach(l) = v_perp(l)/C_s_med(l)
          r(l) = (g_ad+1.)*Mach(l)**2/((g_ad-1.)*Mach(l)**2+2.) ! Compression factor (Caprioli 2014, Eq. 1)
 
-         P_RH(l) = cte_P * rho_med(l) * v_perp(l)**2
+         T_RH(l) = ((g_ad-1.d0)*Mach(l)**2+2.d0)*(2.d0*g_ad*Mach(l)**2-(g_ad-1.d0))*mp*C_s_med(l)**2*frac_mu/g_ad/k/((g_ad+1.d0)**2 * Mach(l)**2)
+         P_RH(l) = cte_P * rho_med(l) * v_perp(l)**2 - (g_ad-1.)*P_th_med/(g_ad+1.)
          rho_RH(l) = r(l) * rho_med(l)
          Beq0_RH = sqrt( 8.d0 * pi * P_RH(l) )
          B_RH(l) = frac_sh * Beq0_RH
@@ -222,6 +233,93 @@ module CD_termo
 
          !print *, r(l), r(l)/(1.d0 + r(l)*v_A(l)/v_sh)
       end do
+
+      if (radiative) then
+         do l = 1, m_theta
+            rho(l) = rho_RH(l)
+            P(l) = P_RH(l)
+            v_t(l) = v_t_RH(l)
+            B(l) = B_RH(l)
+            C_s_sh(l) = sqrt(g_ad*P_RH(l)/rho_RH(l))
+            V_A(l) = v_ARH(l)
+            T(l) = T_RH(l)
+         end do
+      else if (.not. radiative) then
+         do l = 1, m_theta
+            rho(l) = rho_new(l)
+            P(l) = P_new(l)
+            v_t(l) = v_t_new(l)
+            B(l) = B_new(l) 
+            C_s_sh(l) = C_s_sh_new(l)
+            v_A(l) = v_A_new(l)
+            T(l) = T_new(l)
+         enddo
+      end if
+
+      do l = 1,m_theta
+         if (T(l) < T_med) then
+            T(l) = T_med
+         end if
+      end do
+
+      !-----------------------------------------------------------------
+      ! Thermal Bremsstrahlung losses
+      open(43,file='t_th_'//shock//'.dat')
+
+      do l=1,m_theta
+         if (T(l) < 1.d4) then
+            lambda_T(l) = 7.d-23 ! Just to have a smooth transition...
+         else if ((1.d4 <= T(l)) .AND. (T(l) <= 1.d5)) then
+            lambda_T(l) = 7.d-27 * T(l)
+         else if ((1.d5 < T(l)) .AND. (T(l) <= 4.d7)) then
+            lambda_T(l) = 7.d-19 * T(l)**(-0.6) 
+         else if (T(l) > 4.d7) then
+            lambda_T(l) = 3.d-27 * sqrt(T(l))
+         end if
+
+         if (shock == 'RS') then
+            t_th(l) = k*T(l)/(r(l) * rho_med(l)/(mu_w * mp) * lambda_T(l) ) ! Thermal losses
+         else if (shock == 'FS') then
+            t_th(l) = k*T(l)/( r(l) * n_ISM * lambda_T(l) )
+         end if
+         write(43,*) theta(l), t_th(l)
+      end do
+
+      close(43)
+
+      !-----------------------------------------------------------------
+      ! Advection timescale
+      open(44,file='t_conv_'//shock//'.dat')
+
+      do l=1,m_theta
+         t_adv(l) = R_theta(l)/v_t(l)
+         write(44,*) theta(l), t_adv(l)
+      end do
+
+      close(44)
+
+
+      open(66,file='rad_adi_'//shock//'.dat')
+      do l=1,m_theta
+         write(66,*) theta(l),t_th(l)/t_adv(l)
+      end do
+
+      !-----------------------------------------------------------------
+      ! Minimum gas temperature
+      open(45,file='T_min_'//shock//'.dat')
+
+      T_min(1) = (t_th(1)/t_adv(2))*T(l)
+      do l=2,m_theta
+         T_min(l) = (t_th(l)/t_adv(l))*T(l)
+         if (T(l) < 1.d4 .or. T_min(l) < 1.d4 .or. T_min(l) > T(l)) then
+            T_min(l) = 1.d4
+         end if
+      end do
+      do l=1,m_theta
+         write(45,*) theta(l), T_min(l)
+      end do
+
+      close(45)
 
       !-----------------------------------------------------------------
       ! Injected power available for the acceleration of NT particles 
@@ -236,11 +334,15 @@ module CD_termo
          dA_perp = (R_theta(l)*sin(theta(l))) * (dR(l)*sin_alpha) * d_phi
 
          ! Calculate the energy flux (depends on the sub/super-sonic regime):
-         if (l <= l_crit) then   
-            e_flux = 0.5d0 * rho_med(l) * v_sh**3
-         else 
+         if (.not. radiative ) then
+            if (l <= l_crit) then   
+               e_flux = 0.5d0 * rho_med(l) * v_sh**3
+            else 
+               e_flux = 0.5d0 * rho_med(l) * v_sh**2 * v_perp(l)
+            endif
+         else if (radiative) then
             e_flux = 0.5d0 * rho_med(l) * v_sh**2 * v_perp(l)
-         endif
+         end if
 
          L_inj(l) = e_flux * dA_perp
          L_inj_tot = L_inj_tot + L_inj(l)         
@@ -262,7 +364,9 @@ module CD_termo
       allocate( alpha_sh(m_theta) )
       open(20,file='alpha_'//shock//'.dat')
       do l = 1, m_theta
-         alpha_sh(l) = (r(l)+2.d0)/(r(l)-1.d0)
+         !alpha_sh(l) = 2.55_dp   ! Value used for BD+43°3654
+         alpha_sh(l) = 2.4_dp
+         !alpha_sh(l) = (r(l)+2.d0)/(r(l)-1.d0)
          !dummy = r(l)/(1.d0 + r(l)*v_A(l)/v_sh)         
          !print *, r(l), r(l)/(1.d0 + r(l)*v_ARH(l)/v_sh)
          !print *, alpha_sh(l), (dummy+2.d0)/(dummy-1.d0)
@@ -296,13 +400,13 @@ module CD_termo
          H_theta(l) = H_theta(l_min)
       end do
 
-      open(18,file='Hnorm_'//shock//'.dat') ! normalized
+      open(21,file='Hnorm_'//shock//'.dat') ! normalized
       do l = 1, m_theta
          st = sin(theta(l))
          dV_ring(l) = (2.d0*pi*R_theta(l)*st) * dR(l) * H_theta(l) ! Volume of the ring
-         write(18,*) theta(l), H_theta(l), R_acel(l)*R0, H_theta(l)/R_theta(l), dV_ring(l)
+         write(21,*) theta(l), H_theta(l), R_acel(l)*R0, H_theta(l)/R_theta(l), dV_ring(l)
       end do
-      close(18)
+      close(21)
 
       !------------------------------
       ! Write the results
@@ -340,8 +444,9 @@ module CD_termo
       write(*,41) 'B_st <',(B(1)/4.d0)*(R0/R_st)*(v_w/v_st_rot)*r_A_st 
       41  format (A12,ES9.2)
 
-      deallocate( P,rho,T,B,v_t,v_perp,H_theta,H_norm,Mach,r,rho_med,C_s_med,C_s_sh,rho_min )
+      deallocate( P,rho,T,B,v_t,v_perp,H_theta,H_norm,Mach,r,rho_med,C_s_med,C_s_sh,C_s_sh_new,rho_min )
       deallocate( x, y, H_new, y_eff )
+      deallocate( v_t_new, P_new, rho_new, B_new)
       deallocate( v_t_RH, P_RH, rho_RH, B_RH )
       
    END subroutine CD_termo_run

@@ -19,9 +19,8 @@ module CD_diste
    subroutine CD_diste_run(shock)  
       character(LEN=*), intent(in) :: shock
       integer :: l_min,l2,m_theta_inj_max
-      real(dp) :: t_cell(m_theta),t_adv(m_theta),t_coole(m_theta,mE_e),t_loss(m_theta,mE_e),t_th(m_theta)
+      real(dp) :: t_cell(m_theta),t_adv(m_theta),t_coole(m_theta,mE_e),t_loss(m_theta,mE_e)
       real(dp) :: t_ic_st,t_ic_IR,t_ic,t_sy,t_ac,t_br,D_diff,t_diff,t_esc,t_adi(m_theta),t_ion
-      real(dp) :: lambda_T(m_theta)
       real(dp) :: cte_sy, gamm, cte_IC, C_ic_st,kC_ic_st, C_ic_IR(m_theta),kC_ic_IR
       real(dp) :: log_coul,gdot_coul,cte_coul,t_coul
       real(dp) :: log10Emaxl,R_acel(m_theta),Q,integral
@@ -119,10 +118,14 @@ module CD_diste
       ! First calculate the cooling time at all energies and at each position 
       ! (and also the maximum energy)
 
-      open(65,file='rad_adi_'//shock//'.dat')
+      open(65,file='t_conv_'//shock//'.dat')
       open(70,file='CD_tcoole_'//shock//'.dat')
       open(78,file='Emaxe'//shock//'.dat')
       open(83,file='Gyroradius_e_'//shock//'.dat')
+
+      do l=1,m_theta
+         read(65,*) dummy,t_adv(l)  ! Characteristic advection time
+      end do
 
       cte_IC = pi*h_bar**3*c**2/(2.*re**2*mec2**3)
       C_ic_st = (cte_IC)/(T_st_ad**2)
@@ -131,8 +134,7 @@ module CD_diste
       end do
 
       do l = 1, m_theta
-         t_cell(l) = dR(l)/v_t(l)      ! Cell advection time
-         t_adv(l) = R_theta(l)/v_t(l)  ! Characteristic advection time  
+         t_cell(l) = dR(l)/v_t(l)      ! Cell advection time    
             
          if (l < m_theta) then
             t_adi(l) = 3.*dR(l)/(v_t(l)*log(rho(l)/rho(l+1))) ! Characteristic adiabatic losses time
@@ -140,24 +142,6 @@ module CD_diste
          else if (l == m_theta) then
             t_adi(l) = t_adi(l-1)
          end if
-
-         if (T(l) < 1.d4) then
-            lambda_T(l) = 7.d-23 ! Just to have a smooth transition...
-         else if ((1.d4 <= T(l)) .AND. (T(l) <= 1.d5)) then
-            lambda_T(l) = 7.d-27 * T(l)
-         else if ((1.d5 < T(l)) .AND. (T(l) <= 4.d7)) then
-            lambda_T(l) = 7.d-19 * T(l)**(-0.6) 
-         else if (T(l) > 4.d7) then
-            lambda_T(l) = 3.d-27 * sqrt(T(l))
-         end if
-
-         if (shock == 'RS') then
-            t_th(l) = k*T(l)/(r(l) * rho_med(l)/(mu_w * mp) * lambda_T(l) ) ! Thermal losses
-         else if (shock == 'FS') then
-            t_th(l) = k*T(l)/( r(l) * n_ISM * lambda_T(l) )
-         end if
-
-      write(65,*) theta(l),t_th(l)/t_adv(l)
       end do
 
       search_Emax = .TRUE.
@@ -223,6 +207,7 @@ module CD_diste
          write(83,*) l, theta(l), rg_e_max(l), H_theta(l)/rg_e_max(l)
       end do
       close(65)
+      close(66)
       close(70)
       close(78)
       close(83)

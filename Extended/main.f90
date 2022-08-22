@@ -8,8 +8,9 @@ PROGRAM main
    logical, parameter :: verbose=.True.
    
    interface
-      subroutine calculate(shock) 
+      subroutine calculate(shock, radiative) 
          character(LEN=*), intent(in) :: shock
+         logical, intent(in) :: radiative
       end subroutine calculate
    end interface
    
@@ -35,7 +36,7 @@ PROGRAM main
       print *, '\n----------------------------'
       print *, ' Reverse Shock'
       print *, '----------------------------'
-      call calculate('RS')
+      call calculate('RS', radiative=.false.)
       if (maps_calc) then
          if (BOTH .eqv. no) then
             print *, '\n--------------------------------------'
@@ -50,7 +51,7 @@ PROGRAM main
       print *, '\n----------------------------'
       print *, ' Forward shock'
       print *, '----------------------------'
-      call calculate('FS')
+      call calculate('FS', radiative=.true. )
       if (maps_calc) then
          if (BOTH .eqv. no) then
             print *, '\n--------------------------------------'
@@ -83,7 +84,7 @@ PROGRAM main
 
  !============================================================================
 
- Subroutine calculate(shock)
+ Subroutine calculate(shock,radiative)
    use global
    use controls
    use BB, only: BB_run
@@ -101,7 +102,8 @@ PROGRAM main
    implicit none
    80 format(A9,X,Es10.2)
 
-   character(LEN=*), intent(in) :: shock 
+   character(LEN=*), intent(in) :: shock
+   logical, intent(in) :: radiative
    real(dp) :: Lsy_one,Lbr_one,Lpp_one, LIC_one,LIC_all,LIC_int,L_X_int,L_syn_E_one
    real(dp) :: E_IC_st(mE_f),E_IC_IR(mE_f),LIC_st_tot(mE_f),LIC_IR_tot(mE_f)
    real(dp) :: E_sy(m_nu),Lsy_sh_tot(m_nu),L_syn_E_tot(m_nu)
@@ -121,7 +123,13 @@ PROGRAM main
    Lsy_sh_tot = 0.d0
    Lpp_sh_tot = 0.d0
  
-   if (termo_calc) call CD_termo_run(shock)
+   if (termo_calc) then
+      if (shock == 'RS') then
+         call CD_termo_run(shock, radiative =.false.)
+      else if (shock == 'FS') then
+         call CD_termo_run(shock, radiative =.true.)
+      end if
+   end if
 
    if (Xrad_calc) then
       call shock_thermal_run_total(shock)
@@ -135,7 +143,7 @@ PROGRAM main
    !                                                               !
    !===============================================================!
 
-   IF (electrons) then
+   IF (electrons .and. (.not. radiative)) then
       print *, '\n ELECTRONS:'
 
       ! -----------------------------------------------------------------------------
@@ -315,7 +323,7 @@ PROGRAM main
    !------------------------------------------------------------------------------
    !--------------------------------
 
-   IF (protons) then
+   IF (protons .and. (.not. radiative)) then
       print *, '\n PROTONS:'
 
       if (distp_calc) call CD_distp_run(shock) 

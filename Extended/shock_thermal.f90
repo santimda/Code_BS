@@ -82,18 +82,25 @@ module shock_thermal
     character(LEN=*), intent(in) :: shock
     integer, parameter :: mE_ph = 400
     integer, parameter :: m_l = 2*m_theta  ! CD position, both sides
-    real(dp) :: n_a(m_theta),emi_ff_nu, cte_l(m_theta)
+    real(dp) :: n_a(m_theta), cte_l(m_theta)
     real(dp) :: v_sh
     real(dp) :: Eph_0, Eph_min, Eph_max, Eph_int, Eph(mE_ph), dEph
     real(dp) :: nu(mE_ph)
-    real(dp) :: log_nu_int,flux,flux1,flux2,flux3
+    real(dp) :: log_nu_int,flux,flux0,flux1,flux2,flux3
     real(dp) :: dV_ring(m_theta)
-    real(dp) :: f_int(m_theta),dtheta,integral
+    real(dp) :: integral,integ
+    real(dp) :: A(m_theta)
+    real(dp) :: emi_ff_nu(m_theta,mE_ph)
+    real(dp) :: L_inj(m_theta)
+    real(dp) :: f_int(m_theta),dtheta
+    real(dp) :: dV_ring_ff, H_ff, H_RH, dR(m_theta)
+    real(dp) :: r(m_theta), v_perp(m_theta), t_th(m_theta)
     !real(dp) :: F_nu(m_l,mE_ph),F_nu_phi(m_l,mE_ph)
-    real(dp) :: LX_sh(mE_ph), L_tot
+    real(dp) :: n_BB(m_theta,mE_ph), T_min(m_theta)
+    real(dp) :: LX_sh(mE_ph), L_tot,L_th(mE_ph)
     real(dp) :: S(mE_ph),S1,S2,S3
     integer :: nl, i_ph
-    Integer :: i_1G,i_3G,i_5G
+    Integer :: i_890M,i_1G,i_3G,i_5G
     integer, parameter :: nu_mu=146,nu_mga=81 ! # data in table gauntff.dat
     real(dp) :: gamma2,dg,dmu,mu_ff,gff(nu_mu,nu_mga),gffinter
     integer :: j_mu,j_g
@@ -136,18 +143,24 @@ module shock_thermal
     ! Extract the Gaunt factor from the table given by van Hoof (2014):
     ! <gff(u,gamma2)>, with -8 < log10u < 8, -4 < log10gamma < 4, with step 1
 
-    open(13,file='gauntff.dat')
+    open(12,file='gauntff.dat')
     do i=1,16
-      read(13,*)
+      read(12,*)
     enddo
 
     do i=1,nu_mu
-      read(13,*) (gff(i,j), j=1,nu_mga)
+      read(12,*) (gff(i,j), j=1,nu_mga)
     enddo
-    close(13)
+    close(12)
 
     !------------------------------------------------------------     
-    !    Read shock position and thermodynamical quantities   
+    !    Read shock position and thermodynamical quantities  
+
+    open(10,file='CD.dat')
+      do l = 1, m_theta
+         read(10,*) theta(l), dummy, dR(l), dummy, dummy
+      end do
+    close(10) 
 
     open(13,file='Hnorm_'//shock//'.dat') 
     do l=1,m_theta
@@ -159,13 +172,31 @@ module shock_thermal
 
     open(11,file='termo_'//shock//'.dat')
     do l=1,m_theta
-      read(11,*) nl,rho(l),dummy,dummy,T(l),dummy,dummy,dummy,dummy,dummy,dummy ! CGS
+      read(11,*) nl,rho(l),dummy,dummy,T(l),dummy,v_perp(l),dummy,dummy,r(l),dummy ! CGS
       n_a(l) = rho(l)/mp/mu_i_sw   
       !ni = n_a(l) 
       !ne = gamma_sw*n_a(l)    
       cte_l(l) = 6.8d-38*Zq_sw**2*gamma_sw*n_a(l)**2/sqrt(T(l))
     enddo
     close(11)
+
+    open(14,file='Linj_'//shock//'.dat')
+    do l=1,m_theta
+      read(14,*) dummy, dummy, L_inj(l), dummy, dummy
+    end do
+    close(14)
+
+    open(15,file='T_min_'//shock//'.dat')
+    do l=1,m_theta
+      read(15,*) dummy, T_min(l)
+    end do
+    close(15)
+
+    open(16,file='t_th_'//shock//'.dat')
+    do l=1,m_theta
+      read(16,*) dummy, t_th(l)
+    end do
+    close(16)
 
     !------------------------------------------------------------
     !    
@@ -189,9 +220,11 @@ module shock_thermal
 
     flux = 1.d26/(4.d0*pi*(distance)**2) ! luminosity to flux in mJy
 
+    i_890M = int(log(890.d6/nu(1))/log_nu_int) + 1        ! 1.4 GHz 
     i_1G = int(log(1.42d9/nu(1))/log_nu_int) + 1        ! 1.4 GHz
     i_3G = int(log(3.00d9/nu(1))/log_nu_int) + 1        ! 3.0 GHz
     i_5G = int(log(4.86d9/nu(1))/log_nu_int) + 1        ! 4.8 GHz
+    flux0 = flux/nu(i_890M)
     flux1 = flux/nu(i_1G)   
     flux2 = flux/nu(i_3G) 
     flux3 = flux/nu(i_5G)
@@ -204,9 +237,10 @@ module shock_thermal
 
     open(19,file=''//shock//'_ff.dat')
     open(20,file='S_ff_'//shock//'.dat')
-    do i_ph=1,mE_ph
 
-      do l=1,m_theta     
+    do l=1,m_theta  
+      integ = 0.d0
+      do i_ph=1,mE_ph   
         ! Eq. 5.14b from Rybicki gives the spectrum in erg/s/cm3/Hz, so I divide by h
         ! emi_ff_nu = (6.8d-38*Zq_sw**2*ne*ni*T(l)**(-0.5d0)*exp(-Eph(i_ph)/(k*T(l)))*g_ff(Eph(i_ph),T(l)) )/h ! erg/s/cm3/erg
 
@@ -225,31 +259,41 @@ module shock_thermal
           call extrapol2(dg,dmu,gff(j_g,nu_mga-1),gff(j_g+1,nu_mga-1),gff(j_g,nu_mga),gffinter)
         endif
         ! write(*,*) i_ph, l, gffinter, 9.77d0*(1.d0+0.13d0*log10(T(l)**1.5d0/Zq_sw/(Eph(i_ph)/h))) ! aprox 
-        
-        emi_ff_nu = ( cte_l(l) * exp(-Eph(i_ph)/(k*T(l))) * gffinter )/h ! erg/s/cm3/erg
+        emi_ff_nu(l,i_ph) = ( (6.8d-38*Zq_sw**2*gamma_sw/sqrt(T(l))) * exp(-Eph(i_ph)/(k*T(l))) * gffinter )/h ! erg/s/cm3/erg
+        dEph = Eph(i_ph)*(Eph_int - 1.d0)
+        integ = integ + emi_ff_nu(l,i_ph)*dEph
+      end do
 
-        ! emi_ff_nu = ( cte_l(l) * exp(-Eph(i_ph)/(k*T(l))) * g_ff(Eph(i_ph),T(l)) )/h ! erg/s/cm3/erg
-        f_int(l) = emi_ff_nu*dV_ring(l)
-        F_nu(l,i_ph) = f_int(l)*Eph(i_ph)
-        F_nu(l+m_theta,i_ph) = F_nu(l,i_ph)
-      enddo
+      if (T(l) >= 1.d4) then
+        A(l) = frac_ff*(L_inj(l)*(1-T_min(l)/T(l)))/integ   ! g
+      !else if (T(l) <= 1.d4) then
+        !A(l) = 0.d0
+      end if
+    end do
 
-      call integrate(m_theta,dtheta,f_int,integral)
-      LX_sh(i_ph) = integral
-      S(i_ph) = LX_sh(i_ph)*Eph(i_ph)*flux/nu(i_ph)  ! Total flux at a certain freq. in mJy
-      
-      write(19,*) Eph(i_ph)/eV, Eph(i_ph)*LX_sh(i_ph), LX_sh(i_ph)
-      write(20,*) nu(i_ph), S(i_ph)
-
+    do i_ph=1,mE_ph
+      L_th(i_ph) = 0.d0
       dEph = Eph(i_ph)*(Eph_int - 1.d0)
-      L_tot = L_tot + LX_sh(i_ph)*dEph
-    enddo
+      do l=1,m_theta
+        f_int(l) = A(l)*emi_ff_nu(l,i_ph)*4.d0*mphi    ! 1/s
+        L_th(i_ph) = L_th(i_ph) + f_int(l)
+        F_nu(l,i_ph) = f_int(l)*Eph(i_ph)              ! erg/s
+        F_nu(l+m_theta,i_ph) = F_nu(l,i_ph)
+      end do
+      S(i_ph) = L_th(i_ph)*Eph(i_ph)*flux/nu(i_ph)  ! Total flux at a certain freq. in mJy
+      L_tot = L_tot + L_th(i_ph)*dEph
+
+      write(19,*) Eph(i_ph)/eV, L_th(i_ph)*Eph(i_ph)
+      write(20,*) nu(i_ph), S(i_ph)
+    end do
+
     close(19)
     close(20)
 
-    write(*,90) 'S_1.4GHz[mJy]=',LX_sh(i_1G)*Eph(i_1G)*flux1
-    write(*,90) 'S_3.0GHz[mJy]=',LX_sh(i_3G)*Eph(i_3G)*flux2
-    write(*,90) 'S_4.86GHz[mJy]=',LX_sh(i_5G)*Eph(i_5G)*flux3
+    write(*,90) 'S_890MHz[mJy]=',L_th(i_890M)*Eph(i_890M)*flux0
+    write(*,90) 'S_1.4GHz[mJy]=',L_th(i_1G)*Eph(i_1G)*flux1
+    write(*,90) 'S_3.0GHz[mJy]=',L_th(i_3G)*Eph(i_3G)*flux2
+    write(*,90) 'S_4.86GHz[mJy]=',L_th(i_5G)*Eph(i_5G)*flux3
 
     write(*,80) 'L_tot =',L_tot
 
