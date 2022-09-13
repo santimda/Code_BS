@@ -20,6 +20,7 @@ module CD_termo
       !$ use omp_lib
       character(LEN=*), intent(in) :: shock
       logical, intent(in) :: radiative
+      integer, parameter :: mE_ph = 400
       real(dp) :: A_z,A_omega,st,ct
       real(dp) :: cte_P,cte_T,cte_ad, frac_mu
       real(dp) :: Beq0,Beq0_new,Beq0_RH,v_sh
@@ -29,13 +30,17 @@ module CD_termo
       real(dp) :: v_vec(2), n_perp(2), n_t(2)
       real(dp) :: e_flux, sin_alpha
       real(dp) :: dot_M, dM, drho, P_th_med, Omega_in, theta_min, T_med
+      real(dp) :: E_st_min, E_st_max, Est_int, dnu_st, Est(mE_ph), integ_st, norm_BB_st
+      real(dp) :: Q_ion, R_str, H_ion(m_theta)
       real(dp) :: t_th(m_theta), lambda_T(m_theta), t_adv(m_theta), T_min(l), T_RH(m_theta), T_new(m_theta)
       integer :: l_crit, l_transition, l_min
+      integer :: i_ph
       logical :: transition
+      
       allocate( H_norm(m_theta),H_theta(m_theta) )
       allocate( x(m_theta), y(m_theta) )
       allocate( Mach(m_theta),C_s_med(m_theta),C_s_sh(m_theta),C_s_sh_new(m_theta),r(m_theta) )
-      allocate( rho_med(m_theta) )
+      allocate( rho_med(m_theta),rho_f(m_theta) )
       allocate( P(m_theta),rho(m_theta),T(m_theta),B(m_theta),v_t(m_theta),v_perp(m_theta) )
       allocate( P_new(m_theta),rho_new(m_theta),B_new(m_theta),v_t_new(m_theta) )
       allocate( v_t_RH(m_theta), P_RH(m_theta), rho_RH(m_theta), B_RH(m_theta), rho_min(m_theta) )
@@ -208,6 +213,7 @@ module CD_termo
          C_s_sh_new(l) = sqrt(g_ad*P_new(l)/rho_new(l))           ! Sound speed in the shocked fluid 
          T_new(l) = P_new(l)*mp*mu_sw/rho_new(l)/k     ! mu_SISM = mu_sw    
          Mach(l) = v_perp(l)/C_s_med(l)
+         print*, mach(l)
 
          ! Kinetic energy p/ unit mass in the upstream region = Kinetic p/ unit mass + specific enthalpy in the downstream region
          v_t_new(l) = sqrt( 2.d0 * (0.5d0*v_sh**2-cte_ad*P_new(l)/rho_new(l)) )
@@ -257,8 +263,8 @@ module CD_termo
       end if
 
       do l = 1,m_theta
-         if (T(l) < T_med) then
-            T(l) = T_med
+         if (T(l) < 1.d4) then
+            T(l) = 1.d4
          end if
       end do
 
@@ -309,17 +315,101 @@ module CD_termo
       open(45,file='T_min_'//shock//'.dat')
 
       T_min(1) = (t_th(1)/t_adv(2))*T(l)
+      if (T_min(1) < 8.d3) then
+         T_min(1) = 8.d3
+      end if
+      rho_f(1) = rho(1)*(T(1)/T_min(1))*mu_SISM
       do l=2,m_theta
          T_min(l) = (t_th(l)/t_adv(l))*T(l)
-         if (T(l) < 1.d4 .or. T_min(l) < 1.d4 .or. T_min(l) > T(l)) then
-            T_min(l) = 1.d4
+         if (T_min(l) > T(l)) then
+            T_min(l) = T(l)
+         else if (T_min(l) < 8.d3) then
+            T_min(l) = 8.d3
          end if
+         rho_f(l) = rho(l)*(T(l)/T_min(l))*mu_SISM
       end do
       do l=1,m_theta
          write(45,*) theta(l), T_min(l)
+         print*, T_min(l), rho_f(l)/rho_ISM
       end do
 
       close(45)
+
+   !------------------------------
+      ! Calculate shock's width
+
+      do l = 1, m_theta
+         y_eff(l) = y(l)*R0
+      end do
+
+      dot_M = 0.d0
+      theta_min = 0.1d0 ! For theta < theta_min, the approximation is not good
+      l_min = int( (theta_min/theta_max) * m_theta )
+      do l = 1, m_theta
+         ! Calculate the perpendicular area of a ring:
+         sin_alpha = v_perp(l)/v_sh
+         dA_perp = (R_theta(l)*sin(theta(l))) * (dR(l)*sin_alpha) * 2.d0*pi
+         dM = (rho_med(l) * v_sh) * dA_perp
+         !dM = rho_med(l)*v_perp(l)*2.*pi*R_theta(l)*sin(theta(l))*dR(l)
+         dot_M = dot_M + dM
+         if (.not. radiative) then
+            H_theta(l) = dot_M/(2.*pi*y_eff(l)*rho(l)*v_t(l))   ! dot_M = 2*pi*y_eff(l)*H(l)*rho(l)*v_t(l)
+         else if (radiative) then
+            H_theta(l) = dot_M/(2.*pi*y_eff(l)*rho_f(l)*v_t(l))
+         end if
+      end do
+
+      ! For theta < theta_min, we use the value obtained at theta_min
+      do l = 1, l_min
+         H_theta(l) = H_theta(l_min)
+      end do
+
+      open(21,file='Hnorm_'//shock//'.dat') ! normalized
+      do l = 1, m_theta
+         st = sin(theta(l))
+         dV_ring(l) = (2.d0*pi*R_theta(l)*st) * dR(l) * H_theta(l) ! Volume of the ring
+         write(21,*) theta(l), H_theta(l), R_acel(l)*R0, H_theta(l)/R_theta(l), dV_ring(l)
+      end do
+      close(21)
+
+   !------------------------------------------------------------     
+   ! Calculate the Strömgren sphere radius
+   if (radiative) then
+
+      E_st_min = 1.d-18
+      E_st_max = 3.d-5
+
+      call vector_log(E_st_min, E_st_max, Est_int, Est)
+
+      integ_st = 0.d0
+      do i_ph =1,mE_ph
+         dnu_st = Est(i_ph)*(Est_int - 1.d0)/h
+         integ_st = integ_st + nBB(Est(i_ph),T_st)*dnu_st     ! 1/erg/s/cm3
+      end do
+
+      norm_BB_st = 4.d0*pi*R_st**2*sigma*T_st**4/integ_st    ! erg2*cm3          
+
+      Q_ion = 0.d0
+      do i_ph=1,mE_ph
+         dnu_st = Est(i_ph)*(Est_int - 1.d0)/h
+         if (Est(i_ph) > 13.6d0*eV) then
+            Q_ion = Q_ion + norm_BB_st*nBB(Est(i_ph),T_st)*dnu_st/Est(i_ph)    ! erg2*cm3/erg/cm3/s
+         end if
+      end do
+
+      R_str = 0.68d0*pc*(Q_ion/1.d49)*(n_ISM/1.d3)**(-2./3.)*(T_ISM/1.d4)**0.28
+
+      do l=1,m_theta
+         sin_alpha = v_perp(l)/v_sh
+         dA_perp = (R_theta(l)*sin(theta(l))) * (dR(l)*sin_alpha) * d_phi
+         H_ion(l) = Q_ion/(4.*pi*R_theta(l)**2)/(rho_f(l)/mp)**2
+      end do
+
+   do l=1,m_theta
+      print*, 'H_ION', H_ion(l)/H_theta(l)
+   end do
+
+   end if
 
       !-----------------------------------------------------------------
       ! Injected power available for the acceleration of NT particles 
@@ -376,39 +466,6 @@ module CD_termo
       deallocate( alpha_sh )
 
       !------------------------------
-      ! Calculate shock's width
-
-      do l = 1, m_theta
-         y_eff(l) = y(l)*R0
-      end do
-
-      dot_M = 0.d0
-      theta_min = 0.1d0 ! For theta < theta_min, the approximation is not good
-      l_min = int( (theta_min/theta_max) * m_theta )
-      do l = 1, m_theta
-         ! Calculate the perpendicular area of a ring:
-         sin_alpha = v_perp(l)/v_sh
-         dA_perp = (R_theta(l)*sin(theta(l))) * (dR(l)*sin_alpha) * 2.d0*pi
-         dM = (rho_med(l) * v_sh) * dA_perp
-         !dM = rho_med(l)*v_perp(l)*2.*pi*R_theta(l)*sin(theta(l))*dR(l)
-         dot_M = dot_M + dM
-         H_theta(l) = dot_M/(2.*pi*y_eff(l)*rho(l)*v_t(l))   ! dot_M = 2*pi*y_eff(l)*H(l)*rho(l)*v_t(l)
-      end do
-
-      ! For theta < theta_min, we use the value obtained at theta_min
-      do l = 1, l_min
-         H_theta(l) = H_theta(l_min)
-      end do
-
-      open(21,file='Hnorm_'//shock//'.dat') ! normalized
-      do l = 1, m_theta
-         st = sin(theta(l))
-         dV_ring(l) = (2.d0*pi*R_theta(l)*st) * dR(l) * H_theta(l) ! Volume of the ring
-         write(21,*) theta(l), H_theta(l), R_acel(l)*R0, H_theta(l)/R_theta(l), dV_ring(l)
-      end do
-      close(21)
-
-      !------------------------------
       ! Write the results
 
       open(16,file='termo_'//shock//'.dat')
@@ -416,8 +473,8 @@ module CD_termo
       open(18, file='new_vs_RH_'//shock//'.dat') ! comparison btw P, rho and v_t new vs old
       open(19, file='H_'//shock//'.dat')
       do l = 1, m_theta
-         write(16,*) l,rho(l),P(l),v_t(l),T(l),B(l),v_perp(l),theta(l),Mach(l),r(l),rho_med(l)
-         write(17,*) theta(l),rho(l)/rho(1),P(l)/P(1),v_t(l)/v_sh,T(l)/T(1),B(l)/B(1),v_perp(l)/v_sh,C_s_sh(l)/v_sh
+         write(16,*) l,rho(l),P(l),v_t(l),T(l),B(l),v_perp(l),theta(l),Mach(l),r(l),rho_med(l),rho_f(l)
+         write(17,*) theta(l),rho(l)/rho(1),P(l)/P(1),v_t(l)/v_sh,T(l)/T(1),B(l)/B(1),v_perp(l)/v_sh,C_s_sh(l)/v_sh,rho_f(l)/rho_f(1)
          write(18,*) theta(l),v_t(l)/v_t_RH(l), P(l)/P_RH(l), rho(l)/rho_RH(l)
          write(19,*) theta(l), H_new(l), H_new(l)/R_theta(l)
       end do
@@ -444,7 +501,7 @@ module CD_termo
       write(*,41) 'B_st <',(B(1)/4.d0)*(R0/R_st)*(v_w/v_st_rot)*r_A_st 
       41  format (A12,ES9.2)
 
-      deallocate( P,rho,T,B,v_t,v_perp,H_theta,H_norm,Mach,r,rho_med,C_s_med,C_s_sh,C_s_sh_new,rho_min )
+      deallocate( P,rho,T,B,v_t,v_perp,H_theta,H_norm,Mach,r,rho_med,C_s_med,C_s_sh,C_s_sh_new,rho_min,rho_f )
       deallocate( x, y, H_new, y_eff )
       deallocate( v_t_new, P_new, rho_new, B_new)
       deallocate( v_t_RH, P_RH, rho_RH, B_RH )

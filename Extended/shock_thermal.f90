@@ -39,7 +39,7 @@ module shock_thermal
 
     open(11,file='termo_'//shock//'.dat')
     do l=1,m_theta
-      read(11,*) nl,rho(l),dummy,dummy,T(l),dummy,dummy,dummy,dummy,dummy,dummy! CGS
+      read(11,*) nl,rho(l),dummy,dummy,T(l),dummy,dummy,dummy,dummy,dummy,dummy,dummy! CGS
       n_a(l) = rho(l)/mp/mu_i_sw   
     enddo
     close(11)
@@ -121,10 +121,11 @@ module shock_thermal
     end subroutine extrapol2
     end interface  
 
-    allocate( H_theta(m_theta), rho(m_theta), T(m_theta) )
+    allocate( H_theta(m_theta), rho(m_theta), T(m_theta), rho_f(m_theta) )
     allocate( F_nu(m_l,mE_ph),F_nu_phi(m_l,mE_ph))
 
   90  format(A19,X,Es10.3)
+  95  format(A18,X,Es10.3)
 
     print*, 'Calculate the spectrum of the thermal emission from each shock'
 
@@ -154,11 +155,11 @@ module shock_thermal
     close(12)
 
     !------------------------------------------------------------     
-    !    Read shock position and thermodynamical quantities  
+    ! Read shock position and thermodynamical quantities  
 
     open(10,file='CD.dat')
       do l = 1, m_theta
-         read(10,*) theta(l), dummy, dR(l), dummy, dummy
+         read(10,*) theta(l), r_norm(l), dR(l), dummy, dummy
       end do
     close(10) 
 
@@ -172,7 +173,7 @@ module shock_thermal
 
     open(11,file='termo_'//shock//'.dat')
     do l=1,m_theta
-      read(11,*) nl,rho(l),dummy,dummy,T(l),dummy,v_perp(l),dummy,dummy,r(l),dummy ! CGS
+      read(11,*) nl,rho(l),dummy,dummy,T(l),dummy,v_perp(l),dummy,dummy,r(l),dummy,rho_f(l) ! CGS
       n_a(l) = rho(l)/mp/mu_i_sw   
       !ni = n_a(l) 
       !ne = gamma_sw*n_a(l)    
@@ -197,6 +198,7 @@ module shock_thermal
       read(16,*) dummy, t_th(l)
     end do
     close(16)
+     
 
     !------------------------------------------------------------
     !    
@@ -228,8 +230,8 @@ module shock_thermal
     flux1 = flux/nu(i_1G)   
     flux2 = flux/nu(i_3G) 
     flux3 = flux/nu(i_5G)
-    !------------------------------------------------------------
 
+    !------------------------------------------------------------
     ! Calculate the luminosity using an adaptation of Eq. 24 from Christie+2016:
     ! L = integral(f_int(theta), with f_int(theta) = emi_ff_nu * dV_ring(theta),
     ! emi_ff_nu= dW/dt/dV/dnu the specific emissivity given by Eq. 5.14b from Rybicki,
@@ -265,7 +267,7 @@ module shock_thermal
       end do
 
       if (T(l) >= 1.d4) then
-        A(l) = frac_ff*(L_inj(l)*(1-T_min(l)/T(l)))/integ   ! g
+        A(l) = L_inj(l)*(1-T_min(l)/T(l))/integ   ! g
       !else if (T(l) <= 1.d4) then
         !A(l) = 0.d0
       end if
@@ -325,7 +327,7 @@ module shock_thermal
 
     !------------------------------------------------------------  
 
-    deallocate ( H_theta, rho, T )
+    deallocate ( H_theta, rho, T, rho_f )
     deallocate ( F_nu,F_nu_phi )
   END subroutine shock_thermal_run_spectrum
 
