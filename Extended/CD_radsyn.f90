@@ -22,7 +22,7 @@ contains
     implicit none
     ! m_theta - CD, mE_e - electrons, m_nu - emitted photons
     character(LEN=*), intent(in) :: shock
-    integer :: il, i_1G, i_3G, i_150M
+    integer :: il, i_890M,i_1G, i_3G, i_150M
     real(dp) :: Eps(m_nu),dEps,Eps_int, gamma_e(mE_e)
     real(dp) :: factor,nuc,nuc_max,nuc_min,sum,sum_sy,x_sy, log_nu_int
     real(dp) :: ni,ne,nu_RT,nuc_l
@@ -130,9 +130,11 @@ contains
     write(*,80) 'L_syn(unabsorbed)=',sum_sy*(mphi*4.) ! mphi emitters, 4 quadrants
     
     log_nu_int = log(nu(2)/nu(1))
+    i_890M = int(log(890.d6/nu(1))/log_nu_int) + 1  
     i_1G = int(log(1.4d9/nu(1))/log_nu_int) + 1  
     i_3G = int(log(3.0d9/nu(1))/log_nu_int) + 1  
-    i_150M = int(log(1.5d8/nu(1))/log_nu_int) + 1  
+    i_150M = int(log(1.5d8/nu(1))/log_nu_int) + 1
+    write(*,80) 'S_890MHz[mJy]=', Lsy_tot(i_890M)*(mphi*4.)/(4.*pi*distance**2*nu(i_890M))*1.d26  
     write(*,80) 'S_1.4GHz[mJy]=', Lsy_tot(i_1G)*(mphi*4.)/(4.*pi*distance**2*nu(i_1G))*1.d26 ! mphi emitters, 4 quadrants
     write(*,80) 'S_3GHz[mJy]=', Lsy_tot(i_3G)*(mphi*4.)/(4.*pi*distance**2*nu(i_3G))*1.d26 ! mphi emitters, 4 quadrants
     write(*,80) 'S_150M[mJy]=', Lsy_tot(i_150M)*(mphi*4.)/(4.*pi*distance**2*nu(i_150M))*1.d26 ! mphi emitters, 4 quadrants

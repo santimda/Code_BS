@@ -8,7 +8,7 @@ module CD_abssyn
     !========================================================================
     !        abssyn_run        
     !========================================================================
-  	!This module calculates the f-f absorption of radio emission from the shock.
+  	 !This module calculates the f-f absorption of radio emission from the shock.
     ! This program calculates the total radio opacity for a radio photon 
     ! emitted from a position (x(l),y(l)) in the CD. The output is the file
     ! radsyn.dat which contains E(i), L_sy(E(i), L_sy_abs(E(i)).

@@ -213,7 +213,7 @@ module CD_termo
          C_s_sh_new(l) = sqrt(g_ad*P_new(l)/rho_new(l))           ! Sound speed in the shocked fluid 
          T_new(l) = P_new(l)*mp*mu_sw/rho_new(l)/k     ! mu_SISM = mu_sw    
          Mach(l) = v_perp(l)/C_s_med(l)
-         print*, mach(l)
+         !print*, mach(l)
 
          ! Kinetic energy p/ unit mass in the upstream region = Kinetic p/ unit mass + specific enthalpy in the downstream region
          v_t_new(l) = sqrt( 2.d0 * (0.5d0*v_sh**2-cte_ad*P_new(l)/rho_new(l)) )
@@ -315,22 +315,22 @@ module CD_termo
       open(45,file='T_min_'//shock//'.dat')
 
       T_min(1) = (t_th(1)/t_adv(2))*T(l)
-      if (T_min(1) < 8.d3) then
-         T_min(1) = 8.d3
+      if (T_min(1) < 1.d4) then
+         T_min(1) = 1.d4
       end if
       rho_f(1) = rho(1)*(T(1)/T_min(1))*mu_SISM
       do l=2,m_theta
          T_min(l) = (t_th(l)/t_adv(l))*T(l)
          if (T_min(l) > T(l)) then
             T_min(l) = T(l)
-         else if (T_min(l) < 8.d3) then
-            T_min(l) = 8.d3
+         else if (T_min(l) < 1.d4) then
+            T_min(l) = 1.d4
          end if
          rho_f(l) = rho(l)*(T(l)/T_min(l))*mu_SISM
       end do
       do l=1,m_theta
          write(45,*) theta(l), T_min(l)
-         print*, T_min(l), rho_f(l)/rho_ISM
+         !print*, T_min(l), rho_f(l)/rho_ISM
       end do
 
       close(45)
@@ -405,9 +405,9 @@ module CD_termo
          H_ion(l) = Q_ion/(4.*pi*R_theta(l)**2)/(rho_f(l)/mp)**2
       end do
 
-   do l=1,m_theta
-      print*, 'H_ION', H_ion(l)/H_theta(l)
-   end do
+   !do l=1,m_theta
+   !   print*, 'H_ION', H_ion(l)/H_theta(l)
+   !end do
 
    end if
 

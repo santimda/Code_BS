@@ -20,7 +20,7 @@ module global
    integer, parameter :: mE_e = 400    ! energy resolution for electrons
    integer, parameter :: mE_p = 400    ! energy resolution for protons < mE_f 
    integer, parameter :: mE_f = 600    ! it is the same for br, p-p and IC
-   integer, parameter :: mphi = 4      ! amount of linear-emitters
+   integer, parameter :: mphi = 30      ! amount of linear-emitters
    real(dp) :: delta_phi = 0.5*pi/(mphi-1.d0) ! angular separation between linear-emitters
    real(dp) :: d_phi = 0.5*pi/mphi     ! angular width of each linear-emitter or wedge
 
@@ -38,7 +38,7 @@ module global
    ! termo
    real(dp), dimension(:), allocatable :: P,rho,T,v_t,v_perp,B,B_par,alpha_sh,P_th_w
    real(dp), dimension(:), allocatable :: P_med, rho_med, C_s_med,Mach,C_s_sh,C_s_sh_new,r
-   real(dp), dimension(:), allocatable :: v_t_RH, P_RH, rho_RH, B_RH, rho_min
+   real(dp), dimension(:), allocatable :: v_t_RH, P_RH, rho_RH, B_RH, rho_min, rho_f
    real(dp), dimension(:), allocatable :: v_t_new, P_new, rho_new, B_new
    real(dp), dimension(:), allocatable :: H_theta, H_new, y_eff
 

@@ -43,6 +43,7 @@ contains
       80  format(A12,X,F5.2)
       90  format(A8,X,Es10.2)
       100 format(A17,X,F5.2,X,A12)
+      110 format(A21,X,F5.2)
 
       ! ----------------------------------------------------------------------------
       ! Set the initial conditions:
@@ -96,6 +97,8 @@ contains
       close(12)
       close(13)
       close(14)
+
+      write(*,110) 'Length_proj[arcmin] =', (sqrt((x(m_theta)*R0+R0)**2+y(m_theta)**2)/AU)/(distance/pc)/60./abs(cos(incli))
 
       deallocate(x,y)
       

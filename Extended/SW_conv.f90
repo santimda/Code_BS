@@ -70,7 +70,7 @@ module SW_conv
       close(13)
 
       sum = 0.d0
-      open(133,file='S_ff_map_1G.dat')
+      open(133,file='SH_ff_map_1G.dat')
       do l = 1, m_map
          read(133,*) x_map2(l),y_map2(l),S_map2(l)
          sum = sum + S_map2(l)
@@ -211,7 +211,7 @@ module SW_conv
       close(13)
 
       sum = 0.d0
-      open(133,file='S_ff_map_3G.dat')
+      open(133,file='SH_ff_map_3G.dat')
       do l = 1, m_map
          read(133,*) x_map2(l),y_map2(l),S_map2(l)
          sum = sum + S_map2(l)
@@ -373,7 +373,7 @@ module SW_conv
       close(13)
 
       sum = 0.d0
-      open(133,file='S_ff_map_5G.dat')
+      open(133,file='SH_ff_map_5G.dat')
       do l = 1, m_map
          read(133,*) x_map2(l),y_map2(l),S_map2(l)
          sum = sum + S_map2(l)
