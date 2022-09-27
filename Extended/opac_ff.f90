@@ -335,7 +335,7 @@ module opac_ff
       call gaunt_ff_calc(nu_ISM,T_ion,Zq_ISM,g_ff_ISM)
 
       ! Calculate the free-free emission at each frequency
-      open (300,file='gaunt.dat')
+      open (300,file='gaunt_ISM.dat')
       open (400,file='radff.dat')
       do i=1,mE_ff
 !         f_ff = cte_f*(nu_ISM(i)/1.d9)**(-2.1)  ! [cm^6/pc] --> Eq.4 Olnon 1975
@@ -345,8 +345,8 @@ module opac_ff
          alpha_ff = cte_alpha_ff_ISM*cte_nu !1/cm
          p_ff = alpha_ff * R_str
          Lnu = cte_Lnu*nu_ISM(i)**2*( 1. - (2./p_ff**2)*(1.-(p_ff+1.)*exp(-p_ff)) ) ! Eq. 11 Olnon 1975 for sphere
-         write(300,*) h*nu_ISM(i)/eV,Lnu(i)/h   ! [Lnu] = erg/s/Hz
-         write(400,*) h*nu_ISM(i)/(k*T_ion),g_ff_ISM(i)
+         write(300,*) h*nu_ISM(i)/(k*T_ion),g_ff_ISM(i)
+         write(400,*) h*nu_ISM(i)/eV,Lnu(i)/h   ! [Lnu] = erg/s/Hz
 !         print*, nu_ISM(i)/1.d9, Lnu(i)*1.d26/(4.d0*pi*(distance)**2)
       end do
       close(300)
