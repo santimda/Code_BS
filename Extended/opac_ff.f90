@@ -289,7 +289,7 @@ module opac_ff
       !============================================================
       !
       !   UNSHOCKED ISM
-      write(*,*) 'Calculate the f-f abs. and emi. coefficients in the unshocked ISM'
+      write(*,*) 'Calculate the emission from the ionized unshocked ISM'
       !
       !------------------------------------------------------------     
       ! Calculate the Strömgren sphere radius
