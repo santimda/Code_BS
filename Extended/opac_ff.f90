@@ -338,16 +338,16 @@ module opac_ff
       open (300,file='gaunt.dat')
       open (400,file='radff.dat')
       do i=1,mE_ff
-         f_ff = cte_f*(nu_ISM(i)/1.d9)**(-2.1)  ! [cm^6/pc] --> Eq.4 Olnon 1975
-         p_ff = 2.d0*ne_ISM*ni_ISM*(R_str/pc)*f_ff      ! Eq. 10 Olnon 1975
+!         f_ff = cte_f*(nu_ISM(i)/1.d9)**(-2.1)  ! [cm^6/pc] --> Eq.4 Olnon 1975
+!         p_ff = 2.d0*ne_ISM*ni_ISM*(R_str/pc)*f_ff      ! Eq. 10 Olnon 1975
          cte_alpha_ff_ISM = 3.7d8*Zq_ISM**2*T_ion**(-0.5d0)*ne*ni ! Rybicky & Lightman? (eq. 5.18 b)
          cte_nu = nu_ISM(i)**(-3)*(1.d0-exp(-h*nu_ISM(i)/k/T_ion))*g_ff_ISM(i) !(eq. 5.18 b)
          alpha_ff = cte_alpha_ff_ISM*cte_nu !1/cm
-!         p_ff = alpha_ff * R_str
+         p_ff = alpha_ff * R_str
          Lnu = cte_Lnu*nu_ISM(i)**2*( 1. - (2./p_ff**2)*(1.-(p_ff+1.)*exp(-p_ff)) ) ! Eq. 11 Olnon 1975 for sphere
          write(300,*) h*nu_ISM(i)/eV,Lnu(i)/h   ! [Lnu] = erg/s/Hz
          write(400,*) h*nu_ISM(i)/(k*T_ion),g_ff_ISM(i)
-         print*, nu_ISM(i)/1.d9, Lnu(i)*1.d26/(4.d0*pi*(distance)**2)
+!         print*, nu_ISM(i)/1.d9, Lnu(i)*1.d26/(4.d0*pi*(distance)**2)
       end do
       close(300)
       close(400)
