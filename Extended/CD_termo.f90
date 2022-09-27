@@ -20,7 +20,6 @@ module CD_termo
       !$ use omp_lib
       character(LEN=*), intent(in) :: shock
       logical, intent(in) :: radiative
-      integer, parameter :: mE_ph = 400
       real(dp) :: A_z,A_omega,st,ct
       real(dp) :: cte_P,cte_T,cte_ad, frac_mu
       real(dp) :: Beq0,Beq0_new,Beq0_RH,v_sh
@@ -29,15 +28,14 @@ module CD_termo
       real(dp) :: v_A_new(m_theta), v_ARH(m_theta), V_A(m_theta)
       real(dp) :: v_vec(2), n_perp(2), n_t(2)
       real(dp) :: e_flux, sin_alpha
+      real(dp) :: n_f(m_theta)
       real(dp) :: dot_M, dM, drho, P_th_med, Omega_in, theta_min, T_med
-      real(dp) :: E_st_min, E_st_max, Est_int, dnu_st, Est(mE_ph), integ_st, norm_BB_st
-      real(dp) :: Q_ion, R_str, H_ion(m_theta)
+      real(dp) :: H_ion(m_theta)
       real(dp) :: t_th(m_theta), lambda_T(m_theta), t_adv(m_theta), T_min(l), T_RH(m_theta), T_new(m_theta)
       integer :: l_crit, l_transition, l_min
-      integer :: i_ph
       logical :: transition
       
-      allocate( H_norm(m_theta),H_theta(m_theta) )
+      allocate( H_norm(m_theta),H_theta(m_theta),H_1(m_theta) )
       allocate( x(m_theta), y(m_theta) )
       allocate( Mach(m_theta),C_s_med(m_theta),C_s_sh(m_theta),C_s_sh_new(m_theta),r(m_theta) )
       allocate( rho_med(m_theta),rho_f(m_theta) )
@@ -213,7 +211,6 @@ module CD_termo
          C_s_sh_new(l) = sqrt(g_ad*P_new(l)/rho_new(l))           ! Sound speed in the shocked fluid 
          T_new(l) = P_new(l)*mp*mu_sw/rho_new(l)/k     ! mu_SISM = mu_sw    
          Mach(l) = v_perp(l)/C_s_med(l)
-         !print*, mach(l)
 
          ! Kinetic energy p/ unit mass in the upstream region = Kinetic p/ unit mass + specific enthalpy in the downstream region
          v_t_new(l) = sqrt( 2.d0 * (0.5d0*v_sh**2-cte_ad*P_new(l)/rho_new(l)) )
@@ -230,7 +227,7 @@ module CD_termo
 
          r(l) = (g_ad+1.)*Mach(l)**2/((g_ad-1.)*Mach(l)**2+2.) ! Compression factor (Caprioli 2014, Eq. 1)
 
-         T_RH(l) = ((g_ad-1.d0)*Mach(l)**2+2.d0)*(2.d0*g_ad*Mach(l)**2-(g_ad-1.d0))*mp*C_s_med(l)**2*frac_mu/g_ad/k/((g_ad+1.d0)**2 * Mach(l)**2)
+         T_RH(l) = ((g_ad-1.d0)*Mach(l)**2+2.d0)*(2.d0*g_ad*Mach(l)**2-(g_ad-1.d0))*mp*C_s_med(l)**2/g_ad/k/((g_ad+1.d0)**2 * Mach(l)**2)
          P_RH(l) = cte_P * rho_med(l) * v_perp(l)**2 - (g_ad-1.)*P_th_med/(g_ad+1.)
          rho_RH(l) = r(l) * rho_med(l)
          Beq0_RH = sqrt( 8.d0 * pi * P_RH(l) )
@@ -249,6 +246,9 @@ module CD_termo
             C_s_sh(l) = sqrt(g_ad*P_RH(l)/rho_RH(l))
             V_A(l) = v_ARH(l)
             T(l) = T_RH(l)
+            if (T(l) < 8.d3) then
+               T(l) = 8.d3
+            end if
          end do
       else if (.not. radiative) then
          do l = 1, m_theta
@@ -261,12 +261,6 @@ module CD_termo
             T(l) = T_new(l)
          enddo
       end if
-
-      do l = 1,m_theta
-         if (T(l) < 1.d4) then
-            T(l) = 1.d4
-         end if
-      end do
 
       !-----------------------------------------------------------------
       ! Thermal Bremsstrahlung losses
@@ -315,32 +309,45 @@ module CD_termo
       open(45,file='T_min_'//shock//'.dat')
 
       T_min(1) = (t_th(1)/t_adv(2))*T(l)
-      if (T_min(1) < 1.d4) then
-         T_min(1) = 1.d4
+      if (T_min(1) < 8.d3) then
+         T_min(1) = 8.d3
       end if
-      rho_f(1) = rho(1)*(T(1)/T_min(1))*mu_SISM
+      n_f(1) = P(1)/(k*T_min(1))*frac_mu
+      rho_f(1) = rho(1)*(T(1)/T_min(1))*frac_mu
       do l=2,m_theta
-         T_min(l) = (t_th(l)/t_adv(l))*T(l)
-         if (T_min(l) > T(l)) then
+         T_min(l) = (t_th(l)/t_adv(l))*T(l)         
+         if (T(l) <= T_min(l)) then
             T_min(l) = T(l)
-         else if (T_min(l) < 1.d4) then
-            T_min(l) = 1.d4
+         else if (T_min(l) < 8.d3) then
+            T_min(l) = 8.d3
          end if
-         rho_f(l) = rho(l)*(T(l)/T_min(l))*mu_SISM
+         !print*, 'T_min =', T_min(l), theta(l)*180./pi
+         n_f(l) = P(l)/(k*T_min(l))
+         rho_f(l) = n_f(l)*mp*mu_ISM
       end do
       do l=1,m_theta
          write(45,*) theta(l), T_min(l)
-         !print*, T_min(l), rho_f(l)/rho_ISM
       end do
 
+      !do l=1,m_theta
+      !   print*, T(l), theta(l)*180./pi
+      !end do
       close(45)
 
-   !------------------------------
+   !-----------------------------------------------------------------
       ! Calculate shock's width
 
       do l = 1, m_theta
          y_eff(l) = y(l)*R0
       end do
+
+      ! -------------------------------------
+      ! Post shock layer of a radiative shock
+      if (radiative) then
+         do l=1,m_theta
+            H_1(l) = v_perp(l)*t_th(l)
+         end do
+      end if
 
       dot_M = 0.d0
       theta_min = 0.1d0 ! For theta < theta_min, the approximation is not good
@@ -355,7 +362,7 @@ module CD_termo
          if (.not. radiative) then
             H_theta(l) = dot_M/(2.*pi*y_eff(l)*rho(l)*v_t(l))   ! dot_M = 2*pi*y_eff(l)*H(l)*rho(l)*v_t(l)
          else if (radiative) then
-            H_theta(l) = dot_M/(2.*pi*y_eff(l)*rho_f(l)*v_t(l))
+            H_theta(l) = dot_M/(2.*pi*y_eff(l)*v_t(l)*rho_f(l)) - H_1(l)*rho(l)/rho_f(l) 
          end if
       end do
 
@@ -372,44 +379,6 @@ module CD_termo
       end do
       close(21)
 
-   !------------------------------------------------------------     
-   ! Calculate the Strömgren sphere radius
-   if (radiative) then
-
-      E_st_min = 1.d-18
-      E_st_max = 3.d-5
-
-      call vector_log(E_st_min, E_st_max, Est_int, Est)
-
-      integ_st = 0.d0
-      do i_ph =1,mE_ph
-         dnu_st = Est(i_ph)*(Est_int - 1.d0)/h
-         integ_st = integ_st + nBB(Est(i_ph),T_st)*dnu_st     ! 1/erg/s/cm3
-      end do
-
-      norm_BB_st = 4.d0*pi*R_st**2*sigma*T_st**4/integ_st    ! erg2*cm3          
-
-      Q_ion = 0.d0
-      do i_ph=1,mE_ph
-         dnu_st = Est(i_ph)*(Est_int - 1.d0)/h
-         if (Est(i_ph) > 13.6d0*eV) then
-            Q_ion = Q_ion + norm_BB_st*nBB(Est(i_ph),T_st)*dnu_st/Est(i_ph)    ! erg2*cm3/erg/cm3/s
-         end if
-      end do
-
-      R_str = 0.68d0*pc*(Q_ion/1.d49)*(n_ISM/1.d3)**(-2./3.)*(T_ISM/1.d4)**0.28
-
-      do l=1,m_theta
-         sin_alpha = v_perp(l)/v_sh
-         dA_perp = (R_theta(l)*sin(theta(l))) * (dR(l)*sin_alpha) * d_phi
-         H_ion(l) = Q_ion/(4.*pi*R_theta(l)**2)/(rho_f(l)/mp)**2
-      end do
-
-   !do l=1,m_theta
-   !   print*, 'H_ION', H_ion(l)/H_theta(l)
-   !end do
-
-   end if
 
       !-----------------------------------------------------------------
       ! Injected power available for the acceleration of NT particles 
@@ -501,8 +470,9 @@ module CD_termo
       write(*,41) 'B_st <',(B(1)/4.d0)*(R0/R_st)*(v_w/v_st_rot)*r_A_st 
       41  format (A12,ES9.2)
 
-      deallocate( P,rho,T,B,v_t,v_perp,H_theta,H_norm,Mach,r,rho_med,C_s_med,C_s_sh,C_s_sh_new,rho_min,rho_f )
-      deallocate( x, y, H_new, y_eff )
+      deallocate( P,rho,T,B,v_t,v_perp,Mach,r,rho_med,C_s_med,C_s_sh,C_s_sh_new,rho_min,rho_f )
+      deallocate( H_1,H_theta,H_norm,H_new )
+      deallocate( x, y, y_eff )
       deallocate( v_t_new, P_new, rho_new, B_new)
       deallocate( v_t_RH, P_RH, rho_RH, B_RH )
       

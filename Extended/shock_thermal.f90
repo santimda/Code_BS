@@ -78,8 +78,9 @@ module shock_thermal
   ! This module calculates the shock's thermal bremsstrahlung SED
   !============================================================================
 
-  subroutine shock_thermal_run_spectrum(shock)
+  subroutine shock_thermal_run_spectrum(shock, radiative)
     character(LEN=*), intent(in) :: shock
+    logical, intent(in) :: radiative
     integer, parameter :: mE_ph = 400
     integer, parameter :: m_l = 2*m_theta  ! CD position, both sides
     real(dp) :: n_a(m_theta), cte_l(m_theta)
@@ -88,17 +89,18 @@ module shock_thermal
     real(dp) :: nu(mE_ph)
     real(dp) :: log_nu_int,flux,flux0,flux1,flux2,flux3
     real(dp) :: dV_ring(m_theta)
-    real(dp) :: integral,integ
+    real(dp) :: integral,integ,integ_ion
     real(dp) :: A(m_theta)
-    real(dp) :: emi_ff_nu(m_theta,mE_ph)
+    real(dp) :: emi_ff_nu(m_theta,mE_ph), emi_ion_nu
     real(dp) :: L_inj(m_theta)
-    real(dp) :: f_int(m_theta),dtheta
+    real(dp) :: f_int(m_theta),f_vol_ion(m_theta),dtheta
     real(dp) :: dV_ring_ff, H_ff, H_RH, dR(m_theta)
     real(dp) :: r(m_theta), v_perp(m_theta), t_th(m_theta)
+    real(dp), parameter :: T_f = 8.d3
     !real(dp) :: F_nu(m_l,mE_ph),F_nu_phi(m_l,mE_ph)
     real(dp) :: n_BB(m_theta,mE_ph), T_min(m_theta)
-    real(dp) :: LX_sh(mE_ph), L_tot,L_th(mE_ph)
-    real(dp) :: S(mE_ph),S1,S2,S3
+    real(dp) :: L_tot,L_th(mE_ph),L_ion(mE_ph),L_ion_tot
+    real(dp) :: S(mE_ph),S1,S2,S3,S_ion(mE_ph)
     integer :: nl, i_ph
     Integer :: i_890M,i_1G,i_3G,i_5G
     integer, parameter :: nu_mu=146,nu_mga=81 ! # data in table gauntff.dat
@@ -122,14 +124,14 @@ module shock_thermal
     end interface  
 
     allocate( H_theta(m_theta), rho(m_theta), T(m_theta), rho_f(m_theta) )
-    allocate( F_nu(m_l,mE_ph),F_nu_phi(m_l,mE_ph))
+    allocate( F_nu(m_l,mE_ph),F_nu_phi(m_l,mE_ph),F_nu_ion(m_l,mE_ph))
 
   90  format(A19,X,Es10.3)
   95  format(A18,X,Es10.3)
 
     print*, 'Calculate the spectrum of the thermal emission from each shock'
 
-    LX_sh = 0.d0
+    L_ion_tot = 0.d0
     L_tot = 0.d0
 
     80  format(A12,X,Es10.2)
@@ -174,10 +176,10 @@ module shock_thermal
     open(11,file='termo_'//shock//'.dat')
     do l=1,m_theta
       read(11,*) nl,rho(l),dummy,dummy,T(l),dummy,v_perp(l),dummy,dummy,r(l),dummy,rho_f(l) ! CGS
-      n_a(l) = rho(l)/mp/mu_i_sw   
+      n_a(l) = rho_f(l)/mp/mu_i_sw   
       !ni = n_a(l) 
       !ne = gamma_sw*n_a(l)    
-      cte_l(l) = 6.8d-38*Zq_sw**2*gamma_sw*n_a(l)**2/sqrt(T(l))
+      cte_l(l) = 6.8d-38*Zq_sw**2*gamma_sw*n_a(l)**2/sqrt(T_f)
     enddo
     close(11)
 
@@ -237,6 +239,8 @@ module shock_thermal
     ! emi_ff_nu= dW/dt/dV/dnu the specific emissivity given by Eq. 5.14b from Rybicki,
     ! and dV_ring(l) the volume of the shocked ring element
 
+    if (radiative) then 
+
     open(19,file=''//shock//'_ff.dat')
     open(20,file='S_ff_'//shock//'.dat')
 
@@ -261,15 +265,18 @@ module shock_thermal
           call extrapol2(dg,dmu,gff(j_g,nu_mga-1),gff(j_g+1,nu_mga-1),gff(j_g,nu_mga),gffinter)
         endif
         ! write(*,*) i_ph, l, gffinter, 9.77d0*(1.d0+0.13d0*log10(T(l)**1.5d0/Zq_sw/(Eph(i_ph)/h))) ! aprox 
+        ! Thermal emission from the post shock layer in a radiative shock
+        ! L_ff = ( 1-(8000K/T(l)) ) * L_inj_perp
         emi_ff_nu(l,i_ph) = ( (6.8d-38*Zq_sw**2*gamma_sw/sqrt(T(l))) * exp(-Eph(i_ph)/(k*T(l))) * gffinter )/h ! erg/s/cm3/erg
+      
         dEph = Eph(i_ph)*(Eph_int - 1.d0)
         integ = integ + emi_ff_nu(l,i_ph)*dEph
       end do
 
-      if (T(l) >= 1.d4) then
-        A(l) = L_inj(l)*(1-T_min(l)/T(l))/integ   ! g
-      !else if (T(l) <= 1.d4) then
-        !A(l) = 0.d0
+      if (T(l) >= 8.d3) then
+        A(l) = L_inj(l)*(1-T_min(l)/T(l))/integ   ! cm3
+      else if (T(l) <= 8.d3) then
+        A(l) = 0.d0
       end if
     end do
 
@@ -292,6 +299,8 @@ module shock_thermal
     close(19)
     close(20)
 
+    print*, '\n f-f emission from post shock layer:'
+
     write(*,90) 'S_890MHz[mJy]=',L_th(i_890M)*Eph(i_890M)*flux0
     write(*,90) 'S_1.4GHz[mJy]=',L_th(i_1G)*Eph(i_1G)*flux1
     write(*,90) 'S_3.0GHz[mJy]=',L_th(i_3G)*Eph(i_3G)*flux2
@@ -299,6 +308,67 @@ module shock_thermal
 
     write(*,80) 'L_tot =',L_tot
 
+    end if
+
+    !------------------------------------------------------------
+    !------------------------------------------------------------
+
+    open(39,file='ionized_ff.dat')
+    open(40,file='S_ionized.dat')
+
+    do i_ph=1,mE_ph
+      do l = 1,m_theta
+        ! Eq. 5.14b from Rybicki gives the spectrum in erg/s/cm3/Hz, so I divide by h
+        ! emi_ff_nu = (6.8d-38*Zq_sw**2*ne*ni*T(l)**(-0.5d0)*exp(-Eph(i_ph)/(k*T(l)))*g_ff(Eph(i_ph),T(l)) )/h ! erg/s/cm3/erg
+
+        ! Interpolate Gaunt factor
+        gamma2 = Zq_sw**2.*Ry/k/T_f
+        j_g = int( (log10(gamma2)+6.d0)/0.2d0 ) + 1
+        dg = ( (log10(gamma2)+6.d0)/0.2d0+1.d0 - float(j_g) )*0.2d0
+
+        mu_ff = Eph(i_ph)/k/T_f
+        j_mu = int( (log10(mu_ff)+16.d0)/0.2d0 ) + 1
+        if (j_mu < nu_mga) then
+          dmu = ((log10(mu_ff)+16.d0)/0.2d0+1.d0 - float(j_mu))*0.2_dp
+          call interpol2(dg,dmu,gff(j_g,j_mu),gff(j_g+1,j_mu),gff(j_g,j_mu+1),gffinter)
+        else
+          dmu = ((log10(mu_ff)+16.d0)/0.2d0+1.d0 - float(j_mu))*0.2_dp
+          call extrapol2(dg,dmu,gff(j_g,nu_mga-1),gff(j_g+1,nu_mga-1),gff(j_g,nu_mga),gffinter)
+        endif
+        ! write(*,*) i_ph, l, gffinter, 9.77d0*(1.d0+0.13d0*log10(T(l)**1.5d0/Zq_sw/(Eph(i_ph)/h))) ! aprox 
+        ! Emission from the ionized layer by the star's radiation field. T = 8.000 K
+        emi_ion_nu = ( cte_l(l) * exp(-Eph(i_ph)/(k*T_f)) * gffinter )/h ! erg/s/cm3/erg
+        f_vol_ion(l) = emi_ion_nu*dV_ring(l)
+        F_nu_ion(l,i_ph) = f_vol_ion(l)*Eph(i_ph)
+        F_nu_ion(l+m_theta,i_ph) = F_nu_ion(l,i_ph)
+      end do
+      call integrate(m_theta,dtheta,f_vol_ion,integ_ion)
+
+      L_ion(i_ph) = integ_ion
+      S_ion(i_ph) = L_ion(i_ph)*Eph(i_ph)*flux/nu(i_ph)  ! Total flux at a certain freq. in mJy
+
+      write(39,*) Eph(i_ph)/eV, Eph(i_ph)*L_ion(i_ph), L_ion(i_ph)
+      write(40,*) nu(i_ph), S_ion(i_ph)
+
+      dEph = Eph(i_ph)*(Eph_int - 1.d0)
+      L_ion_tot = L_ion_tot + L_ion(i_ph)*dEph
+      !print*, L_ion(i_ph), dEph, Eph_int, Eph(i_ph)
+    end do
+
+    close(39)
+    close(40)
+
+    print*, '\n f-f emission from the ionized layer by the star:'
+
+    write(*,90) 'S_890MHz[mJy]=',L_ion(i_890M)*Eph(i_890M)*flux0
+    write(*,90) 'S_1.4GHz[mJy]=',L_ion(i_1G)*Eph(i_1G)*flux1
+    write(*,90) 'S_3.0GHz[mJy]=',L_ion(i_3G)*Eph(i_3G)*flux2
+    write(*,90) 'S_4.86GHz[mJy]=',L_ion(i_5G)*Eph(i_5G)*flux3
+
+    write(*,80) 'L_ion_tot =',L_ion_tot
+
+    !------------------------------------------------------------
+    !------------------------------------------------------------
     !------------------------------------------------------------
     ! Emission maps
     if (shock /= 'BOTH') then
@@ -328,7 +398,7 @@ module shock_thermal
     !------------------------------------------------------------  
 
     deallocate ( H_theta, rho, T, rho_f )
-    deallocate ( F_nu,F_nu_phi )
+    deallocate ( F_nu,F_nu_phi,F_nu_ion )
   END subroutine shock_thermal_run_spectrum
 
   !============================================================================
