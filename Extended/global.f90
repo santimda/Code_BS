@@ -40,7 +40,7 @@ module global
    real(dp), dimension(:), allocatable :: P_med, rho_med, C_s_med,Mach,C_s_sh,C_s_sh_new,r
    real(dp), dimension(:), allocatable :: v_t_RH, P_RH, rho_RH, B_RH, rho_min, rho_f
    real(dp), dimension(:), allocatable :: v_t_new, P_new, rho_new, B_new
-   real(dp), dimension(:), allocatable :: H_theta, H_new, y_eff
+   real(dp), dimension(:), allocatable :: H_theta, H_new, y_eff, H_1
 
    ! dist
    real(dp), parameter :: Emin_e = 2.d0*mec2   ! ~1 MeV
@@ -93,7 +93,8 @@ module global
    integer, parameter :: mE_ff = m_nu, mr_ff = 1640, mr_map = 1000
    real(dp), dimension(:,:), allocatable :: tauff
    real(dp) :: alphaff_w(mr_ff,m_nu), r_w(mr_ff)
-   real(dp), dimension(:,:), allocatable :: F_nu,F_nu_phi
+   real(dp), dimension(:), allocatable :: nu_ISM
+   real(dp), dimension(:,:), allocatable :: F_nu,F_nu_phi,F_nu_ion
    !real(dp) :: Lsy_sw(m_theta,m_nu),Lsy_sism(m_theta,m_nu),Lsy_tot_abs(m_nu) 
 
    !=======================================================

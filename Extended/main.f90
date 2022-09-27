@@ -4,6 +4,7 @@ PROGRAM main
    use initialize
    use CD, only: CD_run
    use BB, only: BB_run
+   use opac_ff, only: opac_ff_run
    implicit none
    logical, parameter :: verbose=.True.
    
@@ -31,6 +32,8 @@ PROGRAM main
    if (BBrad_calc) call BB_run
 
    if (CD_calc) call CD_run
+
+   if (opacff_calc) call opac_ff_run
 
    if (RS) then 
       print *, '\n----------------------------'
@@ -96,7 +99,6 @@ PROGRAM main
    use CD_radbr, only: CD_radbr_run
    use CD_radic, only: CD_radic_st_run,CD_radic_IR_run
    use CD_radpp, only: CD_radpp_run
-   use opac_ff, only: opac_ff_run
    use CD_rot, only: CD_rot_run
    
    implicit none
@@ -133,7 +135,7 @@ PROGRAM main
 
    if (Xrad_calc .and. radiative) then
       call shock_thermal_run_total(shock)
-      call shock_thermal_run_spectrum(shock)
+      call shock_thermal_run_spectrum(shock, radiative = .true.)
    endif
 
 
@@ -151,8 +153,6 @@ PROGRAM main
       if (diste_calc) call CD_diste_run(shock) 
 
       if (radsyn_sw_calc) call CD_radsyn_run(shock)       ! Just one linear emitter      
-
-      if (opacff_calc .and. RS) call opac_ff_run
 
       if (radbr_sw_calc) call CD_radbr_run(unscr,shock)  ! Just one linear emitter  
 
