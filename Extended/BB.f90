@@ -1,9 +1,7 @@
 module BB
-  !Este módulo calcula la emisión de BB de las estrellas 1 y 2
   use global
-  
   implicit none
-  private
+
   public :: BB_run
   
 contains
@@ -15,13 +13,11 @@ contains
   !============================================================================
   
   subroutine BB_run  
-    use global
-    implicit none
     integer, parameter :: mE_ph = 200
     real(dp) :: Eph_0, Eph_min, Eph_max, Eph_int, Eph(mE_ph)
     real(dp) :: L_BB,Rst2
 
-    write(*,*) 'Calculate the BB thermal emission from the star'
+    print*, 'Calculate the BB thermal emission from the star'
     
     Eph_0 = 2.7d0*k*T_st
     Eph_min = 10.d9*h    ! 10 GHz ~ Eph_0/1.d6
@@ -36,7 +32,6 @@ contains
        write(20,*) Eph(i)/eV,Eph(i)*L_BB
     enddo
     close(20)
-
 
   END subroutine BB_run
 
