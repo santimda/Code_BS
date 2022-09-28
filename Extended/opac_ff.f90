@@ -24,7 +24,7 @@ module opac_ff
       real(dp) :: T_w,T_ion,S(mE_ff),ne,ne_ISM,ni_ISM,ni,S_aprox(mE_ff)
       real(dp) :: alphaff(mr_ff,mE_ff),gamma2,dg,dmu,gffinter
       real(dp) :: r_ff(mr_ff),dr,A_ff,cte_alpha_ff,cte_alpha_ff_ISM, cte_nu
-      real(dp) :: alpha_ff, p_ff, f_ff
+      real(dp) :: alpha_ff, p_ff, f_ff, factor_opac
       real(dp) :: Lnu(mE_ff), Enu
       integer :: j_mu,j_g
       integer :: i_ph
@@ -288,12 +288,15 @@ module opac_ff
          cte_alpha_ff_ISM = 3.7d8*Zq_ISM**2/sqrt(T_ion)*ne_ISM*ni_ISM ! Rybicky & Lightman? (eq. 5.18 b)
          cte_nu = nu_ISM(i)**(-3)*(1.d0-exp(-h*nu_ISM(i)/k/T_ion))*g_ff_ISM(i) !(eq. 5.18 b)
          alpha_ff = cte_alpha_ff_ISM*cte_nu !1/cm
-         p_ff = alpha_ff * R_str
-         !print*, i, p_ff, alpha_ff * R_str, p_ff/(alpha_ff*R_str)
-         Lnu = cte_Lnu*nu_ISM(i)**2*( 1. - (2./p_ff**2)*(1.-(p_ff+1.)*exp(-p_ff)) ) ! Eq. 11 Olnon 1975 for sphere
+         p_ff = alpha_ff * R_str 
+         if (p_ff > 1.d-4) then
+          factor_opac = ( 1. - (2./p_ff**2)*(1.-(p_ff+1.)*exp(-p_ff)) ) ! Eq. 11 Olnon 1975 for sphere
+         else ! if p_ff << 1d-5 there are numerical errors, but analytically the factor --> p
+          factor_opac = p_ff
+         endif
+         Lnu = cte_Lnu*nu_ISM(i)**2*factor_opac 
          write(300,*) h*nu_ISM(i)/(k*T_ion),g_ff_ISM(i)
          write(400,*) h*nu_ISM(i)/eV,Lnu(i)/h   ! [Lnu] = erg/s/Hz
-!         print*, nu_ISM(i)/1.d9, Lnu(i)*1.d26/(4.d0*pi*(distance)**2)
       end do
       close(300)
       close(400)
