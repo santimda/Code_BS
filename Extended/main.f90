@@ -134,7 +134,7 @@ PROGRAM main
    end if
 
    if (Xrad_calc .and. radiative) then
-      call shock_thermal_run_total(shock)
+      call shock_thermal_run_total(shock, radiative = .true.)
       call shock_thermal_run_spectrum(shock, radiative = .true.)
    endif
 

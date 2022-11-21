@@ -150,6 +150,14 @@ contains
     enddo
     close(17)
 
+    ! Fluxes
+
+    open(18,file='S_syn_'//shock//'.dat')
+    do i = 1,m_nu
+      write(18,*) nu(i),Lsy_tot(i)*(mphi*4.)/(4.*pi*distance**2*nu(i))*1.d26
+    enddo
+    close(18)
+
     ! 3-D emission map
     open(79,file='emisyn_'//shock//'.dat')
     do l = 1, m_theta

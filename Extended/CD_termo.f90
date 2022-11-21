@@ -309,8 +309,8 @@ module CD_termo
       open(45,file='T_min_'//shock//'.dat')
 
       T_min(1) = (t_th(1)/t_adv(2))*T(l)
-      if (T_min(1) < 8.d3) then
-         T_min(1) = 8.d3
+      if (T_min(1) < T_ISM) then
+         T_min(1) = T_ISM
       end if
       n_f(1) = P(1)/(k*T_min(1))*frac_mu
       rho_f(1) = rho(1)*(T(1)/T_min(1))*frac_mu
@@ -318,10 +318,9 @@ module CD_termo
          T_min(l) = (t_th(l)/t_adv(l))*T(l)         
          if (T(l) <= T_min(l)) then
             T_min(l) = T(l)
-         else if (T_min(l) < 8.d3) then
-            T_min(l) = 8.d3
+         else if (T_min(l) < T_ISM) then
+            T_min(l) = T_ISM
          end if
-         !print*, 'T_min =', T_min(l), theta(l)*180./pi
          n_f(l) = P(l)/(k*T_min(l))
          rho_f(l) = n_f(l)*mp*mu_ISM
       end do
@@ -329,9 +328,11 @@ module CD_termo
          write(45,*) theta(l), T_min(l)
       end do
 
+      !if (shock == 'FS') then
       !do l=1,m_theta
-      !   print*, T(l), theta(l)*180./pi
+      !   print*, T(l), rho_f(l)/rho_med(l), theta(l)*180./pi
       !end do
+      !end if
       close(45)
 
    !-----------------------------------------------------------------
@@ -362,7 +363,7 @@ module CD_termo
          if (.not. radiative) then
             H_theta(l) = dot_M/(2.*pi*y_eff(l)*rho(l)*v_t(l))   ! dot_M = 2*pi*y_eff(l)*H(l)*rho(l)*v_t(l)
          else if (radiative) then
-            H_theta(l) = dot_M/(2.*pi*y_eff(l)*v_t(l)*rho_f(l)) - H_1(l)*rho(l)/rho_f(l) 
+            H_theta(l) = dot_M/(2.*pi*y_eff(l)*v_t(l)*rho_f(l)) - H_1(l)*rho(l)/rho_f(l)
          end if
       end do
 
@@ -375,7 +376,11 @@ module CD_termo
       do l = 1, m_theta
          st = sin(theta(l))
          dV_ring(l) = (2.d0*pi*R_theta(l)*st) * dR(l) * H_theta(l) ! Volume of the ring
-         write(21,*) theta(l), H_theta(l), R_acel(l)*R0, H_theta(l)/R_theta(l), dV_ring(l)
+         if ( .not. radiative ) then
+            write(21,*) theta(l), H_theta(l), R_acel(l)*R0, H_theta(l)/R_theta(l), dV_ring(l)
+         else if (radiative) then
+            write(21,*) theta(l), H_theta(l), R_acel(l)*R0, H_theta(l)/R_theta(l), dV_ring(l), H_1(l)
+         end if
       end do
       close(21)
 
@@ -424,8 +429,7 @@ module CD_termo
       open(20,file='alpha_'//shock//'.dat')
       do l = 1, m_theta
          !alpha_sh(l) = 2.55_dp   ! Value used for BD+43°3654
-         alpha_sh(l) = 2.4_dp
-         !alpha_sh(l) = (r(l)+2.d0)/(r(l)-1.d0)
+         alpha_sh(l) = (r(l)+2.d0)/(r(l)-1.d0)
          !dummy = r(l)/(1.d0 + r(l)*v_A(l)/v_sh)         
          !print *, r(l), r(l)/(1.d0 + r(l)*v_ARH(l)/v_sh)
          !print *, alpha_sh(l), (dummy+2.d0)/(dummy-1.d0)
@@ -451,6 +455,13 @@ module CD_termo
       close(17)
       close(18)
       close(19)
+
+      if (radiative) then
+         open(22, file='termo_radiative_norm.dat')
+         do l = 1, m_theta
+            write(22,*) theta(l), rho(l)/rho_med(l), rho_f(l)/rho_med(l), T(l)/T_ISM
+         end do
+      end if
 
       print *, 'At the stagnation point (sw):'
       write(*,41) 'R0[pc] =',R0/pc

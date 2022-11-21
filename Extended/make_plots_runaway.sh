@@ -7,6 +7,8 @@ echo "3: BD+60°2522"
 echo "4: HIP-88652"
 echo "5: HD-319881"
 echo "6: IRAS-20321+4009"
+echo "7: RCW-49-S1"
+echo "8: G1"
 
 echo -n "Enter the integer value and press [ENTER]: " 
 read name_number
@@ -31,6 +33,12 @@ case $name_number in
 	6)
 	name='IRAS-20321+4009'
 	;;
+	7)
+	name='RCW-49-S1'
+	;;
+	8)
+	name='G1'
+	;;
 	*)
 	echo "Unknown scenario, exit"
 	exit
@@ -49,7 +57,8 @@ cd gnuplot_scripts
 
 # First make a list (an array) with all of the gnuplot scripts to run:
 declare -a script_list
-script_list=(plot_termo_RS.gp)  
+script_list+=(plot_termo_RS.gp)  
+script_list+=(plot_termo_radiative.gp)
 script_list+=(plot_Linj_RS.gp)
 script_list+=(plot_radadi_RS.gp)
 script_list+=(plot_tiempos_e_RS.gp)
