@@ -12,15 +12,16 @@ module shock_thermal
   ! This module calculates the shock's total thermal bremsstrahlung luminosity
   !============================================================================
 
-  subroutine shock_thermal_run_total(shock)
+  subroutine shock_thermal_run_total(shock,radiative)
     character(LEN=*), intent(in) :: shock
+    logical, intent(in) :: radiative
     real(dp) :: ne,ni,n_a(m_theta),emi_ff
     real(dp) :: f_int(m_theta),dtheta,integral, L_tot
     real(dp) :: dV_ring(m_theta)
     integer :: nl
     real(dp), parameter :: g_average = 1.2 ! Rybicki, Eq. 5.15 b
 
-    allocate( H_theta(m_theta), rho(m_theta),T(m_theta) )
+    allocate( H_theta(m_theta), rho(m_theta),T(m_theta), H_1(m_theta) )
 
     80  format(A12,X,Es10.2)
 
@@ -31,7 +32,11 @@ module shock_thermal
 
     open(13,file='Hnorm_'//shock//'.dat') 
     do l=1,m_theta
-      read(13,*) dummy, H_theta(l), dummy, dummy, dV_ring(l)
+      if ( .not. radiative ) then
+        read(13,*) dummy, H_theta(l), dummy, dummy, dV_ring(l)
+      else if ( radiative ) then
+        read(13,*) dummy, H_theta(l), dummy, dummy, dV_ring(l), H_1(l)
+      end if
     enddo
     close(13)
 
@@ -40,7 +45,11 @@ module shock_thermal
     open(11,file='termo_'//shock//'.dat')
     do l=1,m_theta
       read(11,*) nl,rho(l),dummy,dummy,T(l),dummy,dummy,dummy,dummy,dummy,dummy,dummy! CGS
-      n_a(l) = rho(l)/mp/mu_i_sw   
+      if (shock == 'RS') then
+        n_a(l) = rho(l)/mp/mu_i_sw
+      else if (shock == 'FS') then
+        n_a(l) = rho(l)/mp/mu_ISM
+      end if
     enddo
     close(11)
 
@@ -63,7 +72,7 @@ module shock_thermal
     L_tot = integral
     write(*,80) 'L_ff_tot =',L_tot
 
-    deallocate ( H_theta, rho, T )
+    deallocate ( H_theta, rho, T, H_1 )
 
   END subroutine shock_thermal_run_total
 
@@ -92,11 +101,13 @@ module shock_thermal
     real(dp) :: integral,integ,integ_ion
     real(dp) :: A(m_theta)
     real(dp) :: emi_ff_nu(m_theta,mE_ph), emi_ion_nu
+    real(dp) :: alpha_ff_nu1(m_theta,mE_ph), alpha_ff_nu2(m_theta,mE_ph)
+    real(dp) :: Tau_1(m_theta,mE_ph), Tau_2(m_theta,mE_ph)
     real(dp) :: L_inj(m_theta)
     real(dp) :: f_int(m_theta),f_vol_ion(m_theta),dtheta
     real(dp) :: dV_ring_ff, H_ff, H_RH, dR(m_theta)
     real(dp) :: r(m_theta), v_perp(m_theta), t_th(m_theta)
-    real(dp), parameter :: T_f = 8.d3
+    real(dp), parameter :: T_f = T_ISM
     !real(dp) :: F_nu(m_l,mE_ph),F_nu_phi(m_l,mE_ph)
     real(dp) :: n_BB(m_theta,mE_ph), T_min(m_theta)
     real(dp) :: L_tot,L_th(mE_ph),L_ion(mE_ph),L_ion_tot
@@ -123,11 +134,12 @@ module shock_thermal
     end subroutine extrapol2
     end interface  
 
-    allocate( H_theta(m_theta), rho(m_theta), T(m_theta), rho_f(m_theta) )
+    allocate( H_theta(m_theta), H_1(m_theta), rho(m_theta), T(m_theta), rho_f(m_theta) )
     allocate( F_nu(m_l,mE_ph),F_nu_phi(m_l,mE_ph),F_nu_ion(m_l,mE_ph))
 
   90  format(A19,X,Es10.3)
   95  format(A18,X,Es10.3)
+  96  format(A36,X,F4.0,X,A13,X,F4.0,X,A3)
 
     print*, 'Calculate the spectrum of the thermal emission from each shock'
 
@@ -167,7 +179,11 @@ module shock_thermal
 
     open(13,file='Hnorm_'//shock//'.dat') 
     do l=1,m_theta
-      read(13,*) dummy, H_theta(l), dummy, dummy, dV_ring(l)
+      if ( .not. radiative ) then
+        read(13,*) dummy, H_theta(l), dummy, dummy, dV_ring(l)
+      else if (radiative) then
+        read(13,*) dummy, H_theta(l), dummy, dummy, dV_ring(l), H_1(l)
+      end if
     enddo
     close(13)
 
@@ -176,7 +192,7 @@ module shock_thermal
     open(11,file='termo_'//shock//'.dat')
     do l=1,m_theta
       read(11,*) nl,rho(l),dummy,dummy,T(l),dummy,v_perp(l),dummy,dummy,r(l),dummy,rho_f(l) ! CGS
-      n_a(l) = rho_f(l)/mp/mu_i_sw   
+      n_a(l) = rho_f(l)/mp/mu_ISM  
       !ni = n_a(l) 
       !ne = gamma_sw*n_a(l)    
       cte_l(l) = 6.8d-38*Zq_sw**2*gamma_sw*n_a(l)**2/sqrt(T_f)
@@ -268,14 +284,20 @@ module shock_thermal
         ! Thermal emission from the post shock layer in a radiative shock
         ! L_ff = ( 1-(8000K/T(l)) ) * L_inj_perp
         emi_ff_nu(l,i_ph) = ( (6.8d-38*Zq_sw**2*gamma_sw/sqrt(T(l))) * exp(-Eph(i_ph)/(k*T(l))) * gffinter )/h ! erg/s/cm3/erg
+
+        alpha_ff_nu1(l,i_ph) = 3.7d8 * (Zq_sw**2*(rho(l)/mp/mu_ISM)**2/sqrt(T(l)) ) * (1.d0-exp(-h*nu(i_ph)/(k*T(l))) )/nu(i_ph)**3 * gffinter
+        Tau_1(l,i_ph) = alpha_ff_nu1(l,i_ph)*H_1(l)
+        if ( Tau_1(l,i_ph)>= 1.d0 ) then
+          write(*,96) 'Region 1 is optically thick at angle', theta(l)*180./pi, 'and frequency', nu(i_ph)/1.d6, 'MHz'
+        end if 
       
         dEph = Eph(i_ph)*(Eph_int - 1.d0)
         integ = integ + emi_ff_nu(l,i_ph)*dEph
       end do
 
-      if (T(l) >= 8.d3) then
+      if (T(l) >= T_ISM) then
         A(l) = L_inj(l)*(1-T_min(l)/T(l))/integ   ! cm3
-      else if (T(l) <= 8.d3) then
+      else if (T(l) <= T_ISM) then
         A(l) = 0.d0
       end if
     end do
@@ -322,7 +344,7 @@ module shock_thermal
         ! emi_ff_nu = (6.8d-38*Zq_sw**2*ne*ni*T(l)**(-0.5d0)*exp(-Eph(i_ph)/(k*T(l)))*g_ff(Eph(i_ph),T(l)) )/h ! erg/s/cm3/erg
 
         ! Interpolate Gaunt factor
-        gamma2 = Zq_sw**2.*Ry/k/T_f
+        gamma2 = Zq_ISM**2.*Ry/k/T_f
         j_g = int( (log10(gamma2)+6.d0)/0.2d0 ) + 1
         dg = ( (log10(gamma2)+6.d0)/0.2d0+1.d0 - float(j_g) )*0.2d0
 
@@ -338,6 +360,13 @@ module shock_thermal
         ! write(*,*) i_ph, l, gffinter, 9.77d0*(1.d0+0.13d0*log10(T(l)**1.5d0/Zq_sw/(Eph(i_ph)/h))) ! aprox 
         ! Emission from the ionized layer by the star's radiation field. T = 8.000 K
         emi_ion_nu = ( cte_l(l) * exp(-Eph(i_ph)/(k*T_f)) * gffinter )/h ! erg/s/cm3/erg
+
+        alpha_ff_nu2(l,i_ph) = 3.7d8 * (Zq_sw**2*n_a(l)**2/sqrt(T_f)) * (1.d0-exp(-h*nu(i_ph)/(k*T_f)) )/nu(i_ph)**3 * gffinter
+        Tau_2(l,i_ph) = alpha_ff_nu2(l,i_ph)*H_theta(l)
+        !if ( Tau_2(l,i_ph)>= 1.d0 ) then
+        !  write(*,96) 'Region 2 is optically thick at angle', theta(l)*180./pi, 'and frequency', nu(i_ph)/1.d6, 'MHz'
+        !end if
+
         f_vol_ion(l) = emi_ion_nu*dV_ring(l)
         F_nu_ion(l,i_ph) = f_vol_ion(l)*Eph(i_ph)
         F_nu_ion(l+m_theta,i_ph) = F_nu_ion(l,i_ph)
@@ -395,9 +424,17 @@ module shock_thermal
       close(32)
     end if
 
+    !------------------------------------------------------------
+    ! Save the opacity at 1 GHz
+    open(50, file='Tau.dat')
+      do l = 1, m_theta
+        write(50,*) theta(l), alpha_ff_nu1(l,i_1G), alpha_ff_nu2(l,i_1G)
+      end do
+    close(50)
+
     !------------------------------------------------------------  
 
-    deallocate ( H_theta, rho, T, rho_f )
+    deallocate ( H_theta, H_1, rho, T, rho_f )
     deallocate ( F_nu,F_nu_phi,F_nu_ion )
   END subroutine shock_thermal_run_spectrum
 
