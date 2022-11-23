@@ -281,7 +281,7 @@ PROGRAM main
                read(31,*) E_IC_st(i_E), LIC_st_tot(i_E)
                dE_IC_st(i_E) = (E_IC_st(2)/E_IC_st(1) - 1.d0)
                if ( E_IC_st(i_E) >= Eph_min .and. E_IC_st(i_E) <= Eph_max ) then
-                  L_X_int = L_X_int + LIC_st_tot(i_E)*dE_IC_st(i_E)
+                  L_X_int = L_X_int + 2.d0*LIC_st_tot(i_E)*dE_IC_st(i_E) ! Multiply by 2 because of axial symmetry
                end if
             end do
             close(31)
