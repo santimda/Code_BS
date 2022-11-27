@@ -136,6 +136,9 @@ PROGRAM main
    if (Xrad_calc .and. radiative) then
       call shock_thermal_run_total(shock, radiative = .true.)
       call shock_thermal_run_spectrum(shock, radiative = .true.)
+   else if (Xrad_calc .and. (.not. radiative)) then
+      call shock_thermal_run_total(shock, radiative = .false.)
+      call shock_thermal_run_spectrum(shock, radiative = .false.)
    endif
 
 
@@ -273,10 +276,10 @@ PROGRAM main
          if ( (radic_st_calc) .and. (radic_ir_calc) .and. (radsyn_sw_calc) ) then
             ! Calculates the X-ray luminosity
             L_X_int = 0.d0
-            Eph_min = 1.d3 ! 1 keV
-            Eph_max = 1.d4 ! 10 keV
+            Eph_min = 0.4d3 ! 0.4 keV
+            Eph_max = 4.d3 ! 4 keV
             
-            open (31,file='radic_st_'//shock//'_tot.dat')
+            open (31,file='radic_st_RS_tot.dat')
             do i_E = 1, mE_f
                read(31,*) E_IC_st(i_E), LIC_st_tot(i_E)
                dE_IC_st(i_E) = (E_IC_st(2)/E_IC_st(1) - 1.d0)
@@ -286,7 +289,7 @@ PROGRAM main
             end do
             close(31)
 
-            open (33,file='radic_ir_'//shock//'_tot.dat')
+            open (33,file='radic_ir_RS_tot.dat')
             do i_E = 1, mE_f
                read(33,*) E_IC_IR(i_E),LIC_IR_tot(i_E)
                dE_IC_IR(i_E) = (E_IC_IR(2)/E_IC_IR(1) - 1.d0)
@@ -296,7 +299,7 @@ PROGRAM main
             end do
             close(33)
 
-            open (51,file='radsyn_'//shock//'_tot.dat')
+            open (51,file='radsyn_RS_tot.dat')
             do i_E = 1, m_nu
                read(51,*) E_sy(i_E), Lsy_sh_tot(i_E)
                dE_sy(i_E) = (E_sy(2)/E_sy(1) - 1.d0)
@@ -306,7 +309,7 @@ PROGRAM main
             end do
             close(51)
 
-            print *, 'Calculate the luminosity btw 1-10 keV'
+            print *, 'Calculate the luminosity btw 0.4-4 keV'
             write(*,80) 'L_X= ', L_X_int
             print *, ''
          end if

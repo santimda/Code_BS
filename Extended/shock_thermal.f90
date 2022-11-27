@@ -226,7 +226,7 @@ module shock_thermal
 
     Eph_0 = mp*v_sh**2/32.d0   ! Use the k*T_sw(apex) as a reference
     Eph_min = 10.d6*h          ! 10 MHz
-    Eph_max = Eph_0*4.d1
+    Eph_max = Eph_0*1.d2
 
 
     call vector_log(Eph_min,Eph_max,Eph_int,Eph)
@@ -250,10 +250,8 @@ module shock_thermal
     flux3 = flux/nu(i_5G)
 
     !------------------------------------------------------------
-    ! Calculate the luminosity using an adaptation of Eq. 24 from Christie+2016:
-    ! L = integral(f_int(theta), with f_int(theta) = emi_ff_nu * dV_ring(theta),
-    ! emi_ff_nu= dW/dt/dV/dnu the specific emissivity given by Eq. 5.14b from Rybicki,
-    ! and dV_ring(l) the volume of the shocked ring element
+    ! Calculate the luminosity from the hot layer in the FS
+    ! L_ff = (1 - T_2/T_1) * Linj_perp
 
     if (radiative) then 
 
@@ -334,9 +332,13 @@ module shock_thermal
 
     !------------------------------------------------------------
     !------------------------------------------------------------
+    ! Calculate the luminosity using an adaptation of Eq. 24 from Christie+2016:
+    ! L = integral(f_int(theta), with f_int(theta) = emi_ff_nu * dV_ring(theta),
+    ! emi_ff_nu= dW/dt/dV/dnu the specific emissivity given by Eq. 5.14b from Rybicki,
+    ! and dV_ring(l) the volume of the shocked ring element
 
-    open(39,file='ionized_ff.dat')
-    open(40,file='S_ionized.dat')
+    open(39,file='ionized_ff_'//shock//'.dat')
+    open(40,file='S_ionized'//shock//'.dat')
 
     do i_ph=1,mE_ph
       do l = 1,m_theta
@@ -387,7 +389,11 @@ module shock_thermal
     close(39)
     close(40)
 
-    print*, '\n f-f emission from the ionized layer by the star:'
+    if (shock == 'FS') then
+      print*, '\n f-f emission from the ionized layer by the star:'
+    else if (shock == 'RS') then
+      print*, '\n f-f emission from the RS:'
+    end if
 
     write(*,90) 'S_890MHz[mJy]=',L_ion(i_890M)*Eph(i_890M)*flux0
     write(*,90) 'S_1.4GHz[mJy]=',L_ion(i_1G)*Eph(i_1G)*flux1
