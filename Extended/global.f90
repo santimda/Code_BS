@@ -20,6 +20,7 @@ module global
    integer, parameter :: mE_e = 400    ! energy resolution for electrons
    integer, parameter :: mE_p = 400    ! energy resolution for protons < mE_f 
    integer, parameter :: mE_f = 600    ! it is the same for br, p-p and IC
+   !integer, parameter :: m_ff = 400   ! free-free
    integer, parameter :: mphi = 30      ! amount of linear-emitters
    real(dp) :: delta_phi = 0.5*pi/(mphi-1.d0) ! angular separation between linear-emitters
    real(dp) :: d_phi = 0.5*pi/mphi     ! angular width of each linear-emitter or wedge
@@ -271,6 +272,27 @@ module global
       endif
       return
    end Function sigma_pp
+
+
+   !============================================================================
+   ! Difussion coefficient
+
+   Function Difussion(E,B)
+      real(dp) :: Difussion, D_10_GeV, delta
+      real(dp), intent(in) :: E, B
+
+      !character :: diff_regime --> Defined in system_parameters
+      if (diff_regime == 'V') then       ! del Valle+2018
+        delta=0.5d0
+        D_10_GeV = 1.d28
+        Difussion = D_10_GeV*(E/(1.d9*eV))**delta  !cm^2 s^-1
+      else if (diff_regime == 'B') then  ! Bohm diff
+        Difussion = E*c/(3.d0*qe*B) !cm^2 s^-1
+      else 
+        write(*,*) 'ERROR, UNKNOWN DIFFUSION'
+        stop
+      endif
+    end Function Difussion
 
 
    !============================================================================

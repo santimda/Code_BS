@@ -151,7 +151,8 @@ module CD_distp
             endif
             t_pp = E_p(i)/(b_pp*z_pp)
 
-            D_diff = E_p(i)*c/(3.d0*qe*B(l))
+            !D_diff = E_p(i)*c/(3.d0*qe*B(l))
+            D_diff = difussion(E_p(i),B(l))
             t_diff = R_acel(l)**2/(2.d0*D_diff)      ! Diffusion losses
             t_esc = 1./( 1./t_adv(l) + 1.d0/t_diff )  ! escape
 
@@ -430,7 +431,8 @@ module CD_distp
          Emax_p0(l) = MIN( t_adv(l)*(B(l)*c*qe)/efi_ac_sh(l), qe*B(l)*R_acel(l)*sqrt(1.5d0/efi_ac_sh(l)) )
          if (Emax_p0(l) >= 0.5*Emax_p) print *, 'Emax_p in global.f90 is too small!'
          do i = 1, mE_p
-            D_diff = E_p(i)*c/(3.d0*qe*B(l))
+            !D_diff = E_p(i)*c/(3.d0*qe*B(l))
+            D_diff = Difussion(E_p(i),B(l))
             t_diff = R_acel(l)**2/(2.d0*D_diff)      ! Diffusion losses
             t_esc = 1./( 1./t_adv(l) + 1.d0/t_diff )  ! escape
             t_loss(l,i) = t_esc ! general losses
@@ -635,7 +637,8 @@ Function resta_p(log10E,B_l,t_pp,t_adv,xi,Rdiff)
    
    E_l = 10.d0**log10E
 
-   D_diff = E_l*c/(3.d0*qe*B_l)        ! Bohm
+   D_diff = Difussion(E_l,B_l)
+   !D_diff = E_l*c/(3.d0*qe*B_l)        ! Bohm
    t_diff = Rdiff**2/(2.d0*D_diff)     ! Diffusion losses 
    t_esc = 1./(1./t_adv + 1.d0/t_diff) ! escape
    
