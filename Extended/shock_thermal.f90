@@ -192,10 +192,15 @@ module shock_thermal
     open(11,file='termo_'//shock//'.dat')
     do l=1,m_theta
       read(11,*) nl,rho(l),dummy,dummy,T(l),dummy,v_perp(l),dummy,dummy,r(l),dummy,rho_f(l) ! CGS
-      n_a(l) = rho_f(l)/mp/mu_ISM  
-      !ni = n_a(l) 
-      !ne = gamma_sw*n_a(l)    
-      cte_l(l) = 6.8d-38*Zq_sw**2*gamma_sw*n_a(l)**2/sqrt(T_f)
+      if (shock == 'FS') then
+        n_a(l) = rho_f(l)/mp/mu_ISM  
+        !ni = n_a(l) 
+        !ne = gamma_sw*n_a(l)    
+        cte_l(l) = 6.8d-38*Zq_sw**2*gamma_sw*n_a(l)**2/sqrt(T_f)
+      else if (shock == 'RS') then
+        n_a(l) = rho(l)/mp/mu_sw
+        cte_l(l) = 6.8d-38*Zq_sw**2*gamma_sw*n_a(l)**2/sqrt(T(l))
+      end if
     enddo
     close(11)
 
@@ -346,11 +351,21 @@ module shock_thermal
         ! emi_ff_nu = (6.8d-38*Zq_sw**2*ne*ni*T(l)**(-0.5d0)*exp(-Eph(i_ph)/(k*T(l)))*g_ff(Eph(i_ph),T(l)) )/h ! erg/s/cm3/erg
 
         ! Interpolate Gaunt factor
-        gamma2 = Zq_ISM**2.*Ry/k/T_f
+        if (shock == 'FS') then
+            gamma2 = Zq_ISM**2.*Ry/k/T_f
+        else if (shock == 'RS') then
+            gamma2 = Zq_sw**2*Ry/k/T_wind
+        end if
+
         j_g = int( (log10(gamma2)+6.d0)/0.2d0 ) + 1
         dg = ( (log10(gamma2)+6.d0)/0.2d0+1.d0 - float(j_g) )*0.2d0
 
-        mu_ff = Eph(i_ph)/k/T_f
+        if (shock == 'FS') then
+            mu_ff = Eph(i_ph)/k/T_f
+        else if (shock == 'RS') then
+            mu_ff = Eph(i_ph)/k/T_wind
+        end if
+
         j_mu = int( (log10(mu_ff)+16.d0)/0.2d0 ) + 1
         if (j_mu < nu_mga) then
           dmu = ((log10(mu_ff)+16.d0)/0.2d0+1.d0 - float(j_mu))*0.2_dp
@@ -360,10 +375,19 @@ module shock_thermal
           call extrapol2(dg,dmu,gff(j_g,nu_mga-1),gff(j_g+1,nu_mga-1),gff(j_g,nu_mga),gffinter)
         endif
         ! write(*,*) i_ph, l, gffinter, 9.77d0*(1.d0+0.13d0*log10(T(l)**1.5d0/Zq_sw/(Eph(i_ph)/h))) ! aprox 
-        ! Emission from the ionized layer by the star's radiation field. T = 8.000 K
-        emi_ion_nu = ( cte_l(l) * exp(-Eph(i_ph)/(k*T_f)) * gffinter )/h ! erg/s/cm3/erg
+        ! Emission from the ionized layer by the star's radiation field. T = 8.000 K (FS)
+        ! Thermal emission from the RS
+        if (shock == 'FS') then
+            emi_ion_nu = ( cte_l(l) * exp(-Eph(i_ph)/(k*T_f)) * gffinter )/h ! erg/s/cm3/erg
+        else if (shock == 'RS') then
+            emi_ion_nu = ( cte_l(l) * exp(-Eph(i_ph)/(k*T(l))) * gffinter )/h ! erg/s/cm3/erg
+        end if
 
-        alpha_ff_nu2(l,i_ph) = 3.7d8 * (Zq_sw**2*n_a(l)**2/sqrt(T_f)) * (1.d0-exp(-h*nu(i_ph)/(k*T_f)) )/nu(i_ph)**3 * gffinter
+        if (shock == 'FS') then
+          alpha_ff_nu2(l,i_ph) = 3.7d8 * (Zq_sw**2*n_a(l)**2/sqrt(T_f)) * (1.d0-exp(-h*nu(i_ph)/(k*T_f)) )/nu(i_ph)**3 * gffinter
+        else if (shock == 'RS') then
+          alpha_ff_nu2(l,i_ph) = 3.7d8 * (Zq_sw**2*n_a(l)**2/sqrt(T(l))) * (1.d0-exp(-h*nu(i_ph)/(k*T(l))) )/nu(i_ph)**3 * gffinter
+        end if
         Tau_2(l,i_ph) = alpha_ff_nu2(l,i_ph)*H_theta(l)
         !if ( Tau_2(l,i_ph)>= 1.d0 ) then
         !  write(*,96) 'Region 2 is optically thick at angle', theta(l)*180./pi, 'and frequency', nu(i_ph)/1.d6, 'MHz'
