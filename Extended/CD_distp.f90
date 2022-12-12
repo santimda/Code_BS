@@ -1,5 +1,6 @@
 module CD_distp
    use global
+   use diffusion
    implicit none
 
    public :: CD_distp_run
@@ -152,7 +153,7 @@ module CD_distp
             t_pp = E_p(i)/(b_pp*z_pp)
 
             !D_diff = E_p(i)*c/(3.d0*qe*B(l))
-            D_diff = difussion(E_p(i),B(l))
+            D_diff = Diff(E_p(i),B(l))
             t_diff = R_acel(l)**2/(2.d0*D_diff)      ! Diffusion losses
             t_esc = 1./( 1./t_adv(l) + 1.d0/t_diff )  ! escape
 
@@ -432,7 +433,7 @@ module CD_distp
          if (Emax_p0(l) >= 0.5*Emax_p) print *, 'Emax_p in global.f90 is too small!'
          do i = 1, mE_p
             !D_diff = E_p(i)*c/(3.d0*qe*B(l))
-            D_diff = Difussion(E_p(i),B(l))
+            D_diff = Diff(E_p(i),B(l))
             t_diff = R_acel(l)**2/(2.d0*D_diff)      ! Diffusion losses
             t_esc = 1./( 1./t_adv(l) + 1.d0/t_diff )  ! escape
             t_loss(l,i) = t_esc ! general losses
@@ -630,6 +631,7 @@ end Subroutine Biseccion_p
 
 Function resta_p(log10E,B_l,t_pp,t_adv,xi,Rdiff)
    use global
+   use diffusion
    implicit none
    real(dp), intent(in) :: log10E,B_l,t_pp,t_adv,xi,Rdiff
    real(dp) :: resta_p,E_l,t_diff,t_ac,t_coolp
@@ -637,7 +639,7 @@ Function resta_p(log10E,B_l,t_pp,t_adv,xi,Rdiff)
    
    E_l = 10.d0**log10E
 
-   D_diff = Difussion(E_l,B_l)
+   D_diff = Diff(E_l,B_l)
    !D_diff = E_l*c/(3.d0*qe*B_l)        ! Bohm
    t_diff = Rdiff**2/(2.d0*D_diff)     ! Diffusion losses 
    t_esc = 1./(1./t_adv + 1.d0/t_diff) ! escape

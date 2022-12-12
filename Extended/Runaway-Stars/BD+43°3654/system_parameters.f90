@@ -15,11 +15,12 @@ module system_parameters
    ! incli = 90° is BS in front of the star, incli = 0° is edge-on,  incli = -90° is BS behind the star
    !real(dp), parameter :: R0_proj = 5.d0*60.d3          ! projected BS distance to the star (5') in mas  
    !real(dp), parameter :: R0 = R0_proj*(distance/kpc)*UA/abs(cos(incli)) ! linear distance to the BS stagnation point
-   real(dp), parameter :: theta_max = (170.d0/180.d0)*pi ! ~ extension of the BS modelled ~ pi/2
+   real(dp), parameter :: theta_max = (135.d0/180.d0)*pi ! ~ extension of the BS modelled ~ pi/2
 
    !--------------------------------------------------------------------------------------
    ! Star
    real(dp), parameter :: v_st = 50.d5             ! Benaglia2021
+   !real(dp), parameter :: v_st = 44.d5
    real(dp), parameter :: T_st = 4.07d4            ! K2017  
    real(dp), parameter :: T_st_ad = k*T_st/mec2    ! Adimensional stellar temperature
    !real(dp), parameter :: L_st = 7.d5*L_sun       ! del Valle 2012
@@ -27,8 +28,11 @@ module system_parameters
    real(dp), parameter :: R_st = 19.*R_sun         ! K2017  
    !real(dp), parameter :: L_st = 4.d0*pi*R_st**2*sigma*T_st**4 ! Stellar luminosity 
    real(dp), parameter :: L_st = 8.7d5*L_sun       ! K2018
-   real(dp), parameter :: Mdot = 1.d-5*M_sun_yr    ! Benaglia2021 (2.d-5 for alpha>0.3)
+   !real(dp), parameter :: Mdot = 1.d-5*M_sun_yr    ! Benaglia2021 (2.d-5 for alpha>0.3)
+   !real(dp), parameter :: Mdot = 1.d-5*M_sun_yr
+   real(dp), parameter :: Mdot = 4.4d-6*M_sun_yr
    real(dp), parameter :: v_w = 3000.d5            ! K2018
+   !real(dp), parameter :: v_w = 3000.d5
    real(dp), parameter :: L_wind = 0.5d0*(Mdot*v_w**2) ! Wind kinetic power
    real(dp), parameter :: T_wind = 0.3*T_st        ! Drew1990
    real(dp), parameter :: v_st_rot = 0.1d0*v_w     ! Rule-of-thumb
@@ -41,8 +45,11 @@ module system_parameters
    !--------------------------------------------------------------------------------------
    ! ISM
    real(dp), parameter :: v_ISM = v_st             ! 
-   !real(dp), parameter :: n_ISM = 9.d0             ! Ben2021
-   real(dp), parameter :: n_ISM = 7.d0
+   !real(dp), parameter :: n_ISM = 10.d0
+   !real(dp), parameter :: n_ISM = 7.d0             ! Ben2021
+   !real(dp), parameter :: n_ISM = 2.1d0
+   !real(dp), parameter :: n_ISM = 9.d0
+   real(dp), parameter :: n_ISM = 3.1d0
    real(dp), parameter :: T_ISM = 8.d3             ! warm ISM (Brookes p.136 uses T=8e3)
    real(dp), parameter :: T_ISM_ad = k*T_ISM/mec2  ! Adimensional ISM temperature
    real(dp), parameter :: mu_ISM = 1.38_dp          ! K2018; 0.5 for pure H ionized
@@ -82,17 +89,20 @@ module system_parameters
    ! Non-thermal particles
    real(dp), dimension(:), allocatable :: efi_ac_sh! particle accel. efficiency at the shocks  (l)
    !real(dp), parameter :: frac_sw = sqrt(0.999_dp) ! fraction sqrt(UB_sw/UB_equipartition_sw)
-   real(dp), parameter :: frac_sh = sqrt(0.1)      ! fraction sqrt(UB_sw/UB_equipartition_sw), f_NT=1
+   real(dp), parameter :: frac_sh = sqrt(0.7)      ! fraction sqrt(UB_sw/UB_equipartition_sw), f_NT=1
    !real(dp), parameter :: alpha_sw = 2.2_dp        ! injection spectral index in the sw 
    !real(dp), parameter :: frac_NT = 1.53d-1       ! Fraction L_NT/L_inj_perp, alpha=0.05, eta_B=1
-   real(dp), parameter :: frac_NT = 1.14d-1          ! Fraction L_NT/L_inj_perp, alpha=0.35, eta_B=0.1
+   !real(dp), parameter :: frac_NT = 1.14d-1          ! Fraction L_NT/L_inj_perp, alpha=0.35, eta_B=0.1
    !real(dp), parameter :: frac_NT = 7.8d-1          ! Fraction L_NT/L_inj_perp, alpha=0.35, eta_B=0.01
    !real(dp), parameter :: frac_NT = 4.6d-2          ! Fraction L_NT/L_inj_perp, alpha=0.01, eta_B=1
    !real(dp), parameter :: frac_NT = 4.28d-2          ! Fraction L_NT/L_inj_perp, alpha=0.05, eta_B=1
    !real(dp), parameter :: frac_NT = 2.86d-2          ! Fraction L_NT/L_inj_perp, alpha=0.2, eta_B=1
    !real(dp), parameter :: frac_NT = 1.33d-2          ! Fraction L_NT/L_inj_perp, alpha=0.35, eta_B=1
-   real(dp), parameter :: inj_e = frac_NT*0.1d0   ! Fraction L_NT_e/L_iny_perp 
-   real(dp), parameter :: inj_p = frac_NT-inj_e    ! Fraction L_NT_p/L_iny_perp 
+   real(dp), parameter :: frac_NT = 3.d-1
+   real(dp), parameter :: inj_e = frac_NT*0.5d0   ! Fraction L_NT_e/L_iny_perp 
+   real(dp), parameter :: inj_p = frac_NT-inj_e    ! Fraction L_NT_p/L_iny_perp
+   character(len=*), parameter :: diff_regime = 'Valle'      ! del Valle+2018
+   !character, parameter :: diff_regime = 'Bohm'  ! Bohm diffusion
 
 
    !============================================================================

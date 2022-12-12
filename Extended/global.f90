@@ -26,6 +26,7 @@ module global
    real(dp) :: d_phi = 0.5*pi/mphi     ! angular width of each linear-emitter or wedge
 
    real(dp), parameter :: f_Ny = 0.6d0 ! Nyquist frequency for convolved maps
+   !real(dp), parameter :: f_Ny = 0.2d0
 
    !===========================================================
 
@@ -81,6 +82,10 @@ module global
    ! pp
    real(dp), dimension(:), allocatable :: Lpp,Lpp_tot,Lpp_tot_abs
 
+   ! average flux maps
+   real(dp), parameter :: nu_av_min = 4.d9
+   real(dp), parameter :: nu_av_max = 12.d9
+
    !=======================================================
 
    ! g-g
@@ -97,7 +102,7 @@ module global
    real(dp), parameter :: nu_max_ff = 1.d12   ! 1 THz
    real(dp) :: alphaff_w(mr_ff,m_nu), r_w(mr_ff)
    real(dp), dimension(:), allocatable :: nu_ISM
-   real(dp), dimension(:,:), allocatable :: F_nu,F_nu_phi,F_nu_ion
+   real(dp), dimension(:,:), allocatable :: F_nu,F_nu_phi,F_nu_ion,F_nu_phi_ion
    !real(dp) :: Lsy_sw(m_theta,m_nu),Lsy_sism(m_theta,m_nu),Lsy_tot_abs(m_nu) 
 
    !=======================================================
@@ -277,22 +282,22 @@ module global
    !============================================================================
    ! Difussion coefficient
 
-   Function Difussion(E,B)
-      real(dp) :: Difussion, D_10_GeV, delta
-      real(dp), intent(in) :: E, B
+   !Function Difussion(E,B)
+   !   real(dp) :: Difussion, D_10_GeV, delta
+   !   real(dp), intent(in) :: E, B
 
       !character :: diff_regime --> Defined in system_parameters
-      if (diff_regime == 'V') then       ! del Valle+2018
-        delta=0.5d0
-        D_10_GeV = 1.d28
-        Difussion = D_10_GeV*(E/(1.d9*eV))**delta  !cm^2 s^-1
-      else if (diff_regime == 'B') then  ! Bohm diff
-        Difussion = E*c/(3.d0*qe*B) !cm^2 s^-1
-      else 
-        write(*,*) 'ERROR, UNKNOWN DIFFUSION'
-        stop
-      endif
-    end Function Difussion
+   !   if (diff_regime == 'V') then       ! del Valle+2018
+   !     delta=0.5d0
+   !     D_10_GeV = 1.d28
+   !     Difussion = D_10_GeV*(E/(1.d9*eV))**delta  !cm^2 s^-1
+   !   else if (diff_regime == 'B') then  ! Bohm diff
+   !     Difussion = E*c/(3.d0*qe*B) !cm^2 s^-1
+   !   else 
+   !     write(*,*) 'ERROR, UNKNOWN DIFFUSION'
+   !     stop
+   !   endif
+   ! end Function Difussion
 
 
    !============================================================================
