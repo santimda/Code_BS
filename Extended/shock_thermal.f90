@@ -90,7 +90,7 @@ module shock_thermal
   subroutine shock_thermal_run_spectrum(shock, radiative)
     character(LEN=*), intent(in) :: shock
     logical, intent(in) :: radiative
-    integer, parameter :: mE_ph = 400
+    integer, parameter :: mE_ph = 750
     integer, parameter :: m_l = 2*m_theta  ! CD position, both sides
     real(dp) :: n_a(m_theta), cte_l(m_theta)
     real(dp) :: v_sh
@@ -98,7 +98,7 @@ module shock_thermal
     real(dp) :: nu(mE_ph)
     real(dp) :: log_nu_int,flux,flux0,flux1,flux2,flux3
     real(dp) :: dV_ring(m_theta)
-    real(dp) :: integral,integ,integ_ion
+    real(dp) :: integral,integ,integ_ion,integ_HL
     real(dp) :: A(m_theta)
     real(dp) :: emi_ff_nu(m_theta,mE_ph), emi_ion_nu
     real(dp) :: alpha_ff_nu1(m_theta,mE_ph), alpha_ff_nu2(m_theta,mE_ph)
@@ -107,6 +107,9 @@ module shock_thermal
     real(dp) :: f_int(m_theta),f_vol_ion(m_theta),dtheta
     real(dp) :: dV_ring_ff, H_ff, H_RH, dR(m_theta)
     real(dp) :: r(m_theta), v_perp(m_theta), t_th(m_theta)
+    real(dp) :: F_nu_iph(m_l,mE_ph), F_nu_tot(m_theta), F_nu_ion_tot(m_theta)
+    real(dp) :: F_nu_avg(m_theta), F_nu_ion_avg(m_theta)
+    real(dp) :: dnu_avg, h_avg
     real(dp), parameter :: T_f = T_ISM
     !real(dp) :: F_nu(m_l,mE_ph),F_nu_phi(m_l,mE_ph)
     real(dp) :: n_BB(m_theta,mE_ph), T_min(m_theta)
@@ -114,6 +117,7 @@ module shock_thermal
     real(dp) :: S(mE_ph),S1,S2,S3,S_ion(mE_ph)
     integer :: nl, i_ph
     Integer :: i_890M,i_1G,i_3G,i_5G
+    integer :: N_avg
     integer, parameter :: nu_mu=146,nu_mga=81 ! # data in table gauntff.dat
     real(dp) :: gamma2,dg,dmu,mu_ff,gff(nu_mu,nu_mga),gffinter
     integer :: j_mu,j_g
@@ -135,7 +139,7 @@ module shock_thermal
     end interface  
 
     allocate( H_theta(m_theta), H_1(m_theta), rho(m_theta), T(m_theta), rho_f(m_theta) )
-    allocate( F_nu(m_l,mE_ph),F_nu_phi(m_l,mE_ph),F_nu_ion(m_l,mE_ph))
+    allocate( F_nu(m_l,mE_ph),F_nu_phi(m_l,mE_ph),F_nu_ion(m_l,mE_ph),F_nu_phi_ion(m_l,mE_ph))
 
   90  format(A19,X,Es10.3)
   95  format(A18,X,Es10.3)
@@ -314,6 +318,9 @@ module shock_thermal
         F_nu(l,i_ph) = f_int(l)*Eph(i_ph)              ! erg/s
         F_nu(l+m_theta,i_ph) = F_nu(l,i_ph)
       end do
+
+      !call integrate(m_theta,dtheta,f_int(l),integ_HL)
+      !L_th(i_ph) = integ_HL
       S(i_ph) = L_th(i_ph)*Eph(i_ph)*flux/nu(i_ph)  ! Total flux at a certain freq. in mJy
       L_tot = L_tot + L_th(i_ph)*dEph
 
@@ -346,6 +353,7 @@ module shock_thermal
     open(40,file='S_ionized'//shock//'.dat')
 
     do i_ph=1,mE_ph
+      !L_ion(i_ph) = 0.d0
       do l = 1,m_theta
         ! Eq. 5.14b from Rybicki gives the spectrum in erg/s/cm3/Hz, so I divide by h
         ! emi_ff_nu = (6.8d-38*Zq_sw**2*ne*ni*T(l)**(-0.5d0)*exp(-Eph(i_ph)/(k*T(l)))*g_ff(Eph(i_ph),T(l)) )/h ! erg/s/cm3/erg
@@ -394,8 +402,9 @@ module shock_thermal
         !end if
 
         f_vol_ion(l) = emi_ion_nu*dV_ring(l)
-        F_nu_ion(l,i_ph) = f_vol_ion(l)*Eph(i_ph)
+        F_nu_ion(l,i_ph) = f_vol_ion(l)*Eph(i_ph)    ! erg/s
         F_nu_ion(l+m_theta,i_ph) = F_nu_ion(l,i_ph)
+        !L_ion(i_ph) = L_ion(i_ph) + f_vol_ion(l)
       end do
       call integrate(m_theta,dtheta,f_vol_ion,integ_ion)
 
@@ -430,30 +439,103 @@ module shock_thermal
     !------------------------------------------------------------
     !------------------------------------------------------------
     ! Emission maps
+
+    ! Hot layer
+    if (radiative) then
+      open(25, file='CD_hot_layer_1GHz.dat')
+      open(26, file='CD_hot_layer_3GHz.dat')
+      open(27, file='CD_hot_layer_5GHz.dat')
+
+      do l = 1,m_l
+        do i_ph = 1, mE_ph
+          F_nu_phi(l,i_ph) = F_nu(l,i_ph)/mphi/4.d0   ! 4 quadrants
+          !if (l==2 .and. (nu(i_ph) >= nu_av_min)) print*, 'F_HOT =', F_nu(l,i_ph), nu(i_ph)/1.d9
+        end do
+        S1 = F_nu_phi(l,i_1G)*flux1
+        S2 = F_nu_phi(l,i_3G)*flux2
+        S3 = F_nu_phi(l,i_5G)*flux3
+        write(25,*) S1
+        write(26,*) S2
+        write(27,*) S3
+      end do
+
+      close(25)
+      close(26)
+      close(27)
+    end if
+
+    !------------------------------------------------------------
+    ! Emission from the RS and the isothermal region in the FS
     if (shock /= 'BOTH') then
-         open(30,file='CD_th_'//shock//'_1GHz.dat') ! 1.4 GHz
-         open(31,file='CD_th_'//shock//'_3GHz.dat') ! 3.0 GHz
-         open(32,file='CD_th_'//shock//'_5GHz.dat') ! 4.8 GHz
+      open(30,file='CD_th_'//shock//'_1GHz.dat') ! 1.4 GHz
+      open(31,file='CD_th_'//shock//'_3GHz.dat') ! 3.0 GHz
+      open(32,file='CD_th_'//shock//'_5GHz.dat') ! 4.8 GHz
     end if
 
     do l = 1,m_l
       do i_ph=1,mE_ph
-        F_nu_phi(l,i_ph) = F_nu(l,i_ph)/mphi/4.d0   ! 4 quadrants
+        F_nu_phi_ion(l,i_ph) = F_nu_ion(l,i_ph)/mphi/4.d0   ! 4 quadrants
+        !if (l==2 .and. (nu(i_ph) >= nu_av_min)) print*, 'F_ion =', F_nu_ion(l,i_ph), nu(i_ph)/1.d9
       end do
-      S1 = F_nu_phi(l,i_1G)*flux1
-      S2 = F_nu_phi(l,i_3G)*flux2
-      S3 = F_nu_phi(l,i_5G)*flux3
+      S1 = F_nu_phi_ion(l,i_1G)*flux1
+      S2 = F_nu_phi_ion(l,i_3G)*flux2
+      S3 = F_nu_phi_ion(l,i_5G)*flux3
       write(30,*) S1
       write(31,*) S2
       write(32,*) S3
     end do
 
-    if (shock /= 'BOTH') then
-      close(30)
-      close(31)
-      close(32)
-    end if
+    close(30)
+    close(31)
+    close(32)
 
+    !------------------------------------------------------------
+    ! Avg flux btw nu_av_min and nu_av_max
+
+    if (radiative) then
+      open(50,file='CD_hot_radiomap_avg.dat')
+    end if
+    open(51,file='CD_th_radiomap_avg_'//shock//'.dat')
+
+    ! Count the number of steps
+    N_avg = 0
+    do i_ph=1,mE_ph
+      if ((nu(i_ph) >= nu_av_min) .and. (nu(i_ph) <= nu_av_max)) then
+        N_avg = N_avg + 1
+      end if
+    end do
+
+    h_avg = (nu_av_max/nu_av_min)**(1.d0/(N_avg-1))
+
+    do l = 1,m_l
+      if (radiative) then
+        F_nu_tot(l) = 0.d0      ! hot layer
+      end if
+      F_nu_ion_tot(l) = 0.d0  ! isothermal layer and RS
+      do i_ph=1,mE_ph
+        if ((nu(i_ph) >= nu_av_min) .and. (nu(i_ph) <= nu_av_max)) then
+          dnu_avg = nu(i_ph)*(h_avg-1.d0)
+          if (radiative) then
+            F_nu_tot(l) = F_nu_tot(l) + F_nu_phi(l,i_ph)*flux/nu(i_ph)*dnu_avg
+          end if
+          F_nu_ion_tot(l) = F_nu_ion_tot(l) + F_nu_phi_ion(l,i_ph)*flux/nu(i_ph)*dnu_avg
+        end if  
+      end do
+
+      if (radiative) then
+        F_nu_avg(l) = F_nu_tot(l)/(nu_av_max-nu_av_min)
+        write(50,*) F_nu_avg(l)
+      end if
+      F_nu_ion_avg(l) = F_nu_ion_tot(l)/(nu_av_max-nu_av_min)
+      write(51,*) F_nu_ion_avg(l)
+    end do
+
+    if (radiative) then
+      close(50)
+    end if
+    close(51)
+
+    !------------------------------------------------------------
     !------------------------------------------------------------
     ! Save the opacity at 1 GHz
     open(50, file='Tau.dat')
@@ -465,7 +547,7 @@ module shock_thermal
     !------------------------------------------------------------  
 
     deallocate ( H_theta, H_1, rho, T, rho_f )
-    deallocate ( F_nu,F_nu_phi,F_nu_ion )
+    deallocate ( F_nu,F_nu_phi,F_nu_ion,F_nu_phi_ion )
   END subroutine shock_thermal_run_spectrum
 
   !============================================================================

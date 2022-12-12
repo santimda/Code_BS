@@ -5,7 +5,7 @@ module SW_conv
    implicit none
 
    private
-   public :: SW_conv1G_run, SW_conv3G_run, SW_conv5G_run, SW_spex_run
+   public :: SW_conv1G_run, SW_conv3G_run, SW_conv5G_run, SW_convavg_run, SW_spex_run
 
    contains
 
@@ -13,7 +13,8 @@ module SW_conv
    ! SW_conv1G_run
    !============================================================================
 
-   subroutine SW_conv1G_run  
+   subroutine SW_conv1G_run(shock)
+      character(LEN=*), intent(in) :: shock
       integer, parameter :: m_tot = (2*(mphi-1))*(m_theta*2)   ! Total number of data
       !real(dp), parameter :: sigma_x = 12.d0, sigma_y = 12.d0  ! Benaglia2010
       real(dp), parameter :: sigma_x = 20.2d0, sigma_y = 12.5d0  ! Benaglia2021
@@ -27,7 +28,8 @@ module SW_conv
       real(dp), dimension(:,:), allocatable :: F_map1Gabs
       integer :: m_x,m_y
       integer, parameter:: m_map = mphi*mr_map
-      real(dp) :: A_beam,A_cell, suma2,x_map2(m_map),y_map2(m_map),S_map2(m_map)
+      real(dp) :: A_beam,A_cell, suma2,x_map2(m_map),y_map2(m_map),S_map2(m_tot)
+      real(dp) ::  suma3,S_map3(m_tot)
       real(dp) :: w_x, w_y
 
       A_beam = 2*pi*sigma_x*sigma_y     ! = Gaussian normalization factor 
@@ -36,7 +38,7 @@ module SW_conv
       ci = abs(cos(incli))
 
       open(188,file='R0_proj.dat')
-      write(188,*) 0.d0,R0_proj/abs(cos(incli))
+         write(188,*) 0.d0,R0_proj/abs(cos(incli))
       close(188)
 
       !///////////////////////////////////////////////////////
@@ -60,24 +62,43 @@ module SW_conv
       ! Data read
 
       sum = 0.d0
-      open(13,file='SW_radiomap_1GHz.dat')
+      if (shock == 'BOTH') then
+         open(13,file='sync_radiomap_1GHz.dat')
+      else if (shock /= 'BOTH') then
+         open(13,file='sync_radiomap_'//shock//'_1GHz.dat')
+      end if
       do l = 1, m_tot
          read(13,*) y_map(l),x_map(l),F_1Gun(l),F_1Gabs(l)
          sum = sum + F_1Gabs(l)
       enddo
-      write(*,*) 'Pre-conv:'
+      write(*,*) 'Pre-conv: sync'
       write(*,80) 'S(1.4GHz)=',sum,'mJy'
       close(13)
 
       sum = 0.d0
-      open(133,file='SH_ff_map_1G.dat')
-      do l = 1, m_map
-         read(133,*) x_map2(l),y_map2(l),S_map2(l)
+      if (shock == 'BOTH') then
+         open(133,file='th_ff_map_1G.dat')
+      else if (shock /= 'BOTH') then
+         open(133,file='th_ff_map_'//shock//'1G.dat')
+      end if
+      do l = 1, m_tot
+         read(133,*) S_map2(l)
          sum = sum + S_map2(l)
       enddo
-      write(*,*) 'Pre-conv:'
+      write(*,*) 'Pre-conv: ff'
       write(*,80) 'S_ff(1.4G)=',sum,'mJy'
       close(133)
+
+      if ((shock == 'BOTH') .or. (shock == 'FS')) then 
+         sum = 0.d0
+         open(233,file='hot_layer_1GHz.dat')
+         do l = 1, m_tot
+            read(233,*) S_map3(l)
+            sum = sum + S_map3(l)
+         end do
+         write(*,*) 'Pre-conv: hot layer'
+         write(*,80) 'S(1.4GHz)=',sum,'mJy'
+      end if
 
       !------------------------------------------
 
@@ -105,7 +126,7 @@ module SW_conv
 
             suma2 = 0.d0
             do l = 1, m_map
-               d_pesada2 = ((x_map2(l)-x_c(i))**2)/w_x + ((y_map2(l)-y_c(j))**2)/w_y
+               d_pesada2 = ((x_map(l)-x_c(i))**2)/w_x + ((y_map(l)-y_c(j))**2)/w_y
                if (d_pesada2 < 6.d0) then      
                   ! Gaussian beam -> /(sigma*sqrt(2*pi)), both in x and y
                   atenua = exp( -d_pesada2 ) !/ norm
@@ -116,7 +137,20 @@ module SW_conv
                suma2 = suma2 + D_f
             enddo
 
-            F_map1Gabs(i,j) = suma + suma2
+            suma3 = 0.d0
+            do l = 1, m_map
+               d_pesada2 = ((x_map(l)-x_c(i))**2)/w_x + ((y_map(l)-y_c(j))**2)/w_y
+               if (d_pesada2 < 6.d0) then      
+                  ! Gaussian beam -> /(sigma*sqrt(2*pi)), both in x and y
+                  atenua = exp( -d_pesada2 ) !/ norm
+                  D_F = S_map3(l)*atenua
+               else
+                  D_F = 0.d0 ! flux drops < 1e-3 farther from there, no need to sum
+               endif
+               suma3 = suma3 + D_f
+            enddo
+
+            F_map1Gabs(i,j) = suma + suma2 + suma3
          enddo
 
       enddo
@@ -157,13 +191,15 @@ module SW_conv
    ! SW_conv3G_run
    !============================================================================
 
-   subroutine SW_conv3G_run  
+   subroutine SW_conv3G_run(shock)
+      character(LEN=*), intent(in) :: shock
       integer, parameter :: m_tot = (2*(mphi-1))*(m_theta*2)    ! Total number of data
       !real(dp), parameter :: coc = sqrt(8.d0*log(2.d0))         ! theta to sigma
       !real(dp), parameter :: theta_x = 20.2d0, theta_y = 12.5d0   ! HPBW = Resolution 
       !real(dp), parameter :: sigma_x = theta_x/coc, sigma_y = theta_y/coc   ! Benaglia2010
       !real(dp), parameter :: sigma_x = 20.2d0, sigma_y = 12.5d0   ! Benaglia2020
-      real(dp), parameter :: sigma_x = 20.2d0, sigma_y = 12.5d0  ! Benaglia2021
+      !real(dp), parameter :: sigma_x = 20.2d0, sigma_y = 12.5d0  ! Benaglia2021
+      real(dp), parameter :: sigma_x = 18.3d0, sigma_y = 9.8d0    ! Moutzouri2022
       real(dp) :: x_map(m_tot),y_map(m_tot)
       real(dp) :: F_3Gabs(m_tot),F_3Gun(m_tot)
       real(dp) :: ancho_x, ancho_y, D_x, D_y,ci
@@ -172,8 +208,8 @@ module SW_conv
       real(dp), dimension(:,:), allocatable :: F_map3Gabs
       integer :: m_x,m_y
       integer, parameter:: m_map = mphi*mr_map
-      real(dp) :: A_beam,A_cell, suma2,x_map2(m_map),y_map2(m_map),S_map2(m_map)
-      real(dp) :: x_map3(m_map),y_map3(m_map),S_map3(m_map),suma3
+      real(dp) :: A_beam,A_cell, suma2,x_map2(m_map),y_map2(m_map),S_map2(m_tot)
+      real(dp) :: S_map3(m_tot),suma3
       real(dp) :: w_x, w_y
 
       A_beam = 2*pi*sigma_x*sigma_y     ! = Gaussian normalization factor 
@@ -181,12 +217,16 @@ module SW_conv
 
       ci = abs(cos(incli))
 
+      print*, '\n 3 GHz'
+
       !///////////////////////////////////////////////////////
       !-------------------------------------------------------
       ! Initialize the data for the convolution region
 
-      ancho_x = 4.d0*R0_proj/ci * 1.3d0 ! [mas](extra margin)
-      ancho_y = 2.d0*(1.+ci)*R0_proj/ci * 1.3d0 ! [mas](extra margin)
+      !ancho_x = 4.d0*R0_proj/ci * 1.3d0 ! [mas](extra margin)
+      !ancho_y = 2.d0*(1.+ci)*R0_proj/ci * 1.3d0 ! [mas](extra margin)
+      ancho_x = 4.d0*R0_proj/ci * 1.3d1 ! [mas](extra margin)
+      ancho_y = 2.d0*(1.+ci)*R0_proj/ci * 1.3d1
 
       D_x = f_Ny*sigma_x
       D_y = f_Ny*sigma_y
@@ -201,34 +241,43 @@ module SW_conv
       ! Data read
 
       sum = 0.d0
-      open(13,file='SW_radiomap_3GHz.dat')
+      if (shock == 'BOTH') then
+         open(13,file='sync_radiomap_3GHz.dat')
+      else if (shock /= 'BOTH') then
+         open(13,file='sync_radiomap_'//shock//'_3GHz.dat')
+      end if
       do l = 1, m_tot
          read(13,*) y_map(l),x_map(l),F_3Gun(l),F_3Gabs(l)
          sum = sum + F_3Gabs(l)
       enddo
-      write(*,*) 'Pre-conv:'
+      write(*,*) 'Pre-conv: sync'
       write(*,80) 'S(3.0GHz)=',sum,'mJy'
       close(13)
 
       sum = 0.d0
-      open(133,file='SH_ff_map_3G.dat')
-      do l = 1, m_map
-         read(133,*) x_map2(l),y_map2(l),S_map2(l)
+      if (shock == 'BOTH') then
+         open(133,file='th_ff_map_3G.dat')
+      else if (shock /= 'BOTH') then
+         open(133,file='th_ff_map_'//shock//'3G.dat')
+      end if
+      do l = 1, m_tot
+         read(133,*) S_map2(l)
          sum = sum + S_map2(l)
       enddo
-      write(*,*) 'Pre-conv:'
+      write(*,*) 'Pre-conv: ff'
       write(*,80) 'S_ff(3.0G)=',sum,'mJy'
       close(133)
 
-      sum = 0.d0
-      open(233,file='SH_ff_radiomap_3GHz.dat')
-      do l = 1, m_map
-         read(233,*) x_map3(l),y_map3(l),S_map3(l)
-         sum = sum + S_map3(l)
-      enddo
-      write(*,*) 'Pre-conv:'
-      write(*,80) 'S_th(3.0G)=',sum,'mJy'
-      close(233)
+      if ((shock == 'BOTH') .or. (shock == 'FS')) then 
+         sum = 0.d0
+         open(233,file='hot_layer_3GHz.dat')
+         do l = 1, m_tot
+            read(233,*) S_map3(l)
+            sum = sum + S_map3(l)
+         end do
+         write(*,*) 'Pre-conv: hot layer'
+         write(*,80) 'S(3.0GHz)=',sum,'mJy'
+      end if
 
       !------------------------------------------
 
@@ -255,8 +304,8 @@ module SW_conv
             enddo
 
             suma2 = 0.d0
-            do l = 1, m_map
-               d_pesada2 = ((x_map2(l)-x_c(i))**2)/w_x + ((y_map2(l)-y_c(j))**2)/w_y
+            do l = 1, m_tot
+               d_pesada2 = ((x_map(l)-x_c(i))**2)/w_x + ((y_map(l)-y_c(j))**2)/w_y
                if (d_pesada2 < 6.d0) then      
                   ! Gaussian beam -> /(sigma*sqrt(2*pi)), both in x and y
                   atenua = exp( -d_pesada2 ) !/ norm
@@ -268,8 +317,8 @@ module SW_conv
             enddo
 
             suma3 = 0.d0
-            do l = 1, m_map
-               d_pesada2 = ((x_map2(l)-x_c(i))**2)/w_x + ((y_map2(l)-y_c(j))**2)/w_y
+            do l = 1, m_tot
+               d_pesada2 = ((x_map(l)-x_c(i))**2)/w_x + ((y_map(l)-y_c(j))**2)/w_y
                if (d_pesada2 < 6.d0) then      
                   ! Gaussian beam -> /(sigma*sqrt(2*pi)), both in x and y
                   atenua = exp( -d_pesada2 ) !/ norm
@@ -321,7 +370,8 @@ module SW_conv
    ! SW_conv5G_run
    !============================================================================
 
-   subroutine SW_conv5G_run  
+   subroutine SW_conv5G_run(shock)
+      character(LEN=*), intent(in) :: shock
       integer, parameter :: m_tot = (2*(mphi-1))*(m_theta*2)   ! Total number of data
       !real(dp), parameter :: sigma_x = 12.d0, sigma_y = 12.d0   ! Benaglia2010
       real(dp), parameter :: sigma_x = 20.2d0, sigma_y = 12.5d0  ! Benaglia2021
@@ -335,7 +385,8 @@ module SW_conv
       real(dp), dimension(:,:), allocatable :: F_map5Gabs
       integer :: m_x,m_y
       integer, parameter:: m_map = mphi*mr_map
-      real(dp) :: A_beam,A_cell, suma2,x_map2(m_map),y_map2(m_map),S_map2(m_map)
+      real(dp) :: A_beam,A_cell, suma2,x_map2(m_map),y_map2(m_map),S_map2(m_tot)
+      real(dp) :: suma3,S_map3(m_tot)
       real(dp) :: w_x, w_y
 
       A_beam = 2*pi*sigma_x*sigma_y     ! = Gaussian normalization factor 
@@ -363,24 +414,43 @@ module SW_conv
       ! Data read
 
       sum = 0.d0
-      open(13,file='SW_radiomap_5GHz.dat')
+      if (shock == 'BOTH') then
+         open(13,file='sync_radiomap_5GHz.dat')
+      else if (shock /= 'BOTH') then
+         open(13,file='sync_radiomap_'//shock//'_5GHz.dat')
+      end if
       do l = 1, m_tot
          read(13,*) y_map(l),x_map(l),F_5Gun(l),F_5Gabs(l)
          sum = sum + F_5Gabs(l)
       enddo
-      write(*,*) 'Pre-conv:'
+      write(*,*) 'Pre-conv: sync'
       write(*,80) 'S(4.8GHz)=',sum,'mJy'
       close(13)
 
       sum = 0.d0
-      open(133,file='SH_ff_map_5G.dat')
-      do l = 1, m_map
-         read(133,*) x_map2(l),y_map2(l),S_map2(l)
+      if (shock == 'BOTH') then
+         open(133,file='th_ff_map_5G.dat')
+      else if (shock /= 'BOTH') then
+         open(133,file='th_ff_map_'//shock//'5G.dat')
+      end if
+      do l = 1, m_tot
+         read(133,*) S_map2(l)
          sum = sum + S_map2(l)
       enddo
-      write(*,*) 'Pre-conv:'
+      write(*,*) 'Pre-conv: ff'
       write(*,80) 'S_ff(4.8G)=',sum,'mJy'
       close(133)
+
+      if ((shock == 'BOTH') .or. (shock == 'FS')) then 
+         sum = 0.d0
+         open(233,file='hot_layer_5GHz.dat')
+         do l = 1, m_tot
+            read(233,*) S_map3(l)
+            sum = sum + S_map3(l)
+         end do
+         write(*,*) 'Pre-conv: hot layer'
+         write(*,80) 'S(4.8GHz)=',sum,'mJy'
+      end if
 
       !------------------------------------------
 
@@ -408,7 +478,7 @@ module SW_conv
 
             suma2 = 0.d0
             do l = 1, m_map
-               d_pesada2 = ((x_map2(l)-x_c(i))**2)/w_x + ((y_map2(l)-y_c(j))**2)/w_y
+               d_pesada2 = ((x_map(l)-x_c(i))**2)/w_x + ((y_map(l)-y_c(j))**2)/w_y
                if (d_pesada2 < 6.d0) then      
                   ! Gaussian beam -> /(sigma*sqrt(2*pi)), both in x and y
                   atenua = exp( -d_pesada2 ) !/ norm
@@ -419,7 +489,20 @@ module SW_conv
                suma2 = suma2 + D_f
             enddo
 
-            F_map5Gabs(i,j) = suma + suma2
+            suma3 = 0.d0
+            do l = 1, m_map
+               d_pesada2 = ((x_map(l)-x_c(i))**2)/w_x + ((y_map(l)-y_c(j))**2)/w_y
+               if (d_pesada2 < 6.d0) then      
+                  ! Gaussian beam -> /(sigma*sqrt(2*pi)), both in x and y
+                  atenua = exp( -d_pesada2 ) !/ norm
+                  D_F = S_map3(l)*atenua
+               else
+                  D_F = 0.d0 ! flux drops < 1e-3 farther from there, no need to sum
+               endif
+               suma3 = suma3 + D_f
+            enddo
+
+            F_map5Gabs(i,j) = suma + suma2 + suma3
          enddo
 
       enddo
@@ -455,6 +538,184 @@ module SW_conv
    !============================================================================
    ! SW_conv5G_run (END)
    !============================================================================
+
+   !============================================================================
+   ! SW_convavg_run
+   !============================================================================
+
+   subroutine SW_convavg_run(shock)
+      character(LEN=*), intent(in) :: shock
+      integer, parameter :: m_tot = (2*(mphi-1))*(m_theta*2)   ! Total number of data
+      !real(dp), parameter :: sigma_x = 12.d0, sigma_y = 12.d0   ! Benaglia2010
+      !real(dp), parameter :: sigma_x = 20.2d0, sigma_y = 12.5d0  ! Benaglia2021
+      real(dp), parameter :: sigma_x = 18.3d0, sigma_y = 9.8d0    ! Moutzouri2022
+      !    real(dp), parameter :: coc = sqrt(8.d0*log(2.d0))        ! Benaglia gives sigma, not theta!
+      !    real(dp), parameter :: theta_x = sigma_x*coc, theta_y = sigma_y*coc ! HPBW = Resolution (Ben2010)  
+      real(dp) :: x_map(m_tot),y_map(m_tot)
+      real(dp) :: F_avg_abs(m_tot),F_avg_un(m_tot)
+      real(dp) :: ancho_x, ancho_y, D_x, D_y,ci
+      real(dp) :: x_c0,y_c0,d_pesada2,suma,D_f,atenua,sum,mJy_beam
+      real(dp), dimension(:), allocatable :: x_c,y_c
+      real(dp), dimension(:,:), allocatable :: F_map_avg_abs
+      integer :: m_x,m_y
+      integer, parameter:: m_map = mphi*mr_map
+      real(dp) :: A_beam,A_cell, suma2,x_map2(m_map),y_map2(m_map),S_map2(m_tot)
+      real(dp) :: suma3,S_map3(m_tot)
+      real(dp) :: w_x, w_y
+
+      A_beam = 2*pi*sigma_x*sigma_y     ! = Gaussian normalization factor 
+      A_cell = f_Ny**2*sigma_x*sigma_y ! cell sample size
+
+      ci = abs(cos(incli))
+
+      print*, '\n Average'
+
+      !///////////////////////////////////////////////////////
+      !-------------------------------------------------------
+      ! Initialize the data for the convolution region
+
+      !ancho_x = 4.d0*R0_proj/ci * 1.3d0 ! [mas](extra margin)
+      !ancho_y = 2.d0*(1.+ci)*R0_proj/ci * 1.3d0 ! [mas](extra margin)
+      ancho_x = 4.d0*R0_proj/ci * 1.3d1 ! [mas](extra margin)
+      ancho_y = 2.d0*(1.+ci)*R0_proj/ci * 1.3d1
+
+      D_x = f_Ny*sigma_x
+      D_y = f_Ny*sigma_y
+      m_x = int(ancho_x/D_x) ! Number of ellipses in the x-direction
+      m_y = int(ancho_y/D_y) ! Number of ellipses in the y-direction
+      x_c0 = -ancho_x/2.d0   ! Center of the first ellipse 
+      y_c0 = -ancho_y*(3.-ci)/4.d0
+      allocate( x_c(m_x), y_c(m_y), F_map_avg_abs(m_x,m_y)  )
+
+      !//////////////////////////////////////////////////////
+      !------------------------------------------------------
+      ! Data read
+
+      sum = 0.d0
+      if (shock == 'BOTH') then
+         open(13,file='sync_radiomap_avg.dat')
+      else if (shock /= 'BOTH') then
+         open(13,file='sync_radiomap_'//shock//'_avg.dat')
+      end if
+      do l = 1, m_tot
+         read(13,*) y_map(l),x_map(l),F_avg_un(l),F_avg_abs(l)
+         sum = sum + F_avg_abs(l)
+      enddo
+      write(*,*) 'Pre-conv: sync'
+      write(*,80) 'S_sync_av=',sum,'mJy'
+      close(13)
+
+      sum = 0.d0
+      if (shock == 'BOTH') then
+         open(133,file='th_ff_map_avg.dat')
+      else if (shock /= 'BOTH') then
+         open(133,file='th_ff_map_'//shock//'avg.dat')
+      end if
+      do l = 1, m_tot
+         read(133,*) S_map2(l)
+         sum = sum + S_map2(l)
+      enddo
+      write(*,*) 'Pre-conv: ff'
+      write(*,80) 'S_f--f_av=',sum,'mJy'
+      close(133)
+
+      if ((shock == 'BOTH') .or. (shock == 'FS')) then 
+         sum = 0.d0
+         open(233,file='hot_layer_avg.dat')
+         do l = 1, m_tot
+            read(233,*) S_map3(l)
+            sum = sum + S_map3(l)
+         end do
+         write(*,*) 'Pre-conv: hot layer'
+         write(*,80) 'S_hot_lay=',sum,'mJy'
+      end if
+
+      !------------------------------------------
+
+      w_x = 2.d0*sigma_x**2! Weight in x distance
+      w_y = 2.d0*sigma_y**2! Weight in y distance
+
+      do i = 1, m_x
+         x_c(i) = x_c0 + (i-0.5)*D_x ! x-coord of the center of the i-th ellipse
+
+         do j = 1, m_y
+            y_c(j) = y_c0 + (j-0.5)*D_y ! y-coord of the center of the (x_i,y_j) ellipse
+
+            suma = 0.d0!1.d-9  ! simulate noise (?)
+            do l = 1, m_tot
+               d_pesada2 = ((x_map(l)-x_c(i))**2)/w_x + ((y_map(l)-y_c(j))**2)/w_y
+               if (d_pesada2 < 6.d0) then 
+                  ! Gaussian beam -> /(sigma*sqrt(2*pi)), both in x and y
+                  atenua = exp( -d_pesada2 ) !/ norm
+                  D_F = F_avg_abs(l)*atenua
+               else
+                  D_F = 0.d0 ! flux drops < 1e-3 farther from there, no need to sum
+               endif
+               suma = suma + D_f
+            enddo
+
+            suma2 = 0.d0
+            do l = 1, m_tot
+               d_pesada2 = ((x_map(l)-x_c(i))**2)/w_x + ((y_map(l)-y_c(j))**2)/w_y
+               if (d_pesada2 < 6.d0) then      
+                  ! Gaussian beam -> /(sigma*sqrt(2*pi)), both in x and y
+                  atenua = exp( -d_pesada2 ) !/ norm
+                  D_F = S_map2(l)*atenua
+               else
+                  D_F = 0.d0 ! flux drops < 1e-3 farther from there, no need to sum
+               endif
+               suma2 = suma2 + D_f
+            enddo
+
+            suma3 = 0.d0
+            do l = 1, m_tot
+               d_pesada2 = ((x_map(l)-x_c(i))**2)/w_x + ((y_map(l)-y_c(j))**2)/w_y
+               if (d_pesada2 < 6.d0) then      
+                  ! Gaussian beam -> /(sigma*sqrt(2*pi)), both in x and y
+                  atenua = exp( -d_pesada2 ) !/ norm
+                  D_F = S_map3(l)*atenua
+               else
+                  D_F = 0.d0 ! flux drops < 1e-3 farther from there, no need to sum
+               endif
+               suma3 = suma3 + D_f
+            enddo
+
+            F_map_avg_abs(i,j) = suma + suma2 + suma3
+         enddo
+
+      enddo
+
+
+      !///////////////////////////////////////////////////////////////
+      !
+      ! Data storage + consistency check:
+
+      mJy_beam = A_cell/A_beam ! Transform mJy/beam --> mJy (for consistency checks)
+
+      sum = 0.d0
+      open(18,file='SW_conv_avg_abs.dat')
+      do i = 1, m_x
+         do j = 1, m_y
+            write(18,61) x_c(i),y_c(j),F_map_avg_abs(i,j)
+            sum = sum + F_map_avg_abs(i,j)*mJy_beam
+         enddo
+         write(18,*) 
+      enddo
+      write(*,*) 'Post-conv:'
+      write(*,80) 'S(4.8GHz)=',sum,'mJy'
+      write(*,*) ''
+      close(18)
+
+      61  format(F11.4,X,F11.4,X,E11.4)
+      80  format(A11,X,Es10.2,X,A3)
+
+      deallocate (x_c,y_c,F_map_avg_abs)
+
+   END subroutine SW_convavg_run
+
+   !============================================================================
+   ! SW_convavg_run (END)
+   !============================================================================   
 
 
    !============================================================================

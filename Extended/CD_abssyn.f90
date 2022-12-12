@@ -30,7 +30,10 @@ module CD_abssyn
       Real(dp) :: u_proj,v_proj  ! coords in the plane of the sky 
       Real(dp) :: emision1,emision2,emision3,emision1_abs,emision2_abs,emision3_abs,convert
       Integer :: ir,nl,inu_max,i_1G,i_3G,i_5G,i_ff,i_theta
+      integer :: N_avg
       integer, parameter :: m_l = 2*m_theta  ! CD position, both sides
+      real(dp) :: dnu_avg,h_avg
+      real(dp) :: emi_tot(m_l),emi_avg(m_l),emi_tot_abs(m_l),emi_avg_abs(m_l)
       Logical :: integra
  
       allocate( tauff(m_l,m_nu) ) 
@@ -203,13 +206,13 @@ module CD_abssyn
       ! Also stores the emission projected in the plane of the sky, (u_proj,v_proj)
 
       if (shock /= 'BOTH') then
-         open(70,file='CD_radiomap_'//shock//'1GHz.dat') ! 1.4 GHz
-         open(71,file='CD_radiomap_'//shock//'3GHz.dat') ! 3.0 GHz
-         open(72,file='CD_radiomap_'//shock//'5GHz.dat') ! 4.8 GHz
+         open(70,file='CD_sync_radiomap_'//shock//'1GHz.dat') ! 1.4 GHz
+         open(71,file='CD_sync_radiomap_'//shock//'3GHz.dat') ! 3.0 GHz
+         open(72,file='CD_sync_radiomap_'//shock//'5GHz.dat') ! 4.8 GHz
       else if (shock == 'BOTH') then
-         open(70,file='CD_radiomap_1GHz.dat') ! 1.4 GHz
-         open(71,file='CD_radiomap_3GHz.dat') ! 3.0 GHz
-         open(72,file='CD_radiomap_5GHz.dat') ! 4.8 GHz
+         open(70,file='CD_sync_radiomap_1GHz.dat') ! 1.4 GHz
+         open(71,file='CD_sync_radiomap_3GHz.dat') ! 3.0 GHz
+         open(72,file='CD_sync_radiomap_5GHz.dat') ! 4.8 GHz
       end if
 
       do l=1,m_l
@@ -223,7 +226,8 @@ module CD_abssyn
                Lsy_tot_abs(i) = Lsy_tot_abs(i) + Lsy(l,i)*exp(-tauff(l,i))  
             else
                Lsy_tot_abs(i) = Lsy_tot_abs(i) + Lsy(l,i)
-            endif         
+            endif
+
          end do
          
          emision1 = Lsy(l,i_1G) * flux1 ! At 1.4 GHz
@@ -241,6 +245,43 @@ module CD_abssyn
       close(71)
       close(72)
 
+      !------------------------------------------------------------
+      ! Avg flux btw nu_av_min and nu_av_max
+      if (shock /= 'BOTH') then
+         open(73,file='CD_sync_radiomap_avg'//shock//'.dat')
+      else if (shock == 'BOTH') then
+         open(73,file='CD_sync_radiomap_avg.dat')
+      end if
+
+      ! Count the number of steps
+      N_avg = 0
+      do i=1,m_nu
+         if ((nu(i) >= nu_av_min) .and. (nu(i) <= nu_av_max)) then
+            N_avg = N_avg + 1
+         end if
+      end do
+
+      h_avg = (nu_av_max/nu_av_min)**(1.d0/(N_avg-1))
+
+      do l=1,m_l
+         u_proj = (y(l)+x(l)/abs(tginc))*abs(sinc) *convert 
+         v_proj = z(l)*convert
+         emi_tot(l) = 0.d0
+         emi_tot_abs(l) = 0.d0
+         do i=1,m_nu
+            if ((nu(i) >= nu_av_min) .and. (nu(i) <= nu_av_max)) then
+               dnu_avg = nu(i)*(h_avg-1.d0)
+               emi_tot(l) = emi_tot(l) + Lsy(l,i)*flux/nu(i) * dnu_avg
+               emi_tot_abs(l) = emi_tot_abs(l) + Lsy(l,i)*exp(-tauff(l,i))*flux/nu(i) * dnu_avg
+            end if
+         end do
+         emi_avg(l) = emi_tot(l)/(nu_av_max-nu_av_min)
+         emi_avg_abs(l) = emi_tot_abs(l)/(nu_av_max-nu_av_min)
+         write(73,*) u_proj,v_proj,emi_avg(l),emi_avg_abs(l)
+      end do
+      close(73)
+
+      !------------------------------------------------------------
       if (shock /= 'BOTH') then
          open(34,file='radsyn_abs_'//shock//'.dat')
       else if (shock == 'BOTH') then
