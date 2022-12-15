@@ -92,7 +92,7 @@ module shock_thermal
     logical, intent(in) :: radiative
     integer, parameter :: mE_ph = 750
     integer, parameter :: m_l = 2*m_theta  ! CD position, both sides
-    real(dp) :: n_a(m_theta), cte_l(m_theta)
+    real(dp) :: n_a(m_theta), n_1(m_theta), cte_l(m_theta), cte_l_1(m_theta)
     real(dp) :: v_sh
     real(dp) :: Eph_0, Eph_min, Eph_max, Eph_int, Eph(mE_ph), dEph
     real(dp) :: nu(mE_ph)
@@ -197,9 +197,11 @@ module shock_thermal
     do l=1,m_theta
       read(11,*) nl,rho(l),dummy,dummy,T(l),dummy,v_perp(l),dummy,dummy,r(l),dummy,rho_f(l) ! CGS
       if (shock == 'FS') then
+        n_1(l) = rho(l)/mp/mu_ISM
         n_a(l) = rho_f(l)/mp/mu_ISM  
         !ni = n_a(l) 
-        !ne = gamma_sw*n_a(l)    
+        !ne = gamma_sw*n_a(l)
+        cte_l_1(l) = 6.8d-38*Zq_sw**2*gamma_sw*n_1(l)**2/sqrt(T(l)) 
         cte_l(l) = 6.8d-38*Zq_sw**2*gamma_sw*n_a(l)**2/sqrt(T_f)
       else if (shock == 'RS') then
         n_a(l) = rho(l)/mp/mu_sw
@@ -290,7 +292,7 @@ module shock_thermal
         ! write(*,*) i_ph, l, gffinter, 9.77d0*(1.d0+0.13d0*log10(T(l)**1.5d0/Zq_sw/(Eph(i_ph)/h))) ! aprox 
         ! Thermal emission from the post shock layer in a radiative shock
         ! L_ff = ( 1-(8000K/T(l)) ) * L_inj_perp
-        emi_ff_nu(l,i_ph) = ( (6.8d-38*Zq_sw**2*gamma_sw/sqrt(T(l))) * exp(-Eph(i_ph)/(k*T(l))) * gffinter )/h ! erg/s/cm3/erg
+        emi_ff_nu(l,i_ph) = ( cte_l_1(l) * exp(-Eph(i_ph)/(k*T(l))) * gffinter )/h  ! erg/s/cm3/erg
 
         alpha_ff_nu1(l,i_ph) = 3.7d8 * (Zq_sw**2*(rho(l)/mp/mu_ISM)**2/sqrt(T(l)) ) * (1.d0-exp(-h*nu(i_ph)/(k*T(l))) )/nu(i_ph)**3 * gffinter
         Tau_1(l,i_ph) = alpha_ff_nu1(l,i_ph)*H_1(l)
@@ -353,7 +355,7 @@ module shock_thermal
     open(40,file='S_ionized'//shock//'.dat')
 
     do i_ph=1,mE_ph
-      !L_ion(i_ph) = 0.d0
+      L_ion(i_ph) = 0.d0
       do l = 1,m_theta
         ! Eq. 5.14b from Rybicki gives the spectrum in erg/s/cm3/Hz, so I divide by h
         ! emi_ff_nu = (6.8d-38*Zq_sw**2*ne*ni*T(l)**(-0.5d0)*exp(-Eph(i_ph)/(k*T(l)))*g_ff(Eph(i_ph),T(l)) )/h ! erg/s/cm3/erg
@@ -362,7 +364,7 @@ module shock_thermal
         if (shock == 'FS') then
             gamma2 = Zq_ISM**2.*Ry/k/T_f
         else if (shock == 'RS') then
-            gamma2 = Zq_sw**2*Ry/k/T_wind
+            gamma2 = Zq_sw**2*Ry/k/T(l)
         end if
 
         j_g = int( (log10(gamma2)+6.d0)/0.2d0 ) + 1
@@ -371,7 +373,7 @@ module shock_thermal
         if (shock == 'FS') then
             mu_ff = Eph(i_ph)/k/T_f
         else if (shock == 'RS') then
-            mu_ff = Eph(i_ph)/k/T_wind
+            mu_ff = Eph(i_ph)/k/T(l)
         end if
 
         j_mu = int( (log10(mu_ff)+16.d0)/0.2d0 ) + 1
@@ -404,11 +406,11 @@ module shock_thermal
         f_vol_ion(l) = emi_ion_nu*dV_ring(l)
         F_nu_ion(l,i_ph) = f_vol_ion(l)*Eph(i_ph)    ! erg/s
         F_nu_ion(l+m_theta,i_ph) = F_nu_ion(l,i_ph)
-        !L_ion(i_ph) = L_ion(i_ph) + f_vol_ion(l)
+        L_ion(i_ph) = L_ion(i_ph) + f_vol_ion(l)
       end do
-      call integrate(m_theta,dtheta,f_vol_ion,integ_ion)
+      !call integrate(m_theta,dtheta,f_vol_ion,integ_ion)
 
-      L_ion(i_ph) = integ_ion
+      !L_ion(i_ph) = integ_ion
       S_ion(i_ph) = L_ion(i_ph)*Eph(i_ph)*flux/nu(i_ph)  ! Total flux at a certain freq. in mJy
 
       write(39,*) Eph(i_ph)/eV, Eph(i_ph)*L_ion(i_ph), L_ion(i_ph)
@@ -448,7 +450,7 @@ module shock_thermal
 
       do l = 1,m_l
         do i_ph = 1, mE_ph
-          F_nu_phi(l,i_ph) = F_nu(l,i_ph)/mphi/4.d0   ! 4 quadrants
+          F_nu_phi(l,i_ph) = F_nu(l,i_ph)/mphi/2.d0   ! 4 quadrants, but already mirrored
           !if (l==2 .and. (nu(i_ph) >= nu_av_min)) print*, 'F_HOT =', F_nu(l,i_ph), nu(i_ph)/1.d9
         end do
         S1 = F_nu_phi(l,i_1G)*flux1
@@ -474,7 +476,7 @@ module shock_thermal
 
     do l = 1,m_l
       do i_ph=1,mE_ph
-        F_nu_phi_ion(l,i_ph) = F_nu_ion(l,i_ph)/mphi/4.d0   ! 4 quadrants
+        F_nu_phi_ion(l,i_ph) = F_nu_ion(l,i_ph)/mphi/2.d0   ! 4 quadrants
         !if (l==2 .and. (nu(i_ph) >= nu_av_min)) print*, 'F_ion =', F_nu_ion(l,i_ph), nu(i_ph)/1.d9
       end do
       S1 = F_nu_phi_ion(l,i_1G)*flux1
