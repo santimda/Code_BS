@@ -90,7 +90,7 @@ module shock_thermal
   subroutine shock_thermal_run_spectrum(shock, radiative)
     character(LEN=*), intent(in) :: shock
     logical, intent(in) :: radiative
-    integer, parameter :: mE_ph = 750
+    integer, parameter :: mE_ph = 600
     integer, parameter :: m_l = 2*m_theta  ! CD position, both sides
     real(dp) :: n_a(m_theta), n_1(m_theta), cte_l(m_theta), cte_l_1(m_theta)
     real(dp) :: v_sh
@@ -103,7 +103,8 @@ module shock_thermal
     real(dp) :: emi_ff_nu(m_theta,mE_ph), emi_ion_nu
     real(dp) :: alpha_ff_nu1(m_theta,mE_ph), alpha_ff_nu2(m_theta,mE_ph)
     real(dp) :: Tau_1(m_theta,mE_ph), Tau_2(m_theta,mE_ph)
-    real(dp) :: L_inj(m_theta)
+    real(dp) :: L_inj(m_theta), L_inj_rad(m_theta)
+    real(dp) :: T_HL(l)
     real(dp) :: f_int(m_theta),f_vol_ion(m_theta),dtheta
     real(dp) :: dV_ring_ff, H_ff, H_RH, dR(m_theta)
     real(dp) :: r(m_theta), v_perp(m_theta), t_th(m_theta)
@@ -197,16 +198,20 @@ module shock_thermal
     do l=1,m_theta
       read(11,*) nl,rho(l),dummy,dummy,T(l),dummy,v_perp(l),dummy,dummy,r(l),dummy,rho_f(l) ! CGS
       if (shock == 'FS') then
+        T_HL(l) = T(l)
+        T(l) = T_f    ! T(l) -> isothermal region and RS
+      end if
+     
+      if (shock == 'FS') then
         n_1(l) = rho(l)/mp/mu_ISM
         n_a(l) = rho_f(l)/mp/mu_ISM  
         !ni = n_a(l) 
         !ne = gamma_sw*n_a(l)
-        cte_l_1(l) = 6.8d-38*Zq_sw**2*gamma_sw*n_1(l)**2/sqrt(T(l)) 
-        cte_l(l) = 6.8d-38*Zq_sw**2*gamma_sw*n_a(l)**2/sqrt(T_f)
+        cte_l_1(l) = 6.8d-38*Zq_sw**2*gamma_sw*n_1(l)**2/sqrt(T_HL(l)) 
       else if (shock == 'RS') then
         n_a(l) = rho(l)/mp/mu_sw
-        cte_l(l) = 6.8d-38*Zq_sw**2*gamma_sw*n_a(l)**2/sqrt(T(l))
       end if
+      cte_l(l) = 6.8d-38*Zq_sw**2*gamma_sw*n_a(l)**2/sqrt(T(l))
     enddo
     close(11)
 
@@ -227,7 +232,6 @@ module shock_thermal
       read(16,*) dummy, t_th(l)
     end do
     close(16)
-     
 
     !------------------------------------------------------------
     !    
@@ -273,14 +277,14 @@ module shock_thermal
       integ = 0.d0
       do i_ph=1,mE_ph   
         ! Eq. 5.14b from Rybicki gives the spectrum in erg/s/cm3/Hz, so I divide by h
-        ! emi_ff_nu = (6.8d-38*Zq_sw**2*ne*ni*T(l)**(-0.5d0)*exp(-Eph(i_ph)/(k*T(l)))*g_ff(Eph(i_ph),T(l)) )/h ! erg/s/cm3/erg
+        ! emi_ff_nu = (6.8d-38*Zq_sw**2*ne*ni*T_HL(l)**(-0.5d0)*exp(-Eph(i_ph)/(k*T(l)))*g_ff(Eph(i_ph),T(l)) )/h ! erg/s/cm3/erg
 
         ! Interpolate Gaunt factor
-        gamma2 = Zq_sw**2.*Ry/k/T(l)
+        gamma2 = Zq_sw**2.*Ry/k/T_HL(l)
         j_g = int( (log10(gamma2)+6.d0)/0.2d0 ) + 1
         dg = ( (log10(gamma2)+6.d0)/0.2d0+1.d0 - float(j_g) )*0.2d0
 
-        mu_ff = Eph(i_ph)/k/T(l)
+        mu_ff = Eph(i_ph)/k/T_HL(l)
         j_mu = int( (log10(mu_ff)+16.d0)/0.2d0 ) + 1
         if (j_mu < nu_mga) then
           dmu = ((log10(mu_ff)+16.d0)/0.2d0+1.d0 - float(j_mu))*0.2_dp
@@ -292,9 +296,9 @@ module shock_thermal
         ! write(*,*) i_ph, l, gffinter, 9.77d0*(1.d0+0.13d0*log10(T(l)**1.5d0/Zq_sw/(Eph(i_ph)/h))) ! aprox 
         ! Thermal emission from the post shock layer in a radiative shock
         ! L_ff = ( 1-(8000K/T(l)) ) * L_inj_perp
-        emi_ff_nu(l,i_ph) = ( cte_l_1(l) * exp(-Eph(i_ph)/(k*T(l))) * gffinter )/h  ! erg/s/cm3/erg
+        emi_ff_nu(l,i_ph) = ( cte_l_1(l) * exp(-Eph(i_ph)/(k*T_HL(l))) * gffinter )/h  ! erg/s/cm3/erg
 
-        alpha_ff_nu1(l,i_ph) = 3.7d8 * (Zq_sw**2*(rho(l)/mp/mu_ISM)**2/sqrt(T(l)) ) * (1.d0-exp(-h*nu(i_ph)/(k*T(l))) )/nu(i_ph)**3 * gffinter
+        alpha_ff_nu1(l,i_ph) = 3.7d8 * (Zq_sw**2*(rho(l)/mp/mu_ISM)**2/sqrt(T_HL(l)) ) * (1.d0-exp(-h*nu(i_ph)/(k*T_HL(l))) )/nu(i_ph)**3 * gffinter
         Tau_1(l,i_ph) = alpha_ff_nu1(l,i_ph)*H_1(l)
         if ( Tau_1(l,i_ph)>= 1.d0 ) then
           write(*,96) 'Region 1 is optically thick at angle', theta(l)*180./pi, 'and frequency', nu(i_ph)/1.d6, 'MHz'
@@ -304,9 +308,9 @@ module shock_thermal
         integ = integ + emi_ff_nu(l,i_ph)*dEph
       end do
 
-      if (T(l) >= T_ISM) then
-        A(l) = L_inj(l)*(1-T_min(l)/T(l))/integ   ! cm3
-      else if (T(l) <= T_ISM) then
+      if (T_HL(l) > T_ISM) then
+        A(l) = L_inj(l)*(1-T_min(l)/T_HL(l))/integ   ! cm3
+      else if (T_HL(l) <= T_ISM) then
         A(l) = 0.d0
       end if
     end do
@@ -341,6 +345,13 @@ module shock_thermal
     write(*,90) 'S_4.86GHz[mJy]=',L_th(i_5G)*Eph(i_5G)*flux3
 
     write(*,80) 'L_tot =',L_tot
+
+    ! Consistency check
+    do l=1,m_theta
+      L_inj_rad(l) = L_inj(l)*(1-T_f/T_HL(l))
+    end do  
+    if (shock == 'FS') print*, 'L_inj/L_tot =', sum(L_inj_rad)*4.*mphi/L_tot
+    ! ------------
 
     end if
 
@@ -387,17 +398,9 @@ module shock_thermal
         ! write(*,*) i_ph, l, gffinter, 9.77d0*(1.d0+0.13d0*log10(T(l)**1.5d0/Zq_sw/(Eph(i_ph)/h))) ! aprox 
         ! Emission from the ionized layer by the star's radiation field. T = 8.000 K (FS)
         ! Thermal emission from the RS
-        if (shock == 'FS') then
-            emi_ion_nu = ( cte_l(l) * exp(-Eph(i_ph)/(k*T_f)) * gffinter )/h ! erg/s/cm3/erg
-        else if (shock == 'RS') then
-            emi_ion_nu = ( cte_l(l) * exp(-Eph(i_ph)/(k*T(l))) * gffinter )/h ! erg/s/cm3/erg
-        end if
+        emi_ion_nu = ( cte_l(l) * exp(-Eph(i_ph)/(k*T(l))) * gffinter )/h ! erg/s/cm3/erg
 
-        if (shock == 'FS') then
-          alpha_ff_nu2(l,i_ph) = 3.7d8 * (Zq_sw**2*n_a(l)**2/sqrt(T_f)) * (1.d0-exp(-h*nu(i_ph)/(k*T_f)) )/nu(i_ph)**3 * gffinter
-        else if (shock == 'RS') then
-          alpha_ff_nu2(l,i_ph) = 3.7d8 * (Zq_sw**2*n_a(l)**2/sqrt(T(l))) * (1.d0-exp(-h*nu(i_ph)/(k*T(l))) )/nu(i_ph)**3 * gffinter
-        end if
+        alpha_ff_nu2(l,i_ph) = 3.7d8 * (Zq_sw**2*n_a(l)**2/sqrt(T(l))) * (1.d0-exp(-h*nu(i_ph)/(k*T(l))) )/nu(i_ph)**3 * gffinter
         Tau_2(l,i_ph) = alpha_ff_nu2(l,i_ph)*H_theta(l)
         !if ( Tau_2(l,i_ph)>= 1.d0 ) then
         !  write(*,96) 'Region 2 is optically thick at angle', theta(l)*180./pi, 'and frequency', nu(i_ph)/1.d6, 'MHz'
