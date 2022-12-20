@@ -21,17 +21,18 @@ module opac_ff
   
     subroutine opac_ff_run
       !$ use omp_lib
-      real(dp) :: T_w,T_ion,S(mE_ff),ne,ne_ISM,ni_ISM,ni,S_aprox(mE_ff)
+      integer, parameter :: nu_mu=146,nu_mga=81 ! # data in table gauntff.dat
+      integer, parameter :: mE_ph = 400
+      real(dp) :: T_w,T_ion,S(mE_ff),ne,ne_ISM,ni_ISM,ni
       real(dp) :: alphaff(mr_ff,mE_ff),gamma2,dg,dmu,gffinter
       real(dp) :: r_ff(mr_ff),dr,A_ff,cte_alpha_ff,cte_alpha_ff_ISM, cte_nu
-      real(dp) :: alpha_ff, p_ff, f_ff, factor_opac
+      real(dp) :: alpha_ff, p_ff(mE_ph), f_ff, factor_opac
       real(dp) :: Lnu(mE_ff), Enu
       integer :: j_mu,j_g
       integer :: i_ph
-      integer, parameter :: nu_mu=146,nu_mga=81 ! # data in table gauntff.dat
-      integer, parameter :: mE_ph = 400
       real(dp) :: gff(nu_mu,nu_mga),mu_ff(mE_ff), g_ff_w(mE_ff), g_ff_ISM(mE_ff)  
       real(dp) :: Mdot_eff = Mdot/sqrt(filling) ! effective mass-loss rate (account for clumping)
+      real(dp) :: P_trans, M_tot, V_trans
       real(dp) :: Q_ion, R_str
       real(dp) :: cte_f, cte_Lnu
       real(dp) :: nu_int_ff
@@ -94,7 +95,7 @@ module opac_ff
 
       !------------------------------------------------------------------
 
-      T_w = 0.3d0*T_st      ! assume constant T in the wind (valid far from the star) 
+      T_w = 0.3d0*T_st      ! assume constant T in the wind (valid far from the star)
       open(14,file='nu.dat')
       do i = 1,mE_ff
          read(14,*) nu(i)
@@ -120,7 +121,6 @@ module opac_ff
          cte_alpha_ff = 3.7d8*Zq_w**2*ne*ni/sqrt(T_w)
          do i=1,mE_ff
             alphaff(l,i) = cte_alpha_ff*nu(i)**(-3)*(1.d0-exp(-h*nu(i)/k/T_w))*g_ff_w(i) !1/cm
-            !print*, gffinter, g_ff_w(i)
          enddo
       enddo
       ! $omp end parallel do
@@ -139,6 +139,8 @@ module opac_ff
       do i = 1, mE_ff    
         S(i) = (23.2d0/distance**2) * ( ((Mdot_eff/M_sun_yr)/&
             (v_w/1.d5)/mu_w)**2 *nu(i)*gamma_w*g_ff_w(i)*Zq_w**2 )**(2.d0/3.d0) ! Jy = 1d-26 W/m/Hz
+        !S(i) = (23.d0/distance**2) * (Mdot/mu_w/v_w)**(4./3.) * (nu(i)*gamma_w*g_ff_w(i))**(2./3.) * Zq_w**(4./3.)
+        !print*, g_ff_w(i)
         if (nu(i) > 1.d-3*k*T_w/h) then
           S(i) = S(i)*exp(-h*nu(i)/k/T_w)      ! Invented... 
         endif      
@@ -264,13 +266,14 @@ module opac_ff
       end do
       R_str = 0.68d0*pc*(Q_ion/1.d49)*(n_ISM/1.d3)**(-2./3.)*(T_ISM/1.d4)**0.28
       write(*,'(a, F6.3)') ' R_str(pc) = ', R_str/pc
+      write(*,'(a, F5.2)') ' R_str/R0 = ', R_str/R0
 
       !----------------------------------------------------------
       ! Define some variables
 
       ni_ISM = n_ISM/mu_SISM      ! Number particle density in the ionized ISM is larger (should it be ni_ISM = 2.*n_ISM?)
       ne_ISM = ni
-      T_ion = 8.d3
+      T_ion = T_ISM
       cte_f = 8.235d-2*T_ion**(-1.35) ! Eq.4 Olnon 1975
       cte_Lnu = 8.*pi**2*k*T_ion*R_str**2/c**2
 
@@ -282,21 +285,24 @@ module opac_ff
       ! Calculate the free-free emission at each frequency
       open (300,file='gaunt_ISM.dat')
       open (400,file='radff.dat')
+      open (500, file='flux_ISM.dat')
       do i=1,mE_ff
          !f_ff = cte_f*(nu_ISM(i)/1.d9)**(-2.1)  ! [cm^6/pc] --> Eq.4 Olnon 1975
          !p_ff = 2.d0*ne_ISM*ni_ISM*(R_str/pc)*f_ff      ! Eq. 10 Olnon 1975
          cte_alpha_ff_ISM = 3.7d8*Zq_ISM**2/sqrt(T_ion)*ne_ISM*ni_ISM ! Rybicky & Lightman? (eq. 5.18 b)
          cte_nu = nu_ISM(i)**(-3)*(1.d0-exp(-h*nu_ISM(i)/k/T_ion))*g_ff_ISM(i) !(eq. 5.18 b)
          alpha_ff = cte_alpha_ff_ISM*cte_nu !1/cm
-         p_ff = alpha_ff * R_str 
-         if (p_ff > 1.d-4) then
-          factor_opac = ( 1. - (2./p_ff**2)*(1.-(p_ff+1.)*exp(-p_ff)) ) ! Eq. 11 Olnon 1975 for sphere
+         p_ff(i) = alpha_ff * R_str 
+         if (p_ff(i) > 1.d-4) then
+          factor_opac = ( 1. - (2./p_ff(i)**2)*(1.-(p_ff(i)+1.)*exp(-p_ff(i))) ) ! Eq. 11 Olnon 1975 for sphere
          else ! if p_ff << 1d-5 there are numerical errors, but analytically the factor --> p
-          factor_opac = p_ff
+          factor_opac = p_ff(i)
          endif
-         Lnu = cte_Lnu*nu_ISM(i)**2*factor_opac 
+         Lnu(i) = cte_Lnu*nu_ISM(i)**2*factor_opac
          write(300,*) h*nu_ISM(i)/(k*T_ion),g_ff_ISM(i)
          write(400,*) h*nu_ISM(i)/eV,Lnu(i)/h   ! [Lnu] = erg/s/Hz
+         write(500,*) nu_ISM(i), Lnu(i)*1.d26/(4.*pi*distance**2)  ! mJy
+         !print*, nu_ISM(i)/1.d9, Lnu(i)*1.d26/(4.*pi*distance**2)
       end do
       close(300)
       close(400)
@@ -304,6 +310,15 @@ module opac_ff
       !Lnu=Lnu/h ![Lnu] = erg/s/erg
       !Enu=h*nu
 
+      !----------------------------------------------------------
+      ! Calculate the velocity and momentum transferred to the ISM by the star
+      ! V = P/m, with P = p_ff*F*t; F = L_st/c; t = R_str/v_st; m = rho_ISM*4pi*R_str**3
+
+      P_trans = (L_st/c)*(R_str/v_st)   ! Assume extreme case p_ff = 1
+      M_tot = rho_ISM*4.*pi*R_str**3    ! Total ISM mass inside the Str. sphere
+      V_trans = P_trans/M_tot
+
+      write(*,'(a, Es10.2)') 'V_trans[cm/s] =', V_trans
 
   !////////////////////////////////////////////////////////////////////////////////
 
