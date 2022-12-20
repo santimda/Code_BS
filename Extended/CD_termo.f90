@@ -384,7 +384,6 @@ module CD_termo
       end do
       close(21)
 
-
       !-----------------------------------------------------------------
       ! Injected power available for the acceleration of NT particles 
       ! The injected power is the energy flux * area_perpendicular
@@ -428,8 +427,8 @@ module CD_termo
       allocate( alpha_sh(m_theta) )
       open(20,file='alpha_'//shock//'.dat')
       do l = 1, m_theta
-         !alpha_sh(l) = 2.55_dp   ! Value used for BD+43°3654
-         alpha_sh(l) = (r(l)+2.d0)/(r(l)-1.d0)
+         alpha_sh(l) = 2.45_dp   ! Value used for BD+43°3654
+         !alpha_sh(l) = (r(l)+2.d0)/(r(l)-1.d0)
          !dummy = r(l)/(1.d0 + r(l)*v_A(l)/v_sh)         
          !print *, r(l), r(l)/(1.d0 + r(l)*v_ARH(l)/v_sh)
          !print *, alpha_sh(l), (dummy+2.d0)/(dummy-1.d0)
@@ -449,7 +448,11 @@ module CD_termo
          write(16,*) l,rho(l),P(l),v_t(l),T(l),B(l),v_perp(l),theta(l),Mach(l),r(l),rho_med(l),rho_f(l)
          write(17,*) theta(l),rho(l)/rho(1),P(l)/P(1),v_t(l)/v_sh,T(l)/T(1),B(l)/B(1),v_perp(l)/v_sh,C_s_sh(l)/v_sh,rho_f(l)/rho_f(1)
          write(18,*) theta(l),v_t(l)/v_t_RH(l), P(l)/P_RH(l), rho(l)/rho_RH(l)
-         write(19,*) theta(l), H_new(l), H_new(l)/R_theta(l)
+         if (.not. radiative) then
+            write(19,*) theta(l), H_theta(l), H_theta(l)/R_theta(l)
+         else if (radiative) then
+            write(19,*) theta(l), H_theta(l), H_theta(l)/R_theta(l), H_1(l)/R_theta(l)
+         end if
       end do
       close(16)
       close(17)
