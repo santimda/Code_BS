@@ -89,19 +89,17 @@ module shock_thermal
     logical, intent(in) :: radiative
     integer, parameter :: mE_ph = 600
     integer, parameter :: m_l = 2*m_theta  ! CD position, both sides
-    real(dp) :: n_a(m_theta), n_1(m_theta), cte_l(m_theta), cte_l_1(m_theta)
+    real(dp) :: n_a(m_theta), n_1(m_theta), cte_l(m_theta), cte_l_1(m_theta), dV_ring(m_theta)
     real(dp) :: v_sh
     real(dp) :: Eph_0, Eph_min, Eph_max, Eph_int, Eph(mE_ph), dEph
     real(dp) :: nu(mE_ph)
     real(dp) :: log_nu_int,flux,flux0,flux1,flux2,flux3
-    real(dp) :: dV_ring(m_theta)
     real(dp) :: integral,integ,integ_ion,integ_HL
     real(dp) :: A(m_theta)
     real(dp) :: emi_ff_nu(m_theta,mE_ph), emi_ion_nu
     real(dp) :: alpha_ff_nu1(m_theta,mE_ph), alpha_ff_nu2(m_theta,mE_ph)
     real(dp) :: Tau_1(m_theta,mE_ph), Tau_2(m_theta,mE_ph)
-    real(dp) :: L_inj(m_theta), L_inj_rad(m_theta)
-    real(dp) :: T_HL(l)
+    real(dp) :: L_inj(m_theta), L_inj_rad(m_theta), T_HL(m_theta)
     real(dp) :: f_int(m_theta),f_vol_ion(m_theta),dtheta
     real(dp) :: dV_ring_ff, H_ff, H_RH, dR(m_theta)
     real(dp) :: r(m_theta), v_perp(m_theta), t_th(m_theta)
@@ -142,21 +140,26 @@ module shock_thermal
     ! Read shock position and thermodynamical quantities  
 
     open(10,file='CD.dat')
-      do l = 1, m_theta
-         read(10,*) theta(l), r_norm(l), dR(l), dummy, dummy
-      end do
-    close(10) 
-
     open(13,file='Hnorm_'//shock//'.dat') 
+    open(14,file='Linj_'//shock//'.dat')
+    open(15,file='T_min_'//shock//'.dat')
+    open(16,file='t_th_'//shock//'.dat')
     do l=1,m_theta
+      read(10,*) theta(l), r_norm(l), dR(l), dummy, dummy
+      read(14,*) dummy, dummy, L_inj(l), dummy, dummy
+      read(15,*) dummy, T_min(l)
+      read(16,*) dummy, t_th(l)
       if ( .not. radiative ) then
         read(13,*) dummy, H_theta(l), dummy, dummy, dV_ring(l)
       else if (radiative) then
         read(13,*) dummy, H_theta(l), dummy, dummy, dV_ring(l), H_1(l)
       end if
-    enddo
+    end do
+    close(10) 
     close(13)
-
+    close(14)
+    close(15)
+    close(16)
     dtheta = theta(2) - theta(1) ! This is equally spaced
 
     open(11,file='termo_'//shock//'.dat')
@@ -180,23 +183,6 @@ module shock_thermal
     enddo
     close(11)
 
-    open(14,file='Linj_'//shock//'.dat')
-    do l=1,m_theta
-      read(14,*) dummy, dummy, L_inj(l), dummy, dummy
-    end do
-    close(14)
-
-    open(15,file='T_min_'//shock//'.dat')
-    do l=1,m_theta
-      read(15,*) dummy, T_min(l)
-    end do
-    close(15)
-
-    open(16,file='t_th_'//shock//'.dat')
-    do l=1,m_theta
-      read(16,*) dummy, t_th(l)
-    end do
-    close(16)
 
     !------------------------------------------------------------
     !    
@@ -207,16 +193,12 @@ module shock_thermal
     Eph_0 = mp*v_sh**2/32.d0   ! Use the k*T_sw(apex) as a reference
     Eph_min = 10.d6*h          ! 10 MHz
     Eph_max = Eph_0*1.d2
-
-
     call vector_log(Eph_min,Eph_max,Eph_int,Eph)
 
     !------------------------------------------------------------
    
     nu = Eph/h
-    
     log_nu_int = log(nu(2)/nu(1))
-
     flux = 1.d26/(4.d0*pi*(distance)**2) ! luminosity to flux in mJy
 
     i_890M = int(log(890.d6/nu(1))/log_nu_int) + 1        ! 1.4 GHz 
