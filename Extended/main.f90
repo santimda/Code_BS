@@ -415,7 +415,7 @@ Subroutine abs_maps(SHOCK)
       open(111,file='hot_layer_avg.dat')
    end if
 
-phi = 0.d0
+   phi = 0.d0
       if (rotate) then
          DO i_phi = 1, mphi
             print *, 'i(phi)=',i_phi,'/',mphi

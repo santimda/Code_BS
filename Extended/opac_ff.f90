@@ -22,16 +22,14 @@ module opac_ff
   
     subroutine opac_ff_run
       !$ use omp_lib
-      integer, parameter :: nu_mu=146,nu_mga=81 ! # data in table gauntff.dat
       integer, parameter :: mE_ph = 400
       real(dp) :: T_w,T_ion,S(mE_ff),ne,ne_ISM,ni_ISM,ni
-      real(dp) :: alphaff(mr_ff,mE_ff),gamma2,dg,dmu,gffinter
+      real(dp) :: alphaff(mr_ff,mE_ff)
       real(dp) :: r_ff(mr_ff),dr,A_ff,cte_alpha_ff,cte_alpha_ff_ISM, cte_nu
       real(dp) :: alpha_ff, p_ff(mE_ph), f_ff, factor_opac
       real(dp) :: Lnu(mE_ff), Enu
-      integer :: j_mu,j_g
       integer :: i_ph
-      real(dp) :: gff(nu_mu,nu_mga),mu_ff(mE_ff), g_ff_w(mE_ff), g_ff_ISM(mE_ff)  
+      real(dp) :: g_ff_w(mE_ff), g_ff_ISM(mE_ff)  
       real(dp) :: Mdot_eff = Mdot/sqrt(filling) ! effective mass-loss rate (account for clumping)
       real(dp) :: P_trans, M_tot, V_trans
       real(dp) :: Q_ion, R_str
@@ -83,7 +81,6 @@ module opac_ff
       open(14,file='nu.dat')
       do i = 1,mE_ff
          read(14,*) nu(i)
-         mu_ff(i) = h*nu(i)/k/T_w   ! assuming T = cte, no need for mu_ff(r)
       enddo
       close(14)      
       log_nu_int = log(nu(2)/nu(1))
