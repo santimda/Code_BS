@@ -1,5 +1,6 @@
 module shock_thermal
   use global
+  use gaunt_factor
   implicit none
 
   public :: shock_thermal_run_total, shock_thermal_run_spectrum
@@ -54,9 +55,7 @@ module shock_thermal
     close(11)
 
     !------------------------------------------------------------
-    !    Calculate the shocked wind (sw) bremsstrahlung total power
-
-    ! Calculate the luminosity using an adaptation of Eq. 24 from Christie+2016:
+    ! Calculate the total f-f luminosity using an adaptation of Eq. 24 from Christie+2016:
     ! L = integral(f_int(theta), with f_int(theta) = emi_ff * dV_ring(theta),
     ! emi_ff = dW/dt/dV the total emissivity given by Eq. 5.15b from Rybicki,
     ! and dV_ring(l) the volume of the emitting region
@@ -67,9 +66,7 @@ module shock_thermal
       emi_ff = 1.4d-27*Zq_sw**2*ne*ni*sqrt(T(l))*g_average  
       f_int(l) = emi_ff * dV_ring(l)
     enddo
-
-    call integrate(m_theta,dtheta,f_int,integral)
-    L_tot = integral
+    L_tot = SUM(f_int)
     write(*,80) 'L_ff_tot =',L_tot
 
     deallocate ( H_theta, rho, T, H_1 )
@@ -119,25 +116,7 @@ module shock_thermal
     integer :: nl, i_ph
     Integer :: i_890M,i_1G,i_3G,i_5G
     integer :: N_avg
-    integer, parameter :: nu_mu=146,nu_mga=81 ! # data in table gauntff.dat
-    real(dp) :: gamma2,dg,dmu,mu_ff,gff(nu_mu,nu_mga),gffinter
-    integer :: j_mu,j_g
-    interface
-    subroutine interpol2(dx,dy,fx1y1,fx2y1,fx1y2,finterpol)
-      use iso_fortran_env, only: dp => real64
-      implicit none
-      real(dp), intent(in) :: dx,dy,fx1y1,fx2y1,fx1y2
-      real(dp), intent(out) :: finterpol
-    end subroutine interpol2
-    end interface
-    interface
-    subroutine extrapol2(dx,dy,fx1y1,fx2y1,fx1y2,fextrapol)
-      use iso_fortran_env, only: dp => real64
-      implicit none
-      real(dp), intent(in) :: dx,dy,fx1y1,fx2y1,fx1y2
-      real(dp), intent(out) :: fextrapol
-    end subroutine extrapol2
-    end interface  
+    real(dp) :: g_ff(mE_ph)
 
     allocate( H_theta(m_theta), H_1(m_theta), rho(m_theta), T(m_theta), rho_f(m_theta) )
     allocate( F_nu(m_l,mE_ph),F_nu_phi(m_l,mE_ph),F_nu_ion(m_l,mE_ph),F_nu_phi_ion(m_l,mE_ph))
@@ -158,20 +137,6 @@ module shock_thermal
     else if (shock == 'FS') then
       v_sh = v_ISM
     end if
-
-    !------------------------------------------------------------
-    ! Extract the Gaunt factor from the table given by van Hoof (2014):
-    ! <gff(u,gamma2)>, with -8 < log10u < 8, -4 < log10gamma < 4, with step 1
-
-    open(12,file='gauntff.dat')
-    do i=1,16
-      read(12,*)
-    enddo
-
-    do i=1,nu_mu
-      read(12,*) (gff(i,j), j=1,nu_mga)
-    enddo
-    close(12)
 
     !------------------------------------------------------------     
     ! Read shock position and thermodynamical quantities  
@@ -247,9 +212,8 @@ module shock_thermal
     call vector_log(Eph_min,Eph_max,Eph_int,Eph)
 
     !------------------------------------------------------------
-    do i_ph=1,mE_ph
-      nu(i_ph) = Eph(i_ph)/h
-    end do
+   
+    nu = Eph/h
     
     log_nu_int = log(nu(2)/nu(1))
 
@@ -275,30 +239,16 @@ module shock_thermal
 
     do l=1,m_theta  
       integ = 0.d0
-      do i_ph=1,mE_ph   
+      call gaunt_ff_calc(nu,T_HL(l),Zq_sw,g_ff) ! g_ff is a vector with gaunt_factor(nu(i))
+      do i_ph = 1,mE_ph   
         ! Eq. 5.14b from Rybicki gives the spectrum in erg/s/cm3/Hz, so I divide by h
         ! emi_ff_nu = (6.8d-38*Zq_sw**2*ne*ni*T_HL(l)**(-0.5d0)*exp(-Eph(i_ph)/(k*T(l)))*g_ff(Eph(i_ph),T(l)) )/h ! erg/s/cm3/erg
 
-        ! Interpolate Gaunt factor
-        gamma2 = Zq_sw**2.*Ry/k/T_HL(l)
-        j_g = int( (log10(gamma2)+6.d0)/0.2d0 ) + 1
-        dg = ( (log10(gamma2)+6.d0)/0.2d0+1.d0 - float(j_g) )*0.2d0
-
-        mu_ff = Eph(i_ph)/k/T_HL(l)
-        j_mu = int( (log10(mu_ff)+16.d0)/0.2d0 ) + 1
-        if (j_mu < nu_mga) then
-          dmu = ((log10(mu_ff)+16.d0)/0.2d0+1.d0 - float(j_mu))*0.2_dp
-          call interpol2(dg,dmu,gff(j_g,j_mu),gff(j_g+1,j_mu),gff(j_g,j_mu+1),gffinter)
-        else
-          dmu = ((log10(mu_ff)+16.d0)/0.2d0+1.d0 - float(j_mu))*0.2_dp
-          call extrapol2(dg,dmu,gff(j_g,nu_mga-1),gff(j_g+1,nu_mga-1),gff(j_g,nu_mga),gffinter)
-        endif
-        ! write(*,*) i_ph, l, gffinter, 9.77d0*(1.d0+0.13d0*log10(T(l)**1.5d0/Zq_sw/(Eph(i_ph)/h))) ! aprox 
+        ! print*, i_ph, l, g_ff(nu(i_ph), 9.77d0*(1.d0+0.13d0*log10(T(l)**1.5d0/Zq_sw/nu(i_ph))) ! aprox 
         ! Thermal emission from the post shock layer in a radiative shock
         ! L_ff = ( 1-(8000K/T(l)) ) * L_inj_perp
-        emi_ff_nu(l,i_ph) = ( cte_l_1(l) * exp(-Eph(i_ph)/(k*T_HL(l))) * gffinter )/h  ! erg/s/cm3/erg
-
-        alpha_ff_nu1(l,i_ph) = 3.7d8 * (Zq_sw**2*(rho(l)/mp/mu_ISM)**2/sqrt(T_HL(l)) ) * (1.d0-exp(-h*nu(i_ph)/(k*T_HL(l))) )/nu(i_ph)**3 * gffinter
+        emi_ff_nu(l,i_ph) = ( cte_l_1(l) * exp(-Eph(i_ph)/(k*T_HL(l))) * g_ff(i_ph) )/h  ! erg/s/cm3/erg
+        alpha_ff_nu1(l,i_ph) = 3.7d8 * (Zq_sw**2*(rho(l)/mp/mu_ISM)**2/sqrt(T_HL(l)) ) * (1.d0-exp(-h*nu(i_ph)/(k*T_HL(l))) )/nu(i_ph)**3 * g_ff(i_ph)
         Tau_1(l,i_ph) = alpha_ff_nu1(l,i_ph)*H_1(l)
         if ( Tau_1(l,i_ph)>= 1.d0 ) then
           write(*,96) 'Region 1 is optically thick at angle', theta(l)*180./pi, 'and frequency', nu(i_ph)/1.d6, 'MHz'
@@ -367,40 +317,22 @@ module shock_thermal
 
     do i_ph=1,mE_ph
       L_ion(i_ph) = 0.d0
+
+      if (shock == 'FS') then
+        call gaunt_ff_calc(nu,T_f,Zq_ISM,g_ff) ! g_ff is a vector with gaunt_factor(nu(i))
+      else if (shock == 'RS') then
+        call gaunt_ff_calc(nu,T(l),Zq_sw,g_ff) ! g_ff is a vector with gaunt_factor(nu(i))
+      end if
+
       do l = 1,m_theta
         ! Eq. 5.14b from Rybicki gives the spectrum in erg/s/cm3/Hz, so I divide by h
         ! emi_ff_nu = (6.8d-38*Zq_sw**2*ne*ni*T(l)**(-0.5d0)*exp(-Eph(i_ph)/(k*T(l)))*g_ff(Eph(i_ph),T(l)) )/h ! erg/s/cm3/erg
 
-        ! Interpolate Gaunt factor
-        if (shock == 'FS') then
-            gamma2 = Zq_ISM**2.*Ry/k/T_f
-        else if (shock == 'RS') then
-            gamma2 = Zq_sw**2*Ry/k/T(l)
-        end if
-
-        j_g = int( (log10(gamma2)+6.d0)/0.2d0 ) + 1
-        dg = ( (log10(gamma2)+6.d0)/0.2d0+1.d0 - float(j_g) )*0.2d0
-
-        if (shock == 'FS') then
-            mu_ff = Eph(i_ph)/k/T_f
-        else if (shock == 'RS') then
-            mu_ff = Eph(i_ph)/k/T(l)
-        end if
-
-        j_mu = int( (log10(mu_ff)+16.d0)/0.2d0 ) + 1
-        if (j_mu < nu_mga) then
-          dmu = ((log10(mu_ff)+16.d0)/0.2d0+1.d0 - float(j_mu))*0.2_dp
-          call interpol2(dg,dmu,gff(j_g,j_mu),gff(j_g+1,j_mu),gff(j_g,j_mu+1),gffinter)
-        else
-          dmu = ((log10(mu_ff)+16.d0)/0.2d0+1.d0 - float(j_mu))*0.2_dp
-          call extrapol2(dg,dmu,gff(j_g,nu_mga-1),gff(j_g+1,nu_mga-1),gff(j_g,nu_mga),gffinter)
-        endif
         ! write(*,*) i_ph, l, gffinter, 9.77d0*(1.d0+0.13d0*log10(T(l)**1.5d0/Zq_sw/(Eph(i_ph)/h))) ! aprox 
         ! Emission from the ionized layer by the star's radiation field. T = 8.000 K (FS)
         ! Thermal emission from the RS
-        emi_ion_nu = ( cte_l(l) * exp(-Eph(i_ph)/(k*T(l))) * gffinter )/h ! erg/s/cm3/erg
-
-        alpha_ff_nu2(l,i_ph) = 3.7d8 * (Zq_sw**2*n_a(l)**2/sqrt(T(l))) * (1.d0-exp(-h*nu(i_ph)/(k*T(l))) )/nu(i_ph)**3 * gffinter
+        emi_ion_nu = ( cte_l(l) * exp(-Eph(i_ph)/(k*T(l))) * g_ff(i_ph) )/h ! erg/s/cm3/erg
+        alpha_ff_nu2(l,i_ph) = 3.7d8 * (Zq_sw**2*n_a(l)**2/sqrt(T(l))) * (1.d0-exp(-h*nu(i_ph)/(k*T(l))) )/nu(i_ph)**3 * g_ff(i_ph)
         Tau_2(l,i_ph) = alpha_ff_nu2(l,i_ph)*H_theta(l)
         !if ( Tau_2(l,i_ph)>= 1.d0 ) then
         !  write(*,96) 'Region 2 is optically thick at angle', theta(l)*180./pi, 'and frequency', nu(i_ph)/1.d6, 'MHz'
@@ -562,29 +494,5 @@ module shock_thermal
 END module shock_thermal
 
 
-!////////////////////////////////////////////////////////////////////////////////
-
-Subroutine interpol2(dx,dy,fx1y1,fx2y1,fx1y2,finterpol)
-  implicit none 
-  integer, parameter :: dp = kind(1.d0)
-  real(dp), intent(in) :: dx,dy,fx1y1,fx2y1,fx1y2
-  real(dp), intent(out) :: finterpol
-  real(dp) :: fx,fy
-  fx = (fx2y1-fx1y1)/0.2    ! x2-x1 = 0.2
-  fy = (fx1y2-fx1y1)/0.2    ! y2-y1 = 0.2
-  finterpol = fx1y1 + fx*dx + fy*dy
-END Subroutine interpol2
-
-!////////////////////////////////////////////////////////////////////////////////
-
-Subroutine extrapol2(dx,dy,fx1y1,fx2y1,fx1y2,fextrapol)
-  implicit none 
-  integer, parameter :: dp = kind(1.d0)
-  real(dp), intent(in) :: dx,dy,fx1y1,fx2y1,fx1y2
-  real(dp), intent(out) :: fextrapol
-  real(dp) :: fx,fy
-  fx = (fx2y1-fx1y1)/0.2    ! x2-x1 = 0.2
-  fy = (fx1y2-fx1y1)/0.2    ! y2-y1 = 0.2
-  fextrapol = fx1y2 + fx*dx + fy*dy
-END Subroutine extrapol2
+!============================================================================
 

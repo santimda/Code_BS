@@ -10,13 +10,17 @@ controles.o: controles.f90
 
 BB.o: BB.f90 global.o
 
-opac_ff.o: opac_ff.f90 global.o
+gaunt_factor.o: gaunt_factor.f90 global.o
+
+opac_ff.o: opac_ff.f90 global.o gaunt_factor.o
 
 CD.o: CD.f90 global.o
 
 CD_termo.o: CD_termo.f90 global.o
 
-shock_thermal.o: shock_thermal.f90 global.o
+shock_thermal.o: shock_thermal.f90 global.o gaunt_factor.o
+
+diffusion.o: diffusion.f90 global.o
 
 CD_diste.o: CD_diste.f90 global.o diffusion.o
 CD_distp.o: CD_distp.f90 global.o diffusion.o

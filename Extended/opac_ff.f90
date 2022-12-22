@@ -2,6 +2,7 @@ module opac_ff
   !This module calculates the f-f absorption and emission of the unshocked SW
   !and the absorption and emission of the unshocked ISM
   use global
+  use gaunt_factor
   implicit none
   
   public :: opac_ff_run
@@ -42,14 +43,6 @@ module opac_ff
       real(dp) :: log_nu_int,nu_S,B_ff,B_ff_D2,K_ff,cte_Tau
       real(dp) :: r_map(mr_map),S_ff_cm2(mr_map),A_cell(mr_map),S_map(mr_map)
       real(dp) :: convert,Delta_r,x_map(mphi),y_map(mphi),phi_map(mphi)
-      interface
-         subroutine interpol(dx,dy,fx1y1,fx2y1,fx1y2,finterpol)
-            use iso_fortran_env, only: dp => real64
-            implicit none
-            real(dp), intent(in) :: dx,dy,fx1y1,fx2y1,fx1y2
-            real(dp), intent(out) :: finterpol
-         end subroutine interpol
-      end interface
 
       interface
          subroutine S_ff_map(B_ff_D2,cte_Tau,r_i,r_f,S_ff_cm2,r_map)
@@ -57,15 +50,6 @@ module opac_ff
             real(dp), intent(in) :: B_ff_D2,cte_Tau,r_i,r_f
             real(dp), intent(out) :: r_map(mr_map),S_ff_cm2(mr_map)
          end subroutine S_ff_map
-      end interface
-
-      interface
-        subroutine gaunt_ff_calc(nu_ff,T_ff,Z_q,gaunt)
-          use global
-          implicit none
-          real(dp), intent(in) :: nu_ff(:),T_ff,Z_q
-          real(dp), intent(out) :: gaunt(:)
-        end subroutine gaunt_ff_calc
       end interface
 
       allocate( nu(mE_ff), nu_ISM(mE_ff) )
@@ -327,77 +311,6 @@ module opac_ff
     END subroutine opac_ff_run
 
   END module opac_ff
-
-  !////////////////////////////////////////////////////////////////////////////////
-  !
-
-  Subroutine interpol(dx,dy,fx1y1,fx2y1,fx1y2,finterpol)
-    implicit none 
-    integer, parameter :: dp = kind(1.d0)
-    real(dp), intent(in) :: dx,dy,fx1y1,fx2y1,fx1y2
-    real(dp), intent(out) :: finterpol
-    real(dp) :: fx,fy
-    fx = (fx2y1-fx1y1)/0.2    ! x2-x1 = 0.2
-    fy = (fx1y2-fx1y1)/0.2    ! y2-y1 = 0.2
-    finterpol = fx1y1 + fx*dx + fy*dy
-    return
-  END Subroutine interpol
-   
-
-   !============================================================================
-  ! gaunt_ff_calc 
-  !============================================================================
-
-  Subroutine gaunt_ff_calc(nu_ff,T_ff,Zq,gaunt_ff)
-    use global  
-    implicit none
-    real(dp), intent(in) :: nu_ff(:),T_ff,Zq
-    real(dp), intent(out) :: gaunt_ff(:)
-    integer, parameter :: nu_mu = 146, nu_mga=81 ! # data in gauntff.dat
-    real(dp) :: gff(nu_mu,nu_mga),gamma2,dg,dmu,gff_inter
-    real(dp), allocatable :: mu_ff(:)
-    integer :: j_mu,j_g
-    integer :: m_nu_ff
-    
-    m_nu_ff = SIZE(nu_ff)
-
-    !--------------------------------------------------------------------------
-    ! gauntff.dat (van Hoof 2014) allows to compute the Gaunt factor:
-    ! <gff(u,gamma2)>, with -8 < log10u < 8, -4 < log10gamma < 4, step 0.2
-      
-    open(13,file='gauntff.dat')
-    do i=1,16
-      read(13,*)
-    end do
-    do i=1,nu_mu
-      read(13,*) (gff(i,j), j=1,nu_mga)
-    end do
-    close(13)
-
-    gamma2 = Zq**2*Ry/k/T_ff
-    j_g = int( (log10(gamma2)+6.d0)/0.2d0 ) + 1
-    dg = ( (log10(gamma2)+6.d0)/0.2d0+1.d0 - float(j_g) )*0.2d0
- 
-    allocate( mu_ff(m_nu_ff) )
-    mu_ff = h*nu_ff/(k*T_ff)
-
-    do i=1,m_nu_ff 
-      if (h*nu_ff(i) <= 1.1*k*T_ff) then ! ADDED THIS
-        ! index = (value - table_value(1))/(table_step) + 1, then do linear interpolation
-        j_mu = int( (log10(mu_ff(i))+16.d0)/0.2d0 ) + 1
-        dmu = ((log10(mu_ff(i))+16.d0)/0.2d0+1.d0 - float(j_mu))*0.2_dp
-        call interpol(dg,dmu,gff(j_g,j_mu),gff(j_g+1,j_mu),gff(j_g,j_mu+1),gff_inter)      
-        gaunt_ff(i) = gff_inter
-        gaunt_ff(i) = 9.77d0*(1.d0+0.13d0*log10(T_ff**1.5d0/Zq_w/nu_ff(i))) ! Approx. 
-      else
-        gaunt_ff(i) = 0.d0
-      endif 
-      !print*, i, h*nu_ff(i)/k/T_ff, gff_inter, gaunt_ff(i), gff_inter/gaunt_ff(i)
-    end do  
-    deallocate( mu_ff )
-
-  End subroutine gaunt_ff_calc
-  
 
   !////////////////////////////////////////////////////////////////////////////////
   !
