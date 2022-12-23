@@ -312,8 +312,8 @@ module CD_termo
       if (T_min(1) < T_ISM) then
          T_min(1) = T_ISM
       end if
-      n_f(1) = P(1)/(k*T_min(1))*frac_mu
-      rho_f(1) = rho(1)*(T(1)/T_min(1))*frac_mu
+      rho_f(1) = rho(1)*(T(1)/T_min(1))
+      n_f(1) = rho_f(1)/mp/mu_ISM
       do l=2,m_theta
          T_min(l) = (t_th(l)/t_adv(l))*T(l)         
          if (T(l) <= T_min(l)) then
@@ -321,18 +321,13 @@ module CD_termo
          else if (T_min(l) < T_ISM) then
             T_min(l) = T_ISM
          end if
-         n_f(l) = P(l)/(k*T_min(l))
-         rho_f(l) = n_f(l)*mp*mu_ISM
+         rho_f(l) = rho(l)*(T(l)/T_min(l))
+         n_f(l) = rho_f(l)/mp/mu_ISM
       end do
       do l=1,m_theta
          write(45,*) theta(l), T_min(l)
       end do
 
-      !if (shock == 'FS') then
-      !do l=1,m_theta
-      !   print*, T(l), rho_f(l)/rho_med(l), theta(l)*180./pi
-      !end do
-      !end if
       close(45)
 
    !-----------------------------------------------------------------
@@ -371,6 +366,14 @@ module CD_termo
       do l = 1, l_min
          H_theta(l) = H_theta(l_min)
       end do
+
+      !if (radiative) then
+      !do l=1,m_theta
+         !print*, H_theta(l)/R_theta(l), H_1(l)/R_theta(l), (H_theta(l)+H_1(l))/R_theta(l)
+         !H_theta(l) = 0.09*R0
+         !H_1(l) = 0.01*R0
+      !end do
+      !end if
 
       open(21,file='Hnorm_'//shock//'.dat') ! normalized
       do l = 1, m_theta
