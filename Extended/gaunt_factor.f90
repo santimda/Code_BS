@@ -1,9 +1,7 @@
   module gaunt_factor
-
-  use constants
-  use system_parameters
-  implicit none
-  public
+    use global  
+    implicit none
+    public
 
   contains
 
@@ -11,16 +9,15 @@
   !  Gaunt factor calculation
   !============================================================================
 
-  Subroutine gaunt_ff_calc(nu_ff,T_l,Zq_l,gaunt_ff)
-    use global  
-    implicit none
-    real(dp), intent(in) :: nu_ff(:),T_l,Zq_l
-    real(dp), intent(out) :: gaunt_ff(:)
+  Subroutine gaunt_ff_calc(nu_ff,m_nu_ff,T_l,Zq_l,gaunt_ff)
+    integer, intent(in) :: m_nu_ff
+    real(dp), intent(in) :: nu_ff,T_l,Zq_l
+    real(dp), intent(out) :: gaunt_ff
     integer, parameter :: nu_mu = 146, nu_mga=81 ! # data in gauntff.dat
     real(dp) :: gff(nu_mu,nu_mga),gamma2,dg,dmu,gff_inter
-    real(dp), allocatable :: mu_ff(:)
     integer :: j_mu,j_g
-    integer :: m_nu_ff
+    real(dp), allocatable :: mu_ff(:)
+    DIMENSION nu_ff(m_nu_ff), gaunt_ff(m_nu_ff)
 
     interface
     subroutine interpol2(dx,dy,fx1y1,fx2y1,fx1y2,finterpol)
@@ -38,8 +35,6 @@
       real(dp), intent(out) :: fextrapol
     end subroutine extrapol2
     end interface  
-
-    m_nu_ff = SIZE(nu_ff)
 
     !--------------------------------------------------------------------------
     ! gauntff.dat (van Hoof 2014) allows to compute the Gaunt factor:
@@ -64,8 +59,10 @@
     do i=1,m_nu_ff 
       !if (h*nu_ff(i) > 3*k*T_l) print*, 'WARNING: h nu > kT in opac_ff (gaunt_ff_calc)'
       ! index = (value - table_value(1))/(table_step) + 1, then do linear interpolation
+
       j_mu = int( (log10(mu_ff(i))+16.d0)/0.2d0 ) + 1
       dmu = ((log10(mu_ff(i))+16.d0)/0.2d0+1.d0 - float(j_mu))*0.2_dp
+
       if (j_mu < nu_mga) then
         call interpol2(dg,dmu,gff(j_g,j_mu),gff(j_g+1,j_mu),gff(j_g,j_mu+1),gff_inter)
       else
@@ -75,6 +72,7 @@
       !gaunt_ff(i) = 9.77d0*(1.d0+0.13d0*log10(T_l**1.5d0/Zq_l/nu_ff(i))) ! Approx.
       !print*, i, h*nu_ff(i)/k/T_l, gff_inter, gaunt_ff(i), gff_inter/gaunt_ff(i)
     end do  
+
     deallocate( mu_ff )
 
   End subroutine gaunt_ff_calc

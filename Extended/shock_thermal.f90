@@ -221,7 +221,7 @@ module shock_thermal
 
     do l=1,m_theta  
       integ = 0.d0
-      call gaunt_ff_calc(nu,T_HL(l),Zq_sw,g_ff) ! g_ff is a vector with gaunt_factor(nu(i))
+      call gaunt_ff_calc(nu,size(nu),T_HL(l),Zq_sw,g_ff) ! g_ff is a vector with gaunt_factor(nu(i))
       do i_ph = 1,mE_ph   
         ! Eq. 5.14b from Rybicki gives the spectrum in erg/s/cm3/Hz, so I divide by h
         ! emi_ff_nu = (6.8d-38*Zq_sw**2*ne*ni*T_HL(l)**(-0.5d0)*exp(-Eph(i_ph)/(k*T(l)))*g_ff(Eph(i_ph),T(l)) )/h ! erg/s/cm3/erg
@@ -297,14 +297,15 @@ module shock_thermal
     open(39,file='ionized_ff_'//shock//'.dat')
     open(40,file='S_ionized'//shock//'.dat')
 
+    ! THIS IS INCORRECT FOR THE RS! T(1) should be T(l), but within the loop... rethink!
+    if (shock == 'FS') then
+      call gaunt_ff_calc(nu,size(nu),T_f,Zq_ISM,g_ff) ! g_ff is a vector with gaunt_factor(nu(i))
+    else if (shock == 'RS') then
+      call gaunt_ff_calc(nu,size(nu),T(1),Zq_sw,g_ff) ! g_ff is a vector with gaunt_factor(nu(i))
+    end if
+
     do i_ph=1,mE_ph
       L_ion(i_ph) = 0.d0
-
-      if (shock == 'FS') then
-        call gaunt_ff_calc(nu,T_f,Zq_ISM,g_ff) ! g_ff is a vector with gaunt_factor(nu(i))
-      else if (shock == 'RS') then
-        call gaunt_ff_calc(nu,T(l),Zq_sw,g_ff) ! g_ff is a vector with gaunt_factor(nu(i))
-      end if
 
       do l = 1,m_theta
         ! Eq. 5.14b from Rybicki gives the spectrum in erg/s/cm3/Hz, so I divide by h

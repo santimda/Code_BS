@@ -85,7 +85,7 @@ module opac_ff
       close(14)      
       log_nu_int = log(nu(2)/nu(1))
 
-      call gaunt_ff_calc(nu,T_w,Zq_w,g_ff_w)
+      call gaunt_ff_calc(nu,size(nu),T_w,Zq_w,g_ff_w)
 
     !==================================================================
     !     
@@ -261,7 +261,7 @@ module opac_ff
       call vector_log(nu_min_ff,nu_max_ff,nu_int_ff,nu_ISM)
 
       !----------------------------------------------------------
-      call gaunt_ff_calc(nu_ISM,T_ion,Zq_ISM,g_ff_ISM)
+      call gaunt_ff_calc(nu_ISM,size(nu_ISM),T_ion,Zq_ISM,g_ff_ISM)
 
       ! Calculate the free-free emission at each frequency
       open (300,file='gaunt_ISM.dat')
