@@ -16,17 +16,16 @@ module global
    !===========================================================
    ! Simulation grid/vectors size
 
-   integer, parameter :: m_theta = 400 ! angular resolution in the CD/shock
-   integer, parameter :: mE_e = 400    ! energy resolution for electrons
-   integer, parameter :: mE_p = 400    ! energy resolution for protons < mE_f 
-   integer, parameter :: mE_f = 600    ! it is the same for br, p-p and IC
-   !integer, parameter :: m_ff = 400   ! free-free
+   integer, parameter :: m_theta = 300 ! angular resolution in the CD/shock
+   integer, parameter :: mE_e = 300    ! energy resolution for electrons
+   integer, parameter :: mE_p = 300    ! energy resolution for protons < mE_f 
+   integer, parameter :: mE_f = 500    ! it is the same for br, p-p and IC
+   integer, parameter :: mE_ph = 300   ! energy resolution for thermal f-f emission in the shocks 
    integer, parameter :: mphi = 30      ! amount of linear-emitters
    real(dp) :: delta_phi = 0.5*pi/(mphi-1.d0) ! angular separation between linear-emitters
    real(dp) :: d_phi = 0.5*pi/mphi     ! angular width of each linear-emitter or wedge
 
    real(dp), parameter :: f_Ny = 0.6d0 ! Nyquist frequency for convolved maps
-   !real(dp), parameter :: f_Ny = 0.2d0
 
    !===========================================================
 
@@ -114,20 +113,19 @@ module global
    !============================================================================
 
    SUBROUTINE vector_log(Emin,Emax,Eint,E_vec)
-      implicit none
+      ! Build logarithmically-spaced vector
       integer, parameter :: dp = kind(1.d0)
       real(dp), intent(in) :: Emin,Emax
-      integer :: N_puntos, i_vec
+      integer :: N_size, i_vec
       real(dp), intent(out) :: Eint
       real(dp), intent(out) :: E_vec(:)
 
-      N_puntos = SIZE(E_vec)
-      Eint = (Emax/Emin)**(1.d0/dfloat(N_puntos-1))
+      N_size = SIZE(E_vec)
+      Eint = (Emax/Emin)**(1.d0/dfloat(N_size-1))
       E_vec(1) = Emin
-      do i_vec = 2, N_puntos
+      do i_vec = 2, N_size
          E_vec(i_vec) = E_vec(i_vec-1)*Eint    
       enddo
-      RETURN
 
    END SUBROUTINE vector_log
 
@@ -195,7 +193,6 @@ module global
       real(dp), intent(in):: x0
       g = 1./(1. + (0.153*x0**0.857)/(1. + 0.254*x0**1.84))
       F_1 = ( (pi**2/6. + x0)*exp(-x0) )*g   
-      RETURN
    end Function F_1
 
    Function F_2(x0)  ! Used for anisotropic IC (Khangulyan 2014)
@@ -204,7 +201,6 @@ module global
       real(dp), intent(in):: x0
       g = 1./(1. + (1.33*x0**0.691)/(1. + 0.534*x0**1.668))
       F_2 = ( (pi**2./6. + x0)*exp(-x0) )*g   
-      RETURN
    end Function F_2
 
    Function F_3(x0)  ! Used for isotropic IC (Khangulyan 2014)
@@ -214,7 +210,6 @@ module global
       real(dp), parameter:: c_3 = 0.319
       g = 1./(1. + (0.443*x0**0.606)/(1. + 0.54*x0**1.481))
       F_3 = (pi**2/6.*(1.+c_3*x0)/(1.+pi**2*c_3*x0/6.)*exp(-x0) )*g   
-      RETURN
    end Function F_3
 
    Function F_4(x0)  ! Used for isotropic IC (Khangulyan 2014)
@@ -224,7 +219,6 @@ module global
       real(dp), parameter:: c_4 = 6.62
       g = 1./(1. + (0.726*x0**0.461)/(1. + 0.382*x0**1.457))
       F_4 = (pi**2/6.*(1.+c_4*x0)/(1.+pi**2*c_4*x0/6.)*exp(-x0) )*g   
-      RETURN
    end Function F_4
 
    !============================================================================
@@ -237,7 +231,6 @@ module global
       c = 2.99792458d10
       h = 6.6260755d-27
       nBB = 2.d0*pi/((h*c)**3)*(Epho**2/(exp(Epho/(k*T))-1.))
-      RETURN
    end Function nBB
 
    !============================================================================
@@ -260,7 +253,6 @@ module global
          versor(j) = resta(j)/suma
       enddo
 
-      RETURN
    END SUBROUTINE versorresta
 
    !============================================================================
@@ -275,7 +267,6 @@ module global
          sigma_pp = (34.3d0 + 1.88d0*L1 + 0.25d0*L1**2)*1.d-27 !cm²
          sigma_pp = sigma_pp*(1.d0-(E_th/Ep)**4)**2 ! Add factor for better fit at low energies 
       endif
-      return
    end Function sigma_pp
 
 

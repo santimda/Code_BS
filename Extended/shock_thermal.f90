@@ -87,7 +87,6 @@ module shock_thermal
   subroutine shock_thermal_run_spectrum(shock, radiative)
     character(LEN=*), intent(in) :: shock
     logical, intent(in) :: radiative
-    integer, parameter :: mE_ph = 600
     integer, parameter :: m_l = 2*m_theta  ! CD position, both sides
     real(dp) :: n_a(m_theta), n_1(m_theta), cte_l(m_theta), cte_l_1(m_theta), dV_ring(m_theta)
     real(dp) :: v_sh
@@ -114,7 +113,7 @@ module shock_thermal
     integer :: nl, i_ph
     Integer :: i_890M,i_1G,i_3G,i_5G
     integer :: N_avg
-    real(dp) :: g_ff(mE_ph)
+    real(dp), allocatable :: g_ff(:,:)
 
     allocate( H_theta(m_theta), H_1(m_theta), rho(m_theta), T(m_theta), rho_f(m_theta) )
     allocate( F_nu(m_l,mE_ph),F_nu_phi(m_l,mE_ph),F_nu_ion(m_l,mE_ph),F_nu_phi_ion(m_l,mE_ph))
@@ -210,6 +209,8 @@ module shock_thermal
     flux2 = flux/nu(i_3G) 
     flux3 = flux/nu(i_5G)
 
+    allocate(g_ff(m_theta,mE_ph))
+
     !------------------------------------------------------------
     ! Calculate the luminosity from the hot layer in the FS
     ! L_ff = (1 - T_2/T_1) * Linj_perp
@@ -221,16 +222,17 @@ module shock_thermal
 
     do l=1,m_theta  
       integ = 0.d0
-      call gaunt_ff_calc(nu,size(nu),T_HL(l),Zq_sw,g_ff) ! g_ff is a vector with gaunt_factor(nu(i))
+      call gaunt_ff_calc(nu,size(nu),T_HL(l),Zq_sw,g_ff(l,:)) ! g_ff is a vector with gaunt_factor(nu(i))
       do i_ph = 1,mE_ph   
+        !print*, l, i_ph, g_ff(l,i_ph), 9.77d0*(1.d0+0.13d0*log10(T(l)**1.5d0/Zq_sw/nu(i_ph))) ! aprox 
+  
         ! Eq. 5.14b from Rybicki gives the spectrum in erg/s/cm3/Hz, so I divide by h
         ! emi_ff_nu = (6.8d-38*Zq_sw**2*ne*ni*T_HL(l)**(-0.5d0)*exp(-Eph(i_ph)/(k*T(l)))*g_ff(Eph(i_ph),T(l)) )/h ! erg/s/cm3/erg
 
-        ! print*, i_ph, l, g_ff(nu(i_ph), 9.77d0*(1.d0+0.13d0*log10(T(l)**1.5d0/Zq_sw/nu(i_ph))) ! aprox 
         ! Thermal emission from the post shock layer in a radiative shock
         ! L_ff = ( 1-(8000K/T(l)) ) * L_inj_perp
-        emi_ff_nu(l,i_ph) = ( cte_l_1(l) * exp(-Eph(i_ph)/(k*T_HL(l))) * g_ff(i_ph) )/h  ! erg/s/cm3/erg
-        alpha_ff_nu1(l,i_ph) = 3.7d8 * (Zq_sw**2*(rho(l)/mp/mu_ISM)**2/sqrt(T_HL(l)) ) * (1.d0-exp(-h*nu(i_ph)/(k*T_HL(l))) )/nu(i_ph)**3 * g_ff(i_ph)
+        emi_ff_nu(l,i_ph) = ( cte_l_1(l) * exp(-Eph(i_ph)/(k*T_HL(l))) * g_ff(l,i_ph) )/h  ! erg/s/cm3/erg
+        alpha_ff_nu1(l,i_ph) = 3.7d8 * (Zq_sw**2*(rho(l)/mp/mu_ISM)**2/sqrt(T_HL(l)) ) * (1.d0-exp(-h*nu(i_ph)/(k*T_HL(l))) )/nu(i_ph)**3 * g_ff(l,i_ph)
         Tau_1(l,i_ph) = alpha_ff_nu1(l,i_ph)*H_1(l)
         if ( Tau_1(l,i_ph)>= 1.d0 ) then
           write(*,96) 'Region 1 is optically thick at angle', theta(l)*180./pi, 'and frequency', nu(i_ph)/1.d6, 'MHz'
@@ -298,11 +300,13 @@ module shock_thermal
     open(40,file='S_ionized'//shock//'.dat')
 
     ! THIS IS INCORRECT FOR THE RS! T(1) should be T(l), but within the loop... rethink!
-    if (shock == 'FS') then
-      call gaunt_ff_calc(nu,size(nu),T_f,Zq_ISM,g_ff) ! g_ff is a vector with gaunt_factor(nu(i))
-    else if (shock == 'RS') then
-      call gaunt_ff_calc(nu,size(nu),T(1),Zq_sw,g_ff) ! g_ff is a vector with gaunt_factor(nu(i))
-    end if
+    do l = 1,m_theta
+      if (shock == 'FS') then
+        call gaunt_ff_calc(nu,size(nu),T_f,Zq_ISM,g_ff(l,:)) ! g_ff is a vector with gaunt_factor(nu(i))
+      else if (shock == 'RS') then
+        call gaunt_ff_calc(nu,size(nu),T(l),Zq_sw,g_ff(l,:)) ! g_ff is a vector with gaunt_factor(nu(i))
+      end if
+    enddo  
 
     do i_ph=1,mE_ph
       L_ion(i_ph) = 0.d0
@@ -315,8 +319,8 @@ module shock_thermal
         ! write(*,*) i_ph, l, gffinter, 9.77d0*(1.d0+0.13d0*log10(T(l)**1.5d0/Zq_sw/(Eph(i_ph)/h))) ! aprox 
         ! Emission from the ionized layer by the star's radiation field. T = 8.000 K (FS)
         ! Thermal emission
-        emi_ion_nu = ( cte_l(l) * exp(-Eph(i_ph)/(k*T(l))) * g_ff(i_ph) )/h ! erg/s/cm3/Hz
-        alpha_ff_nu2(l,i_ph) = 3.7d8 * (Zq_sw**2*n_a(l)**2/sqrt(T(l))) * (1.d0-exp(-h*nu(i_ph)/(k*T(l))) )/nu(i_ph)**3 * g_ff(i_ph)
+        emi_ion_nu = ( cte_l(l) * exp(-Eph(i_ph)/(k*T(l))) * g_ff(l,i_ph) )/h ! erg/s/cm3/Hz
+        alpha_ff_nu2(l,i_ph) = 3.7d8 * (Zq_sw**2*n_a(l)**2/sqrt(T(l))) * (1.d0-exp(-h*nu(i_ph)/(k*T(l))) )/nu(i_ph)**3 * g_ff(l,i_ph)
         Tau_2(l,i_ph) = alpha_ff_nu2(l,i_ph)*H_theta(l)
         !if ( Tau_2(l,i_ph)>= 1.d0 ) then
         !  write(*,96) 'Region 2 is optically thick at angle', theta(l)*180./pi, 'and frequency', nu(i_ph)/1.d6, 'MHz'
@@ -469,6 +473,8 @@ module shock_thermal
 
     deallocate ( H_theta, H_1, rho, T, rho_f )
     deallocate ( F_nu,F_nu_phi,F_nu_ion,F_nu_phi_ion )
+    deallocate(g_ff)
+    
   END subroutine shock_thermal_run_spectrum
 
   !============================================================================
