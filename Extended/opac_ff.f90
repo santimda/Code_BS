@@ -253,9 +253,9 @@ module opac_ff
       ! Define some variables
 
       ni_ISM = n_ISM/mu_SISM      ! Number particle density in the ionized ISM is larger (should it be ni_ISM = 2.*n_ISM?)
-      ne_ISM = ni
+      ne_ISM = n_ISM
       T_ion = T_ISM
-      cte_f = 8.235d-2*T_ion**(-1.35) ! Eq.4 Olnon 1975
+      cte_f = 8.235d-2*T_ion**(-1.35)   ! Eq.4 Olnon 1975
       cte_Lnu = 8.*pi**2*k*T_ion*R_str**2/c**2
 
       call vector_log(nu_min_ff,nu_max_ff,nu_int_ff,nu_ISM)
@@ -268,12 +268,13 @@ module opac_ff
       open (400,file='radff.dat')
       open (500, file='flux_ISM.dat')
       do i=1,mE_ff
-         !f_ff = cte_f*(nu_ISM(i)/1.d9)**(-2.1)  ! [cm^6/pc] --> Eq.4 Olnon 1975
-         !p_ff = 2.d0*ne_ISM*ni_ISM*(R_str/pc)*f_ff      ! Eq. 10 Olnon 1975
+         f_ff = cte_f*(nu_ISM(i)/1.d9)**(-2.1)  ! [cm^6/pc] --> Eq.4 Olnon 1975
+         !cte_f = 8.235d-2*T_ion**(-1.35)*(nu_ISM(i)/1.d9)**(-2.1)
+         p_ff(i) = 2.d0*ne_ISM*ni_ISM*(R_str/pc)*f_ff      ! Eq. 10 Olnon 1975
          cte_alpha_ff_ISM = 3.7d8*Zq_ISM**2/sqrt(T_ion)*ne_ISM*ni_ISM ! Rybicky & Lightman? (eq. 5.18 b)
          cte_nu = nu_ISM(i)**(-3)*(1.d0-exp(-h*nu_ISM(i)/k/T_ion))*g_ff_ISM(i) !(eq. 5.18 b)
          alpha_ff = cte_alpha_ff_ISM*cte_nu !1/cm
-         p_ff(i) = alpha_ff * R_str 
+         !p_ff(i) = alpha_ff * R_str 
          if (p_ff(i) > 1.d-4) then
           factor_opac = ( 1. - (2./p_ff(i)**2)*(1.-(p_ff(i)+1.)*exp(-p_ff(i))) ) ! Eq. 11 Olnon 1975 for sphere
          else ! if p_ff << 1d-5 there are numerical errors, but analytically the factor --> p
@@ -283,7 +284,7 @@ module opac_ff
          write(300,*) h*nu_ISM(i)/(k*T_ion),g_ff_ISM(i)
          write(400,*) h*nu_ISM(i)/eV,Lnu(i)/h   ! [Lnu] = erg/s/Hz
          write(500,*) nu_ISM(i), Lnu(i)*1.d26/(4.*pi*distance**2)  ! mJy
-         !print*, nu_ISM(i)/1.d9, Lnu(i)*1.d26/(4.*pi*distance**2)
+         print*, nu_ISM(i)/1.d9, Lnu(i)*1.d26/(4.*pi*distance**2)
       end do
       close(300)
       close(400)
