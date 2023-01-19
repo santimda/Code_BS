@@ -245,7 +245,8 @@ module opac_ff
         dnu_st = E_st(i_ph)*(E_st_int - 1.d0)/h
         Q_ion = Q_ion + norm_BB_st*nBB(E_st(i_ph),T_st)*dnu_st/E_st(i_ph)    ! erg2*cm3/erg/cm3/s
       end do
-      R_str = 0.68d0*pc*(Q_ion/1.d49)*(n_ISM/1.d3)**(-2./3.)*(T_ISM/1.d4)**0.28
+      R_str = 0.68d0 * pc * (Q_ion/1.d49)**(1./3.) * (n_ISM/1.d3)**(-2./3.) * (T_ISM/1.d4)**0.28
+      write(*,'(a, Es10.2)') ' Q_ion(ph/s) = ', Q_ion
       write(*,'(a, F6.3)') ' R_str(pc) = ', R_str/pc
       write(*,'(a, F5.2)') ' R_str/R0 = ', R_str/R0
 
@@ -284,7 +285,7 @@ module opac_ff
          write(300,*) h*nu_ISM(i)/(k*T_ion),g_ff_ISM(i)
          write(400,*) h*nu_ISM(i)/eV,Lnu(i)/h   ! [Lnu] = erg/s/Hz
          write(500,*) nu_ISM(i), Lnu(i)*1.d26/(4.*pi*distance**2)  ! mJy
-         print*, nu_ISM(i)/1.d9, Lnu(i)*1.d26/(4.*pi*distance**2)
+         !print*, nu_ISM(i)/1.d9, Lnu(i)*1.d26/(4.*pi*distance**2)
       end do
       close(300)
       close(400)
