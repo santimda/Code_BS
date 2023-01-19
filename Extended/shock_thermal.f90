@@ -105,6 +105,7 @@ module shock_thermal
     real(dp) :: F_nu_iph(m_l,mE_ph), F_nu_tot(m_theta), F_nu_ion_tot(m_theta)
     real(dp) :: F_nu_avg(m_theta), F_nu_ion_avg(m_theta)
     real(dp) :: dnu_avg, h_avg
+    real(dp) :: emi_ff_0, vol_slab
     real(dp), parameter :: T_f = T_ISM
     !real(dp) :: F_nu(m_l,mE_ph),F_nu_phi(m_l,mE_ph)
     real(dp) :: n_BB(m_theta,mE_ph), T_min(m_theta)
@@ -178,7 +179,7 @@ module shock_thermal
       else if (shock == 'RS') then
         n_a(l) = rho(l)/mp/mu_sw
       end if
-      cte_l(l) = 6.8d-38*Zq_sw**2*gamma_sw*n_a(l)**2/sqrt(T(l))
+      cte_l(l) = 6.8d-38*Zq_sw**2*gamma_ISM*n_a(l)**2/sqrt(T(l))
     enddo
     close(11)
 
@@ -306,7 +307,9 @@ module shock_thermal
       else if (shock == 'RS') then
         call gaunt_ff_calc(nu,size(nu),T(l),Zq_sw,g_ff(l,:)) ! g_ff is a vector with gaunt_factor(nu(i))
       end if
-    enddo  
+    enddo
+
+    if (shock == 'FS') open(60,file='L_3GHz.dat')
 
     do i_ph=1,mE_ph
       L_ion(i_ph) = 0.d0
@@ -330,6 +333,9 @@ module shock_thermal
         F_nu_ion(l,i_ph) = f_vol_ion(l)*Eph(i_ph)    ! erg/s
         F_nu_ion(l+m_theta,i_ph) = F_nu_ion(l,i_ph)
         L_ion(i_ph) = L_ion(i_ph) + f_vol_ion(l)
+        if (shock == 'FS') then
+            if ( (nu(i_ph)>2.99d9) .and. (nu(i_ph)<3.07d9) ) write(60,*) theta(l), L_ion(i_ph)*Eph(i_ph)*flux/nu(i_ph)
+        end if
       end do
       !call integrate(m_theta,dtheta,f_vol_ion,integ_ion)
 
@@ -341,11 +347,20 @@ module shock_thermal
 
       dEph = Eph(i_ph)*(Eph_int - 1.d0)
       L_ion_tot = L_ion_tot + L_ion(i_ph)*dEph
-      !print*, L_ion(i_ph), dEph, Eph_int, Eph(i_ph)
     end do
+
+    if (shock == 'FS') close(60)
 
     close(39)
     close(40)
+
+    !---------------------------------------------------------------------
+    !print*, '\n slab emission'
+    !vol_slab = (pi*(R0*sin(pi/6.))**2) * 0.005d0*R0
+    !do i_ph = 1,mE_ph
+    !  emi_ff_0 = cte_l(2) * exp(-h*nu(i_ph)/k/T_ISM) * g_ff(2,i_ph) * nu(i_ph) * vol_slab
+    !  print*, nu(i_ph)/1.d9, emi_ff_0*flux/nu(i_ph)
+    !end do
 
     if (shock == 'FS') then
       print*, '\n f-f emission from the ionized layer by the star:'
