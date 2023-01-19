@@ -267,15 +267,15 @@ module CD_termo
       open(43,file='t_th_'//shock//'.dat')
 
       do l=1,m_theta
-         if (T(l) < 1.d4) then
-            lambda_T(l) = 7.d-23 ! Just to have a smooth transition...
-         else if ((1.d4 <= T(l)) .AND. (T(l) <= 1.d5)) then
-            lambda_T(l) = 7.d-27 * T(l)
-         else if ((1.d5 < T(l)) .AND. (T(l) <= 4.d7)) then
-            lambda_T(l) = 7.d-19 * T(l)**(-0.6) 
-         else if (T(l) > 4.d7) then
+         !if (T(l) < 1.d4) then
+         !   lambda_T(l) = 7.d-23 ! Just to have a smooth transition...
+         !else if ((1.d4 <= T(l)) .AND. (T(l) <= 1.d5)) then
+         !   lambda_T(l) = 7.d-27 * T(l)
+         !else if ((1.d5 < T(l)) .AND. (T(l) <= 4.d7)) then
+         !   lambda_T(l) = 7.d-19 * T(l)**(-0.6) 
+         !else if (T(l) > 4.d7) then
             lambda_T(l) = 3.d-27 * sqrt(T(l))
-         end if
+         !end if
 
          if (shock == 'RS') then
             t_th(l) = k*T(l)/(r(l) * rho_med(l)/(mu_w * mp) * lambda_T(l) ) ! Thermal losses
@@ -341,12 +341,12 @@ module CD_termo
       ! Post shock layer of a radiative shock
       if (radiative) then
          do l=1,m_theta
-            H_1(l) = v_perp(l)*t_th(l)
+            H_1(l) = (v_perp(l)/r(l))*t_th(l)
          end do
       end if
 
       dot_M = 0.d0
-      theta_min = 0.1d0 ! For theta < theta_min, the approximation is not good
+      theta_min = 0.2d0 ! For theta < theta_min, the approximation is not good
       l_min = int( (theta_min/theta_max) * m_theta )
       do l = 1, m_theta
          ! Calculate the perpendicular area of a ring:
@@ -369,9 +369,7 @@ module CD_termo
 
       !if (radiative) then
       !do l=1,m_theta
-         !print*, H_theta(l)/R_theta(l), H_1(l)/R_theta(l), (H_theta(l)+H_1(l))/R_theta(l)
-         !H_theta(l) = 0.09*R0
-         !H_1(l) = 0.01*R0
+      !   print*, H_theta(l)/R_theta(l), H_1(l)/R_theta(l), (H_theta(l)+H_1(l))/R_theta(l)
       !end do
       !end if
 
