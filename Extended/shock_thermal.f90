@@ -88,6 +88,7 @@ module shock_thermal
     character(LEN=*), intent(in) :: shock
     logical, intent(in) :: radiative
     integer, parameter :: m_l = 2*m_theta  ! CD position, both sides
+    real(dp) :: zq
     real(dp) :: n_a(m_theta), n_1(m_theta), cte_l(m_theta), cte_l_1(m_theta), dV_ring(m_theta)
     real(dp) :: v_sh
     real(dp) :: Eph_0, Eph_min, Eph_max, Eph_int, Eph(mE_ph), dEph
@@ -116,7 +117,7 @@ module shock_thermal
     integer :: N_avg
     real(dp), allocatable :: g_ff(:,:)
 
-    allocate( H_theta(m_theta), H_1(m_theta), rho(m_theta), T(m_theta), rho_f(m_theta) )
+    allocate( H_theta(m_theta), H_1(m_theta), rho(m_theta), T(m_theta), rho_IL(m_theta) )
     allocate( F_nu(m_l,mE_ph),F_nu_phi(m_l,mE_ph),F_nu_ion(m_l,mE_ph),F_nu_phi_ion(m_l,mE_ph))
 
   90  format(A19,X,Es10.3)
@@ -132,8 +133,10 @@ module shock_thermal
 
     if (shock == 'RS') then
       v_sh = v_w
+      zq = zq_sw
     else if (shock == 'FS') then
       v_sh = v_ISM
+      zq = Zq_ISM
     end if
 
     !------------------------------------------------------------     
@@ -164,7 +167,7 @@ module shock_thermal
 
     open(11,file='termo_'//shock//'.dat')
     do l=1,m_theta
-      read(11,*) nl,rho(l),dummy,dummy,T(l),dummy,v_perp(l),dummy,dummy,r(l),dummy,rho_f(l) ! CGS
+      read(11,*) nl,rho(l),dummy,dummy,T(l),dummy,v_perp(l),dummy,dummy,r(l),dummy,rho_IL(l) ! CGS
       if (shock == 'FS') then
         T_HL(l) = T(l)
         T(l) = T_f    ! T(l) -> isothermal region and RS
@@ -172,14 +175,15 @@ module shock_thermal
      
       if (shock == 'FS') then
         n_1(l) = rho(l)/mp/mu_ISM
-        n_a(l) = rho_f(l)/mp/mu_ISM  
+        n_a(l) = rho_IL(l)/mp/mu_ISM
+        !print*, n_a(l)/n_ISM
         !ni = n_a(l) 
         !ne = gamma_sw*n_a(l)
-        cte_l_1(l) = 6.8d-38*Zq_sw**2*gamma_sw*n_1(l)**2/sqrt(T_HL(l)) 
+        cte_l_1(l) = 6.8d-38*Zq**2*gamma_sw*n_1(l)**2/sqrt(T_HL(l)) 
       else if (shock == 'RS') then
         n_a(l) = rho(l)/mp/mu_sw
       end if
-      cte_l(l) = 6.8d-38*Zq_sw**2*gamma_ISM*n_a(l)**2/sqrt(T(l))
+      cte_l(l) = 6.8d-38*Zq**2*gamma_ISM*n_a(l)**2/sqrt(T(l))
     enddo
     close(11)
 
@@ -223,7 +227,7 @@ module shock_thermal
 
     do l=1,m_theta  
       integ = 0.d0
-      call gaunt_ff_calc(nu,size(nu),T_HL(l),Zq_sw,g_ff(l,:)) ! g_ff is a vector with gaunt_factor(nu(i))
+      call gaunt_ff_calc(nu,size(nu),T_HL(l),Zq,g_ff(l,:)) ! g_ff is a vector with gaunt_factor(nu(i))
       do i_ph = 1,mE_ph   
         !print*, l, i_ph, g_ff(l,i_ph), 9.77d0*(1.d0+0.13d0*log10(T(l)**1.5d0/Zq_sw/nu(i_ph))) ! aprox 
   
@@ -233,7 +237,7 @@ module shock_thermal
         ! Thermal emission from the post shock layer in a radiative shock
         ! L_ff = ( 1-(8000K/T(l)) ) * L_inj_perp
         emi_ff_nu(l,i_ph) = ( cte_l_1(l) * exp(-Eph(i_ph)/(k*T_HL(l))) * g_ff(l,i_ph) )/h  ! erg/s/cm3/erg
-        alpha_ff_nu1(l,i_ph) = 3.7d8 * (Zq_sw**2*(rho(l)/mp/mu_ISM)**2/sqrt(T_HL(l)) ) * (1.d0-exp(-h*nu(i_ph)/(k*T_HL(l))) )/nu(i_ph)**3 * g_ff(l,i_ph)
+        alpha_ff_nu1(l,i_ph) = 3.7d8 * (Zq**2*(rho(l)/mp/mu_ISM)**2/sqrt(T_HL(l)) ) * (1.d0-exp(-h*nu(i_ph)/(k*T_HL(l))) )/nu(i_ph)**3 * g_ff(l,i_ph)
         Tau_1(l,i_ph) = alpha_ff_nu1(l,i_ph)*H_1(l)
         if ( Tau_1(l,i_ph)>= 1.d0 ) then
           write(*,96) 'Region 1 is optically thick at angle', theta(l)*180./pi, 'and frequency', nu(i_ph)/1.d6, 'MHz'
@@ -303,7 +307,7 @@ module shock_thermal
     ! THIS IS INCORRECT FOR THE RS! T(1) should be T(l), but within the loop... rethink!
     do l = 1,m_theta
       if (shock == 'FS') then
-        call gaunt_ff_calc(nu,size(nu),T_f,Zq_ISM,g_ff(l,:)) ! g_ff is a vector with gaunt_factor(nu(i))
+        call gaunt_ff_calc(nu,size(nu),T(l),Zq_ISM,g_ff(l,:)) ! g_ff is a vector with gaunt_factor(nu(i))
       else if (shock == 'RS') then
         call gaunt_ff_calc(nu,size(nu),T(l),Zq_sw,g_ff(l,:)) ! g_ff is a vector with gaunt_factor(nu(i))
       end if
@@ -323,7 +327,7 @@ module shock_thermal
         ! Emission from the ionized layer by the star's radiation field. T = 8.000 K (FS)
         ! Thermal emission
         emi_ion_nu = ( cte_l(l) * exp(-Eph(i_ph)/(k*T(l))) * g_ff(l,i_ph) )/h ! erg/s/cm3/Hz
-        alpha_ff_nu2(l,i_ph) = 3.7d8 * (Zq_sw**2*n_a(l)**2/sqrt(T(l))) * (1.d0-exp(-h*nu(i_ph)/(k*T(l))) )/nu(i_ph)**3 * g_ff(l,i_ph)
+        alpha_ff_nu2(l,i_ph) = 3.7d8 * (Zq**2*n_a(l)**2/sqrt(T(l))) * (1.d0-exp(-h*nu(i_ph)/(k*T(l))) )/nu(i_ph)**3 * g_ff(l,i_ph)
         Tau_2(l,i_ph) = alpha_ff_nu2(l,i_ph)*H_theta(l)
         !if ( Tau_2(l,i_ph)>= 1.d0 ) then
         !  write(*,96) 'Region 2 is optically thick at angle', theta(l)*180./pi, 'and frequency', nu(i_ph)/1.d6, 'MHz'
@@ -337,9 +341,7 @@ module shock_thermal
             if ( (nu(i_ph)>2.99d9) .and. (nu(i_ph)<3.07d9) ) write(60,*) theta(l), L_ion(i_ph)*Eph(i_ph)*flux/nu(i_ph)
         end if
       end do
-      !call integrate(m_theta,dtheta,f_vol_ion,integ_ion)
 
-      !L_ion(i_ph) = integ_ion
       S_ion(i_ph) = L_ion(i_ph)*Eph(i_ph)*flux/nu(i_ph)  ! Total flux at a certain freq. in mJy
 
       write(39,*) Eph(i_ph)/eV, Eph(i_ph)*L_ion(i_ph), L_ion(i_ph)
@@ -356,10 +358,12 @@ module shock_thermal
 
     !---------------------------------------------------------------------
     !print*, '\n slab emission'
-    !vol_slab = (pi*(R0*sin(pi/6.))**2) * 0.005d0*R0
+    !vol_slab = (pi*(R0*sin(0.3d0))**2) * 0.03d0*R0
     !do i_ph = 1,mE_ph
-    !  emi_ff_0 = cte_l(2) * exp(-h*nu(i_ph)/k/T_ISM) * g_ff(2,i_ph) * nu(i_ph) * vol_slab
-    !  print*, nu(i_ph)/1.d9, emi_ff_0*flux/nu(i_ph)
+      !6.8d-38*Zq**2*gamma_ISM*n_a(l)**2/sqrt(T(l))
+      !emi_ff_0 = cte_l(2) * exp(-h*nu(i_ph)/k/T_ISM) * g_ff(2,i_ph) !* nu(i_ph) !* vol_slab
+      !if ( (nu(i_ph)>2.99d9) .and. (nu(i_ph)<3.07d9) ) print*, 'emi_ff_o', emi_ff_0
+      !if ( (nu(i_ph)>2.99d9) .and. (nu(i_ph)<3.07d9) ) print*, nu(i_ph)/1.d9, emi_ff_0*flux/nu(i_ph)
     !end do
 
     if (shock == 'FS') then
@@ -388,7 +392,7 @@ module shock_thermal
 
       do l = 1,m_l
         do i_ph = 1, mE_ph
-          F_nu_phi(l,i_ph) = F_nu(l,i_ph)/mphi/2.d0   ! 4 quadrants, but already mirrored
+          F_nu_phi(l,i_ph) = F_nu(l,i_ph)/mphi/4.d0   ! 4 quadrants, but already mirrored
           !if (l==2 .and. (nu(i_ph) >= nu_av_min)) print*, 'F_HOT =', F_nu(l,i_ph), nu(i_ph)/1.d9
         end do
         S1 = F_nu_phi(l,i_1G)*flux1
@@ -414,7 +418,7 @@ module shock_thermal
 
     do l = 1,m_l
       do i_ph=1,mE_ph
-        F_nu_phi_ion(l,i_ph) = F_nu_ion(l,i_ph)/mphi/2.d0   ! 4 quadrants
+        F_nu_phi_ion(l,i_ph) = F_nu_ion(l,i_ph)/mphi/4.d0   ! 4 quadrants
         !if (l==2 .and. (nu(i_ph) >= nu_av_min)) print*, 'F_ion =', F_nu_ion(l,i_ph), nu(i_ph)/1.d9
       end do
       S1 = F_nu_phi_ion(l,i_1G)*flux1
@@ -486,7 +490,7 @@ module shock_thermal
 
     !------------------------------------------------------------  
 
-    deallocate ( H_theta, H_1, rho, T, rho_f )
+    deallocate ( H_theta, H_1, rho, T, rho_IL )
     deallocate ( F_nu,F_nu_phi,F_nu_ion,F_nu_phi_ion )
     deallocate(g_ff)
     
