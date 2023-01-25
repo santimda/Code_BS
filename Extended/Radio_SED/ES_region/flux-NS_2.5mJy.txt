@@ -1,0 +1,12 @@
+#371 valid pixels
+spw=00 Flux density =  9.59243E-02 Jy
+spw=03 Flux density =  9.68388E-02 Jy
+spw=04 Flux density =  9.61163E-02 Jy
+spw=05 Flux density =  9.27713E-02 Jy
+spw=07 Flux density =  9.21485E-02 Jy
+spw=08 Flux density =  9.01383E-02 Jy
+spw=09 Flux density =  8.91308E-02 Jy
+spw=10 Flux density =  8.79812E-02 Jy
+spw=11 Flux density =  8.76938E-02 Jy
+spw=12 Flux density =  8.88483E-02 Jy
+spw=13 Flux density =  8.78308E-02 Jy
