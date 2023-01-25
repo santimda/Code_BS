@@ -28,17 +28,18 @@ module CD_termo
       real(dp) :: v_A_new(m_theta), v_ARH(m_theta), V_A(m_theta)
       real(dp) :: v_vec(2), n_perp(2), n_t(2)
       real(dp) :: e_flux, sin_alpha
-      real(dp) :: n_f(m_theta)
+      real(dp) :: n_IL(m_theta)
       real(dp) :: dot_M, dM, drho, P_th_med, Omega_in, theta_min, T_med
       real(dp) :: H_ion(m_theta)
-      real(dp) :: t_th(m_theta), lambda_T(m_theta), t_adv(m_theta), T_min(l), T_RH(m_theta), T_new(m_theta)
+      real(dp) :: lambda_tot(m_theta) 
+      real(dp) :: t_th(m_theta), t_adv(m_theta), T_IL(l), T_RH(m_theta), T_new(m_theta)
       integer :: l_crit, l_transition, l_min
       logical :: transition
       
       allocate( H_norm(m_theta),H_theta(m_theta),H_1(m_theta) )
       allocate( x(m_theta), y(m_theta) )
       allocate( Mach(m_theta),C_s_med(m_theta),C_s_sh(m_theta),C_s_sh_new(m_theta),r(m_theta) )
-      allocate( rho_med(m_theta),rho_f(m_theta) )
+      allocate( rho_med(m_theta),rho_IL(m_theta) )
       allocate( P(m_theta),rho(m_theta),T(m_theta),B(m_theta),v_t(m_theta),v_perp(m_theta) )
       allocate( P_new(m_theta),rho_new(m_theta),B_new(m_theta),v_t_new(m_theta) )
       allocate( v_t_RH(m_theta), P_RH(m_theta), rho_RH(m_theta), B_RH(m_theta), rho_min(m_theta) )
@@ -267,20 +268,20 @@ module CD_termo
       open(43,file='t_th_'//shock//'.dat')
 
       do l=1,m_theta
-         !if (T(l) < 1.d4) then
-         !   lambda_T(l) = 7.d-23 ! Just to have a smooth transition...
-         !else if ((1.d4 <= T(l)) .AND. (T(l) <= 1.d5)) then
-         !   lambda_T(l) = 7.d-27 * T(l)
-         !else if ((1.d5 < T(l)) .AND. (T(l) <= 4.d7)) then
-         !   lambda_T(l) = 7.d-19 * T(l)**(-0.6) 
-         !else if (T(l) > 4.d7) then
-            lambda_T(l) = 3.d-27 * sqrt(T(l))
-         !end if
+         if (T(l) < 1.d4) then
+            lambda_tot(l) = 4.d-29 * T(l)**0.8     ! GER
+         else if ((1.d4 <= T(l)) .AND. (T(l) <= 1.d5)) then    ! Myasnikov+ 1998
+            lambda_tot(l) = 7.d-27 * T(l)
+         else if ((1.d5 < T(l)) .AND. (T(l) <= 4.d7)) then
+            lambda_tot(l) = 7.d-19 * T(l)**(-0.6) 
+         else if (T(l) > 4.d7) then
+            lambda_tot(l) = 3.d-27 * sqrt(T(l))
+         end if
 
          if (shock == 'RS') then
-            t_th(l) = k*T(l)/(r(l) * rho_med(l)/(mu_w * mp) * lambda_T(l) ) ! Thermal losses
+            t_th(l) = k*T(l)/(r(l) * rho_med(l)/(mu_w * mp) * lambda_tot(l) )/(g_ad-1.d0) ! Thermal losses
          else if (shock == 'FS') then
-            t_th(l) = k*T(l)/( r(l) * n_ISM * lambda_T(l) )
+            t_th(l) = k*T(l)/( r(l) * n_ISM * lambda_tot(l) )/(g_ad-1.d0)
          end if
          write(43,*) theta(l), t_th(l)
       end do
@@ -306,29 +307,31 @@ module CD_termo
 
       !-----------------------------------------------------------------
       ! Minimum gas temperature
-      open(45,file='T_min_'//shock//'.dat')
+      if (radiative) then
+         open(45,file='T_IL_'//shock//'.dat')
 
-      T_min(1) = (t_th(1)/t_adv(2))*T(l)
-      if (T_min(1) < T_ISM) then
-         T_min(1) = T_ISM
-      end if
-      rho_f(1) = rho(1)*(T(1)/T_min(1))
-      n_f(1) = rho_f(1)/mp/mu_ISM
-      do l=2,m_theta
-         T_min(l) = (t_th(l)/t_adv(l))*T(l)         
-         if (T(l) <= T_min(l)) then
-            T_min(l) = T(l)
-         else if (T_min(l) < T_ISM) then
-            T_min(l) = T_ISM
+         T_IL(1) = (t_th(1)/t_adv(2))*T(l)
+         if (T_IL(1) < T_ISM) then
+            T_IL(1) = T_ISM
          end if
-         rho_f(l) = rho(l)*(T(l)/T_min(l))
-         n_f(l) = rho_f(l)/mp/mu_ISM
-      end do
-      do l=1,m_theta
-         write(45,*) theta(l), T_min(l)
-      end do
+         rho_IL(1) = rho(1)*(T(1)/T_IL(1))
+         n_IL(1) = rho_IL(1)/mp/mu_ISM
+         do l=2,m_theta
+            T_IL(l) = (t_th(l)/t_adv(l))*T(l)
+            if (T(l) <= T_IL(l)) then
+               T_IL(l) = T(l)
+            else if (T_IL(l) < T_ISM) then
+               T_IL(l) = T_ISM
+            end if
+            rho_IL(l) = rho(l)*(T(l)/T_IL(l))
+            n_IL(l) = rho_IL(l)/mp/mu_ISM
+         end do
+         do l=1,m_theta
+            write(45,*) theta(l), T_IL(l)
+         end do
 
-      close(45)
+         close(45)
+      end if
 
    !-----------------------------------------------------------------
       ! Calculate shock's width
@@ -346,7 +349,7 @@ module CD_termo
       end if
 
       dot_M = 0.d0
-      theta_min = 0.2d0 ! For theta < theta_min, the approximation is not good
+      theta_min = 0.1d0 ! For theta < theta_min, the approximation is not good
       l_min = int( (theta_min/theta_max) * m_theta )
       do l = 1, m_theta
          ! Calculate the perpendicular area of a ring:
@@ -358,7 +361,7 @@ module CD_termo
          if (.not. radiative) then
             H_theta(l) = dot_M/(2.*pi*y_eff(l)*rho(l)*v_t(l))   ! dot_M = 2*pi*y_eff(l)*H(l)*rho(l)*v_t(l)
          else if (radiative) then
-            H_theta(l) = dot_M/(2.*pi*y_eff(l)*v_t(l)*rho_f(l)) - H_1(l)*rho(l)/rho_f(l)
+            H_theta(l) = frac_H * dot_M/(2.*pi*y_eff(l)*v_t(l)*rho_IL(l)) - H_1(l)*rho(l)/rho_IL(l)
          end if
       end do
 
@@ -428,7 +431,7 @@ module CD_termo
       allocate( alpha_sh(m_theta) )
       open(20,file='alpha_'//shock//'.dat')
       do l = 1, m_theta
-         alpha_sh(l) = 2.45_dp   ! Value used for BD+43°3654
+         alpha_sh(l) = 2.2_dp   ! Value used for BD+43°3654
          !alpha_sh(l) = (r(l)+2.d0)/(r(l)-1.d0)
          !dummy = r(l)/(1.d0 + r(l)*v_A(l)/v_sh)         
          !print *, r(l), r(l)/(1.d0 + r(l)*v_ARH(l)/v_sh)
@@ -446,8 +449,8 @@ module CD_termo
       open(18, file='new_vs_RH_'//shock//'.dat') ! comparison btw P, rho and v_t new vs old
       open(19, file='H_'//shock//'.dat')
       do l = 1, m_theta
-         write(16,*) l,rho(l),P(l),v_t(l),T(l),B(l),v_perp(l),theta(l),Mach(l),r(l),rho_med(l),rho_f(l)
-         write(17,*) theta(l),rho(l)/rho(1),P(l)/P(1),v_t(l)/v_sh,T(l)/T(1),B(l)/B(1),v_perp(l)/v_sh,C_s_sh(l)/v_sh,rho_f(l)/rho_f(1)
+         write(16,*) l,rho(l),P(l),v_t(l),T(l),B(l),v_perp(l),theta(l),Mach(l),r(l),rho_med(l),rho_IL(l)
+         write(17,*) theta(l),rho(l)/rho(1),P(l)/P(1),v_t(l)/v_sh,T(l)/T(1),B(l)/B(1),v_perp(l)/v_sh,C_s_sh(l)/v_sh,rho_IL(l)/rho_IL(1)
          write(18,*) theta(l),v_t(l)/v_t_RH(l), P(l)/P_RH(l), rho(l)/rho_RH(l)
          if (.not. radiative) then
             write(19,*) theta(l), H_theta(l), H_theta(l)/R_theta(l)
@@ -463,7 +466,7 @@ module CD_termo
       if (radiative) then
          open(22, file='termo_radiative_norm.dat')
          do l = 1, m_theta
-            write(22,*) theta(l), rho(l)/rho_med(l), rho_f(l)/rho_med(l), T(l)/T_ISM
+            write(22,*) theta(l), rho(l)/rho_med(l), rho_IL(l)/rho_med(l), T(l)/T_ISM
          end do
       end if
 
@@ -475,7 +478,7 @@ module CD_termo
          write(*,41) 'n_a0 =',rho(1)/mp/mu_sw
       else if (shock == 'FS') then
          write(*,41) 'rho0/rho_ISM =',rho(1)/rho_ISM 
-         write(*,41) 'n_a0 =',rho(1)/mp/mu_SISM
+         write(*,41) 'n_a0 =',rho(1)/mp/mu_ISM
       end if     
       write(*,41) 'P0 =',P(1)
       write(*,41) 'v0_t =',v_t(1)
@@ -485,7 +488,7 @@ module CD_termo
       write(*,41) 'B_st <',(B(1)/4.d0)*(R0/R_st)*(v_w/v_st_rot)*r_A_st 
       41  format (A12,ES9.2)
 
-      deallocate( P,rho,T,B,v_t,v_perp,Mach,r,rho_med,C_s_med,C_s_sh,C_s_sh_new,rho_min,rho_f )
+      deallocate( P,rho,T,B,v_t,v_perp,Mach,r,rho_med,C_s_med,C_s_sh,C_s_sh_new,rho_min,rho_IL )
       deallocate( H_1,H_theta,H_norm,H_new )
       deallocate( x, y, y_eff )
       deallocate( v_t_new, P_new, rho_new, B_new)
