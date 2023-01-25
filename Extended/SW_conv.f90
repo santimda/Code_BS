@@ -198,8 +198,8 @@ module SW_conv
       !real(dp), parameter :: theta_x = 20.2d0, theta_y = 12.5d0   ! HPBW = Resolution 
       !real(dp), parameter :: sigma_x = theta_x/coc, sigma_y = theta_y/coc   ! Benaglia2010
       !real(dp), parameter :: sigma_x = 20.2d0, sigma_y = 12.5d0   ! Benaglia2020
-      !real(dp), parameter :: sigma_x = 20.2d0, sigma_y = 12.5d0  ! Benaglia2021
-      real(dp), parameter :: sigma_x = 18.3d0, sigma_y = 9.8d0    ! Moutzouri2022
+      real(dp), parameter :: sigma_x = 20.2d0, sigma_y = 12.5d0  ! Benaglia2021
+      !real(dp), parameter :: sigma_x = 18.3d0, sigma_y = 9.8d0    ! Moutzouri2022
       real(dp) :: x_map(m_tot),y_map(m_tot)
       real(dp) :: F_3Gabs(m_tot),F_3Gun(m_tot)
       real(dp) :: ancho_x, ancho_y, D_x, D_y,ci
@@ -223,10 +223,10 @@ module SW_conv
       !-------------------------------------------------------
       ! Initialize the data for the convolution region
 
-      !ancho_x = 4.d0*R0_proj/ci * 1.3d0 ! [mas](extra margin)
-      !ancho_y = 2.d0*(1.+ci)*R0_proj/ci * 1.3d0 ! [mas](extra margin)
-      ancho_x = 4.d0*R0_proj/ci * 1.3d1 ! [mas](extra margin)
-      ancho_y = 2.d0*(1.+ci)*R0_proj/ci * 1.3d1
+      ancho_x = 4.d0*R0_proj/ci * 1.3d0 ! [mas](extra margin)
+      ancho_y = 2.d0*(1.+ci)*R0_proj/ci * 1.3d0 ! [mas](extra margin)
+      !ancho_x = 4.d0*R0_proj/ci * 1.3d1 ! [mas](extra margin)
+      !ancho_y = 2.d0*(1.+ci)*R0_proj/ci * 1.3d1
 
       D_x = f_Ny*sigma_x
       D_y = f_Ny*sigma_y
@@ -326,7 +326,7 @@ module SW_conv
                else
                   D_F = 0.d0 ! flux drops < 1e-3 farther from there, no need to sum
                endif
-               suma2 = suma3 + D_F
+               suma3 = suma3 + D_F
             enddo
 
             F_map3Gabs(i,j) = suma + suma2 + suma3! >>>>> CHECK! FF FLUX TOO HIGH!
