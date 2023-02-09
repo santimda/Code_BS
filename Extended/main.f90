@@ -371,7 +371,7 @@ Subroutine abs_maps(SHOCK)
    use controls
    use CD_abssyn, only: CD_abssyn_run
    use CD_rot, only: CD_rot_run
-   use SW_conv, only: SW_conv1G_run, SW_conv3G_run, SW_conv5G_run, SW_convavg_run,SW_spex_run
+   use SW_conv, only: SW_conv1G_run, SW_conv3G_run, SW_conv5G_run, SW_conv6G_run, SW_conv10G_run, SW_convavg_run ,SW_spex_run, SW_spex_6_10_run
 
    implicit none
 
@@ -392,19 +392,27 @@ Subroutine abs_maps(SHOCK)
       open(88,file='sync_radiomap_'//shock//'_1GHz.dat')
       open(89,file='sync_radiomap_'//shock//'_3GHz.dat')
       open(90,file='sync_radiomap_'//shock//'_5GHz.dat')
+      open(900,file='sync_radiomap_'//shock//'_6GHz.dat')
+      open(901,file='sync_radiomap_'//shock//'_10GHz.dat')
       open(91,file='sync_radiomap_avg_'//shock//'.dat')
       open(98,file='th_ff_map_'//shock//'_1G.dat')
       open(99,file='th_ff_map_'//shock//'_3G.dat')
       open(100,file='th_ff_map_'//shock//'_5G.dat')
+      open(1000,file='th_ff_map_'//shock//'_6G.dat')
+      open(1001,file='th_ff_map_'//shock//'_10G.dat')
       open(101,file='th_ff_map'//shock//'avg.dat')
    else if (shock == 'BOTH') then
       open(88,file='sync_radiomap_1GHz.dat')
       open(89,file='sync_radiomap_3GHz.dat')
       open(90,file='sync_radiomap_5GHz.dat')
+      open(900,file='sync_radiomap_6GHz.dat')
+      open(901,file='sync_radiomap_10GHz.dat')
       open(91,file='sync_radiomap_avg.dat')
       open(98,file='th_ff_map_1G.dat')
       open(99,file='th_ff_map_3G.dat')
       open(100,file='th_ff_map_5G.dat')
+      open(1000,file='th_ff_map_6G.dat')
+      open(1001,file='th_ff_map_10G.dat')
       open(101,file='th_ff_map_avg.dat')
    end if
 
@@ -412,6 +420,8 @@ Subroutine abs_maps(SHOCK)
       open(108,file='hot_layer_1GHz.dat')
       open(109,file='hot_layer_3GHz.dat')
       open(110,file='hot_layer_5GHz.dat')
+      open(1100,file='hot_layer_6GHz.dat')
+      open(1101,file='hot_layer_10GHz.dat')
       open(111,file='hot_layer_avg.dat')
    end if
 
@@ -444,26 +454,36 @@ Subroutine abs_maps(SHOCK)
                open(61,file='CD_th_RS_1GHz.dat') ! 1.4 GHz
                open(62,file='CD_th_RS_3GHz.dat') ! 3.0 GHz
                open(63,file='CD_th_RS_5GHz.dat') ! 4.8 GHz
+               open(630,file='CD_th_RS_6GHz.dat') ! 6.0 GHz
+               open(631,file='CD_th_RS_10GHz.dat') ! 10. GHz
                open(64,file='CD_th_FS_1GHz.dat') ! 1.4 GHz
                open(65,file='CD_th_FS_3GHz.dat') ! 3.0 GHz
                open(66,file='CD_th_FS_5GHz.dat') ! 4.8 GHz
+               open(660,file='CD_th_FS_6GHz.dat') ! 6.0 GHz
+               open(661,file='CD_th_FS_10GHz.dat') ! 10. GHz
                open(67,file='CD_th_radiomap_avg_RS.dat') ! average ff RS
                open(68,file='CD_th_radiomap_avg_FS.dat') ! averague isothermal region
                if (shock /= 'BOTH') then
                   open(55,file='CD_sync_radiomap_'//shock//'1GHz.dat') ! 1.4 GHz sync
                   open(56,file='CD_sync_radiomap_'//shock//'3GHz.dat') ! 3.0 GHz sync
                   open(57,file='CD_sync_radiomap_'//shock//'5GHz.dat') ! 4.8 GHz sync
+                  open(570,file='CD_sync_radiomap_'//shock//'6GHz.dat') ! 6.0 GHz sync
+                  open(571,file='CD_sync_radiomap_'//shock//'10GHz.dat') ! 10. GHz sync
                   open(58,file='CD_sync_radiomap_avg'//shock//'.dat')
                else if (shock == 'BOTH') then
                   open(55,file='CD_sync_radiomap_1GHz.dat') ! 1.4 GHz
                   open(56,file='CD_sync_radiomap_3GHz.dat') ! 3.0 GHz
                   open(57,file='CD_sync_radiomap_5GHz.dat') ! 4.8 GHz
+                  open(570,file='CD_sync_radiomap_6GHz.dat') ! 6.0 GHz
+                  open(571,file='CD_sync_radiomap_10GHz.dat') ! 10. GHz
                   open(58,file='CD_sync_radiomap_avg.dat')
                end if
                if ((shock == 'BOTH') .or. (shock == 'FS'))  then
                   open(70,file='CD_hot_layer_1GHz.dat')
                   open(71,file='CD_hot_layer_3GHz.dat')
                   open(72,file='CD_hot_layer_5GHz.dat')
+                  open(720,file='CD_hot_layer_6GHz.dat')
+                  open(721,file='CD_hot_layer_10GHz.dat')
                   open(73,file='CD_hot_radiomap_avg.dat') ! average hot layer
                end if
 
@@ -531,6 +551,48 @@ Subroutine abs_maps(SHOCK)
                      end if
                   endif
 
+                  ! 6 GHz
+                  read(570,*) u_proj,v_proj,emi,emi_abs
+                  read(630,*) S_th_RS
+                  read(660,*) S_th_FS
+                  if ((shock == 'BOTH') .or. (shock == 'FS')) then
+                     read(720,*) S_hot
+                  end if
+                  S_th = S_th_FS + S_th_RS
+                  write(900,*) u_proj,v_proj,emi,emi_abs  
+                  write(1000,*) S_th
+                  if ((shock == 'BOTH') .or. (shock == 'FS')) then
+                     write(1100,*) S_hot
+                  end if
+                  if (i_phi.ne.1) then !.and. i_phi.ne.mphi) then
+                     write(900,*) u_proj,-v_proj,emi,emi_abs ! symmetry???
+                     write(1000,*) S_th
+                     if ((shock == 'BOTH') .or. (shock == 'FS')) then
+                        write(1100,*) S_hot
+                     end if
+                  endif
+
+                  ! 10 GHz
+                  read(571,*) u_proj,v_proj,emi,emi_abs
+                  read(631,*) S_th_RS
+                  read(661,*) S_th_FS
+                  if ((shock == 'BOTH') .or. (shock == 'FS')) then
+                     read(721,*) S_hot
+                  end if
+                  S_th = S_th_FS + S_th_RS
+                  write(901,*) u_proj,v_proj,emi,emi_abs  
+                  write(1001,*) S_th
+                  if ((shock == 'BOTH') .or. (shock == 'FS')) then
+                     write(1101,*) S_hot
+                  end if
+                  if (i_phi.ne.1) then !.and. i_phi.ne.mphi) then
+                     write(901,*) u_proj,-v_proj,emi,emi_abs ! symmetry???
+                     write(1001,*) S_th
+                     if ((shock == 'BOTH') .or. (shock == 'FS')) then
+                        write(1101,*) S_hot
+                     end if
+                  endif
+
                   ! Average
                   read(58,*) u_proj,v_proj,emi_avg,emi_avg_abs
                   read(67,*) S_th_avg_RS
@@ -556,19 +618,27 @@ Subroutine abs_maps(SHOCK)
                close(55)
                close(56)
                close(57)
+               close(570)
+               close(571)
                close(58)
                close(61)
                close(62)  
                close(63)
+               close(630)
+               close(631)
                close(64)
                close(65)
                close(66)
+               close(660)
+               close(661)
                close(67)
                close(68)
                if ((shock == 'BOTH') .or. (shock == 'FS'))  then
                   close(70)
                   close(71)
                   close(72)
+                  close(720)
+                  close(721)
                   close(73)
                end if
             endif
@@ -582,15 +652,21 @@ Subroutine abs_maps(SHOCK)
    close(88)
    close(89)
    close(90)
+   close(900)
+   close(901)
    close(91)
    close(98)
    close(99)
    close(100)
+   close(1000)
+   close(1001)
    close(101)
    if ((shock == 'BOTH') .or. (shock == 'FS')) then
       close(108)
       close(109)
       close(110)
+      close(1100)
+      close(1101)
       close(111)
    end if
 
@@ -611,9 +687,12 @@ Subroutine abs_maps(SHOCK)
       print *, 'Convolution of the emission map with the instrument response'
       call SW_conv1G_run(shock)
       call SW_conv3G_run(shock)
-      !call SW_conv5G_run(shock)
+      call SW_conv5G_run(shock)
+      call SW_conv6G_run(shock)
+      call SW_conv10G_run(shock)
       call SW_convavg_run(shock)
-      !call SW_spex_run(shock)
+      !call SW_spex_run
+      call SW_spex_6_10_run
    endif
 
 

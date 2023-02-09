@@ -26,10 +26,11 @@ module CD_abssyn
       Real(dp) :: r_ff(mr_ff),dr_ff
       Real(dp) :: theta1,x1,y1,z1,r1,dr0,x1_0,y1_0,z1_0
       Real(dp) :: dr_x,dr_y,tginc,sinc,cinc
-      Real(dp) :: Ef(m_nu),log_nu_int,flux,flux1,flux2,flux3
+      Real(dp) :: Ef(m_nu),log_nu_int,flux,flux1,flux2,flux3,flux4,flux5
       Real(dp) :: u_proj,v_proj  ! coords in the plane of the sky 
       Real(dp) :: emision1,emision2,emision3,emision1_abs,emision2_abs,emision3_abs,convert
-      Integer :: ir,nl,inu_max,i_1G,i_3G,i_5G,i_ff,i_theta
+      Real(dp) :: emision4,emision4_abs,emision5,emision5_abs
+      Integer :: ir,nl,inu_max,i_1G,i_3G,i_5G,i_6G,i_10G,i_ff,i_theta
       integer :: N_avg
       integer, parameter :: m_l = 2*m_theta  ! CD position, both sides
       real(dp) :: dnu_avg,h_avg
@@ -197,9 +198,13 @@ module CD_abssyn
       i_1G = int(log(1.42d9/nu(1))/log_nu_int) + 1        ! 1.4 GHz
       i_3G = int(log(3.00d9/nu(1))/log_nu_int) + 1         ! 3.0 GHz
       i_5G = int(log(4.86d9/nu(1))/log_nu_int) + 1        ! 4.8 GHz
+      i_6G = int(log(6.d9/nu(1))/log_nu_int) + 1        ! 6.0 GHz
+      i_10G = int(log(10.d9/nu(1))/log_nu_int) + 1        ! 10. GHz
       flux1 = flux/nu(i_1G)   
       flux2 = flux/nu(i_3G) 
       flux3 = flux/nu(i_5G)
+      flux4 = flux/nu(i_6G)
+      flux5 = flux/nu(i_10G)
 
       !-----------------------------------------------------------------------
       ! Calculate the total and absorbed emission for each linear emitter. 
@@ -209,10 +214,14 @@ module CD_abssyn
          open(70,file='CD_sync_radiomap_'//shock//'1GHz.dat') ! 1.4 GHz
          open(71,file='CD_sync_radiomap_'//shock//'3GHz.dat') ! 3.0 GHz
          open(72,file='CD_sync_radiomap_'//shock//'5GHz.dat') ! 4.8 GHz
+         open(74,file='CD_sync_radiomap_'//shock//'6GHz.dat') ! 6.0 GHz
+         open(75,file='CD_sync_radiomap_'//shock//'10GHz.dat') ! 10. GHz
       else if (shock == 'BOTH') then
          open(70,file='CD_sync_radiomap_1GHz.dat') ! 1.4 GHz
          open(71,file='CD_sync_radiomap_3GHz.dat') ! 3.0 GHz
          open(72,file='CD_sync_radiomap_5GHz.dat') ! 4.8 GHz
+         open(74,file='CD_sync_radiomap_6GHz.dat') ! 6.0 GHz
+         open(75,file='CD_sync_radiomap_10GHz.dat') ! 10. GHz
       end if
 
       do l=1,m_l
@@ -236,14 +245,22 @@ module CD_abssyn
          emision2_abs = emision2 * exp(-tauff(l,i_3G))
          emision3 = Lsy(l,i_5G) * flux3 ! At 4.8 GHz
          emision3_abs = emision3 * exp(-tauff(l,i_5G))
+         emision4 = Lsy(l,i_6G) * flux4 ! At 6.0 GHz
+         emision4_abs = emision4 * exp(-tauff(l,i_6G))
+         emision5 = Lsy(l,i_10G) * flux5 ! At 10. GHz
+         emision5_abs = emision5 * exp(-tauff(l,i_10G))
          
          write(70,*) u_proj,v_proj,emision1,emision1_abs
          write(71,*) u_proj,v_proj,emision2,emision2_abs
          write(72,*) u_proj,v_proj,emision3,emision3_abs
+         write(74,*) u_proj,v_proj,emision4,emision4_abs
+         write(75,*) u_proj,v_proj,emision5,emision5_abs
       end do
       close(70)
       close(71)
       close(72)
+      close(74)
+      close(75)
 
       !------------------------------------------------------------
       ! Avg flux btw nu_av_min and nu_av_max

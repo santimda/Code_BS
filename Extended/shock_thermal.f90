@@ -93,7 +93,7 @@ module shock_thermal
     real(dp) :: v_sh
     real(dp) :: Eph_0, Eph_min, Eph_max, Eph_int, Eph(mE_ph), dEph
     real(dp) :: nu(mE_ph)
-    real(dp) :: log_nu_int,flux,flux0,flux1,flux2,flux3
+    real(dp) :: log_nu_int,flux,flux0,flux1,flux2,flux3,flux4,flux5
     real(dp) :: integral,integ,integ_ion,integ_HL
     real(dp) :: A(m_theta)
     real(dp) :: emi_ff_nu(m_theta,mE_ph), emi_ion_nu
@@ -111,9 +111,9 @@ module shock_thermal
     !real(dp) :: F_nu(m_l,mE_ph),F_nu_phi(m_l,mE_ph)
     real(dp) :: n_BB(m_theta,mE_ph), T_min(m_theta)
     real(dp) :: L_tot,L_th(mE_ph),L_ion(mE_ph),L_ion_tot
-    real(dp) :: S(mE_ph),S1,S2,S3,S_ion(mE_ph)
+    real(dp) :: S(mE_ph),S1,S2,S3,S4,S5,S_ion(mE_ph)
     integer :: nl, i_ph
-    Integer :: i_890M,i_1G,i_3G,i_5G
+    Integer :: i_890M,i_1G,i_3G,i_5G,i_6G,i_10G
     integer :: N_avg
     real(dp), allocatable :: g_ff(:,:)
 
@@ -209,10 +209,14 @@ module shock_thermal
     i_1G = int(log(1.42d9/nu(1))/log_nu_int) + 1        ! 1.4 GHz
     i_3G = int(log(3.00d9/nu(1))/log_nu_int) + 1        ! 3.0 GHz
     i_5G = int(log(4.86d9/nu(1))/log_nu_int) + 1        ! 4.8 GHz
+    i_6G = int(log(6.d9/nu(1))/log_nu_int) + 1        ! 6.0 GHz
+    i_10G = int(log(10.d9/nu(1))/log_nu_int) + 1        ! 10. GHz
     flux0 = flux/nu(i_890M)
     flux1 = flux/nu(i_1G)   
     flux2 = flux/nu(i_3G) 
     flux3 = flux/nu(i_5G)
+    flux4 = flux/nu(i_6G)
+    flux5 = flux/nu(i_10G)
 
     allocate(g_ff(m_theta,mE_ph))
 
@@ -239,9 +243,9 @@ module shock_thermal
         emi_ff_nu(l,i_ph) = ( cte_l_1(l) * exp(-Eph(i_ph)/(k*T_HL(l))) * g_ff(l,i_ph) )/h  ! erg/s/cm3/erg
         alpha_ff_nu1(l,i_ph) = 3.7d8 * (Zq**2*(rho(l)/mp/mu_ISM)**2/sqrt(T_HL(l)) ) * (1.d0-exp(-h*nu(i_ph)/(k*T_HL(l))) )/nu(i_ph)**3 * g_ff(l,i_ph)
         Tau_1(l,i_ph) = alpha_ff_nu1(l,i_ph)*H_1(l)
-        if ( Tau_1(l,i_ph)>= 1.d0 ) then
-          write(*,96) 'Region 1 is optically thick at angle', theta(l)*180./pi, 'and frequency', nu(i_ph)/1.d6, 'MHz'
-        end if 
+        !if ( Tau_1(l,i_ph)>= 1.d0 ) then
+        !  write(*,96) 'Region 1 is optically thick at angle', theta(l)*180./pi, 'and frequency', nu(i_ph)/1.d6, 'MHz'
+        !end if 
       
         dEph = Eph(i_ph)*(Eph_int - 1.d0)
         integ = integ + emi_ff_nu(l,i_ph)*dEph
@@ -389,6 +393,8 @@ module shock_thermal
       open(25, file='CD_hot_layer_1GHz.dat')
       open(26, file='CD_hot_layer_3GHz.dat')
       open(27, file='CD_hot_layer_5GHz.dat')
+      open(28, file='CD_hot_layer_6GHz.dat')
+      open(29, file='CD_hot_layer_10GHz.dat')
 
       do l = 1,m_l
         do i_ph = 1, mE_ph
@@ -398,14 +404,20 @@ module shock_thermal
         S1 = F_nu_phi(l,i_1G)*flux1
         S2 = F_nu_phi(l,i_3G)*flux2
         S3 = F_nu_phi(l,i_5G)*flux3
+        S4 = F_nu_phi(l,i_6G)*flux5
+        S5 = F_nu_phi(l,i_10G)*flux5
         write(25,*) S1
         write(26,*) S2
         write(27,*) S3
+        write(28,*) S4
+        write(29,*) S5
       end do
 
       close(25)
       close(26)
       close(27)
+      close(28)
+      close(29)
     end if
 
     !------------------------------------------------------------
@@ -414,6 +426,8 @@ module shock_thermal
       open(30,file='CD_th_'//shock//'_1GHz.dat') ! 1.4 GHz
       open(31,file='CD_th_'//shock//'_3GHz.dat') ! 3.0 GHz
       open(32,file='CD_th_'//shock//'_5GHz.dat') ! 4.8 GHz
+      open(33,file='CD_th_'//shock//'_6GHz.dat') ! 6.0 GHz
+      open(34,file='CD_th_'//shock//'_10GHz.dat') ! 10. GHz
     end if
 
     do l = 1,m_l
@@ -424,14 +438,20 @@ module shock_thermal
       S1 = F_nu_phi_ion(l,i_1G)*flux1
       S2 = F_nu_phi_ion(l,i_3G)*flux2
       S3 = F_nu_phi_ion(l,i_5G)*flux3
+      S4 = F_nu_phi_ion(l,i_6G)*flux4
+      S5 = F_nu_phi_ion(l,i_10G)*flux5
       write(30,*) S1
       write(31,*) S2
       write(32,*) S3
+      write(33,*) S4
+      write(34,*) S5
     end do
 
     close(30)
     close(31)
     close(32)
+    close(33)
+    close(34)
 
     !------------------------------------------------------------
     ! Avg flux btw nu_av_min and nu_av_max
