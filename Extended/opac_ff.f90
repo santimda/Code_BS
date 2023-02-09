@@ -32,7 +32,8 @@ module opac_ff
       real(dp) :: g_ff_w(mE_ff), g_ff_ISM(mE_ff)  
       real(dp) :: Mdot_eff = Mdot/sqrt(filling) ! effective mass-loss rate (account for clumping)
       real(dp) :: P_trans, M_tot, V_trans
-      real(dp) :: Q_ion, R_str
+      real(dp) :: dif_R(m_theta)
+      real(dp) :: Q_ion, R_str, alpha_B, vol, dV, vol_str
       real(dp) :: cte_f, cte_Lnu
       real(dp) :: nu_int_ff
       real(dp) :: E_st_min, E_st_max, E_st_0, E_st_int, dnu_st, E_st(mE_ph), integ_st, norm_BB_st
@@ -56,6 +57,14 @@ module opac_ff
       ! set omp threads number
       !$ call omp_set_num_threads(nth)
       ! !$ write(*,'(a, i3, a)') '# Using OpenMP with ', nth ,' threads \n'
+
+      !-----------------------------------------------------------------
+      ! Read the shock position and cell size: theta,r_norm(theta),dR(theta)
+      open(11,file='CD.dat')
+      do l = 1, m_theta
+         read(11,*) theta(l), r_norm(l), dif_R(l), dummy, dummy
+      end do
+      close(11)
 
       !==================================================================
       
@@ -245,7 +254,9 @@ module opac_ff
         dnu_st = E_st(i_ph)*(E_st_int - 1.d0)/h
         Q_ion = Q_ion + norm_BB_st*nBB(E_st(i_ph),T_st)*dnu_st/E_st(i_ph)    ! erg2*cm3/erg/cm3/s
       end do
-      R_str = 0.68d0 * pc * (Q_ion/1.d49)**(1./3.) * (n_ISM/1.d3)**(-2./3.) * (T_ISM/1.d4)**0.28
+      !R_str = 0.68d0 * pc * (Q_ion/1.d49)**(1./3.) * (n_ISM/1.d3)**(-2./3.) * (T_ISM/1.d4)**0.28   ! Lacki 2013
+      alpha_B = 2.56d-13 * (T_ISM/1.d4)**(-0.83d0)
+      R_str = (3*Q_ion/(4.d0 * pi * (n_ISM/mu_ISM)**2 * alpha_B))**(1.d0/3.d0) 
       write(*,'(a, Es10.2)') ' Q_ion(ph/s) = ', Q_ion
       write(*,'(a, F6.3)') ' R_str(pc) = ', R_str/pc
       write(*,'(a, F5.2)') ' R_str/R0 = ', R_str/R0
@@ -253,7 +264,8 @@ module opac_ff
       !----------------------------------------------------------
       ! Define some variables
 
-      ni_ISM = n_ISM/mu_SISM      ! Number particle density in the ionized ISM is larger (should it be ni_ISM = 2.*n_ISM?)
+      !ni_ISM = n_ISM/mu_SISM      ! Number particle density in the ionized ISM is larger (should it be ni_ISM = 2.*n_ISM?)
+      ni_ISM = n_ISM                ! Already ionized
       ne_ISM = n_ISM
       T_ion = T_ISM
       cte_f = 8.235d-2*T_ion**(-1.35)   ! Eq.4 Olnon 1975
@@ -275,6 +287,7 @@ module opac_ff
          cte_alpha_ff_ISM = 3.7d8*Zq_ISM**2/sqrt(T_ion)*ne_ISM*ni_ISM ! Rybicky & Lightman? (eq. 5.18 b)
          cte_nu = nu_ISM(i)**(-3)*(1.d0-exp(-h*nu_ISM(i)/k/T_ion))*g_ff_ISM(i) !(eq. 5.18 b)
          alpha_ff = cte_alpha_ff_ISM*cte_nu !1/cm
+         !if (alpha_ff * R_str > 1.d0) print*, 'The str. sphere is optically thick at', nu_ISM(i)/1.d6, 'MHz'
          !p_ff(i) = alpha_ff * R_str 
          if (p_ff(i) > 1.d-4) then
           factor_opac = ( 1. - (2./p_ff(i)**2)*(1.-(p_ff(i)+1.)*exp(-p_ff(i))) ) ! Eq. 11 Olnon 1975 for sphere
@@ -292,6 +305,19 @@ module opac_ff
 
       !Lnu=Lnu/h ![Lnu] = erg/s/erg
       !Enu=h*nu
+
+      vol = 0.d0
+      do l=1,m_theta
+         dV = pi * (R_theta(l)*sin(theta(l)))**2 * dif_R(l)
+         vol = vol + dV
+      end do
+
+      vol_str = (4.d0/3.d0) * pi * R_str**3 - vol
+
+      do i=1,mE_ff
+         Lnu(i) = 6.8d-38 * Zq_ISM**2 * n_ISM**2 * g_ff_ISM(i) * exp(-h*nu_ISM(i)/k/T_ISM) / sqrt(T_ISM)
+         !print*, nu_ISM(i)/1.d9, 1.d26*Lnu(i)*vol_str /(4.*pi*distance**2)
+      end do
 
       !----------------------------------------------------------
       ! Calculate the velocity and momentum transferred to the ISM by the star
