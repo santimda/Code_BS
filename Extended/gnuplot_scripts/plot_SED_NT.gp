@@ -3,7 +3,7 @@ set key out
 set key box opaque height 0.6 #width 0.50 
 set key horiz samplen 3. spacing 1.01 font ",20"
 set xrange [-6:14]
-set yrange [27:33]
+set yrange [25:33]
 set xtics 3; set mxtics 3
 set ytics 1; set mytics 2
 set xlabel 'log_{10} ({/Symbol e} [eV])'
@@ -26,32 +26,32 @@ fac = 1.0e9*h/eV
 #-------------------------------------------------------------
 # FITTING :
 
-x0=9.0
-f(x)=a0+a1*(x-x0)+a2*(x-x0)**2+a3*(x-x0)**3+a4*(x-x0)**4+a5*(x-x0)**5+a6*(x-x0)**6+a7*(x-x0)**7+a8*(x-x0)**8
-fit f(x) "< awk '(($1+0.0) >1.e2 && ($1+0.0)<8.e13) { print $1, $2, $3 }' ../radic_ir_tot.dat" u (log10($1)):(log10($2)) via a0,a1,a2,a3,a4,a5,a6,a7,a8
-f1(x)=x>14.?0 : x<2.?0 : f(x)
+#x0=9.0
+#f(x)=a0+a1*(x-x0)+a2*(x-x0)**2+a3*(x-x0)**3+a4*(x-x0)**4+a5*(x-x0)**5+a6*(x-x0)**6+a7*(x-x0)**7+a8*(x-x0)**8
+#fit f(x) "< awk '(($1+0.0) >1.e2 && ($1+0.0)<8.e13) { print $1, $2, $3 }' ../radic_ir_tot.dat" u (log10($1)):(log10($2)) via a0,a1,a2,a3,a4,a5,a6,a7,a8
+#f1(x)=x>14.?0 : x<2.?0 : f(x)
 
-x1=-1.0
-g(x)=b0+b1*(x-x1)+b2*(x-x1)**2+b3*(x-x1)**3+b4*(x-x1)**4+b5*(x-x1)**5+b6*(x-x1)**6+b7*(x-x1)**7 #+b8*(x-x1)**8+b9*(x-x1)**9+b10*(x-x1)**10
+#x1=-1.0
+#g(x)=b0+b1*(x-x1)+b2*(x-x1)**2+b3*(x-x1)**3+b4*(x-x1)**4+b5*(x-x1)**5+b6*(x-x1)**6+b7*(x-x1)**7 #+b8*(x-x1)**8+b9*(x-x1)**9+b10*(x-x1)**10
 #fit g(x) "< awk '(($1+0.0) >9.e-7 && ($1+0.0)<2.e5) { print $1, $2, $3 }' ../radsyn_sw_tot.dat" u (log10($1)):(log10($2)) via b0,b1,b2,b3,b4,b5,b6,b7 #,b8,b9,b10
 #g1(x)=x>5.5?0 : x<-6.?0 : g(x) # high B
-fit g(x) "< awk '(($1+0.0) >9.e-7 && ($1+0.0)<3.e4) { print $1, $2, $3 }' ../radsyn_sw_tot.dat" u (log10($1)):(log10($2)) via b0,b1,b2,b3,b4,b5,b6,b7
-g1(x)=x>4.6?0 : x<-6?0 : g(x) #low B
+#fit g(x) "< awk '(($1+0.0) >9.e-7 && ($1+0.0)<3.e4) { print $1, $2, $3 }' ../radsyn_sw_tot.dat" u (log10($1)):(log10($2)) via b0,b1,b2,b3,b4,b5,b6,b7
+#g1(x)=x>4.6?0 : x<-6?0 : g(x) #low B
 
-x2=8.0
-j(x)=c0+c1*(x-x2)+c2*(x-x2)**2+c3*(x-x2)**3+c4*(x-x2)**4+c5*(x-x2)**5+c6*(x-x2)**6+c7*(x-x2)**7
-fit j(x) "< awk '(($1+0.0) >1.e3 && ($1+0.0)<8.e12) { print $1, $2, $3 }' ../radic_st_tot.dat" u (log10($1)):(log10($2)) via c0,c1,c2,c3,c4,c5,c6,c7
-j1(x)=x>12?0 : x<3?0 : j(x)
+#x2=8.0
+#j(x)=c0+c1*(x-x2)+c2*(x-x2)**2+c3*(x-x2)**3+c4*(x-x2)**4+c5*(x-x2)**5+c6*(x-x2)**6+c7*(x-x2)**7
+#fit j(x) "< awk '(($1+0.0) >1.e3 && ($1+0.0)<8.e12) { print $1, $2, $3 }' ../radic_st_tot.dat" u (log10($1)):(log10($2)) via c0,c1,c2,c3,c4,c5,c6,c7
+#j1(x)=x>12?0 : x<3?0 : j(x)
 
-x3=11.0
-k(x)=d0+d1*(x-x3)+d2*(x-x3)**2+d3*(x-x3)**3+d4*(x-x3)**4+d5*(x-x3)**5+d6*(x-x3)**6+d7*(x-x3)**7
-fit k(x) "< awk '(($1+0.0) >5.e7 && ($1+0.0)<8.e13) { print $1, $2, $3 }' ../radpp_sw_tot.dat" u (log10($1)):(log10($2)) via d0,d1,d2,d3,d4,d5,d6,d7
-k1(x)=x>14?0 : x<7.5?0 : k(x)
+#x3=11.0
+#k(x)=d0+d1*(x-x3)+d2*(x-x3)**2+d3*(x-x3)**3+d4*(x-x3)**4+d5*(x-x3)**5+d6*(x-x3)**6+d7*(x-x3)**7
+#fit k(x) "< awk '(($1+0.0) >5.e7 && ($1+0.0)<8.e13) { print $1, $2, $3 }' ../radpp_sw_tot.dat" u (log10($1)):(log10($2)) via d0,d1,d2,d3,d4,d5,d6,d7
+#k1(x)=x>14?0 : x<7.5?0 : k(x)
 
-xh=8.0
-h(x)=h0+h1*(x-xh)+h2*(x-xh)**2+h3*(x-xh)**3+h4*(x-xh)**4+h5*(x-xh)**5+h6*(x-xh)**6+h7*(x-xh)**7
-fit h(x) "< awk '(($1+0.0) >1.e4 && ($1+0.0)<1.e12) { print $1, $2 }' ../radbr_sw_tot.dat" u (log10($1)):(log10($2)) via h0,h1,h2,h3,h4,h5,h6,h7
-hh(x)=x>12?0 : x<4.?0 : h(x)
+#xh=8.0
+#h(x)=h0+h1*(x-xh)+h2*(x-xh)**2+h3*(x-xh)**3+h4*(x-xh)**4+h5*(x-xh)**5+h6*(x-xh)**6+h7*(x-xh)**7
+#fit h(x) "< awk '(($1+0.0) >1.e4 && ($1+0.0)<1.e12) { print $1, $2 }' ../radbr_sw_tot.dat" u (log10($1)):(log10($2)) via h0,h1,h2,h3,h4,h5,h6,h7
+#h1(x)=x>12?0 : x<4.?0 : h(x)
 
 #-----------------------------------------
 #
@@ -59,12 +59,15 @@ hh(x)=x>12?0 : x<4.?0 : h(x)
 #
 #----------------------------------------
 
-plot log10(10**f1(x)+10**g1(x)+10**j1(x)+10**k1(x)+10**hh(x)) t 'Total' lw 3,\
-     '../radsyn_RS_tot.dat' u (log10($1)):(log10($2)) t 'sync' w l lw 2.4 dt 2, \
+plot '../radsyn_RS_tot.dat' u (log10($1)):(log10($2)) t 'sync' w l lw 2.4 dt 2, \
      '../radic_ir_RS_tot.dat' u (log10($1)):(log10($2)) t 'IC-dust' w l lw 2.4 dt 3 smooth bezier, \
      '../radic_st_RS_tot.dat' u (log10($1)):(log10($2)) t 'IC-star' w l lw 2.4 dt 4 smooth bezier, \
      '../radbr_RS_tot.dat' u (log10($1)):(log10($2)) t 'rel. br.' w l lw 2.4 lc rgb "coral" dt 5 smooth bezier, \
      '../radpp_RS_tot.dat' u (log10($1)):(log10($2)) t 'p-p' w l lw 2.4 dt 6 smooth bezier, \
+     './data_XMM_UL.dat' u ($1):($2+cor):($3):($4) w xerrorbars pt 1 lc rgb 'purple' t '',\
+     './data_XMM_UL.dat' u ($1):($2+cor):(0):(-0.6) t '' with vector lt 1 lw 2.0 lc rgb 'purple',\
+
+#     log10(10**f1(x)+10**g1(x)+10**j1(x)+10**k1(x)+10**hh(x)) t 'Total' lw 3,\
 #     './sens_CTA_100h.dat' u (log10(1.e6*($1))):(log10(($2)*a)) t 'CTA' w l lt 3 lc rgb "black" lw 4,\
 #     './sens_HESS_100h.dat' u (log10($1*1.e6)):(log10(($2)*a)) t 'HESS' w l lc 'grey40' lw 4,\
 #     './data_radio2020_1.5.dat' u 1:2:3:4:5:6 w xyerrorbars pt 4 lc 5 t 'Ben2020',\

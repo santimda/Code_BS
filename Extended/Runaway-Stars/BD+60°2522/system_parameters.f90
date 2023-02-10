@@ -17,7 +17,7 @@ module system_parameters
    !--------------------------------------------------------------------------------------
    ! Star
    ! Catalogued as O6.5V star by Sota+2011
-   real(dp), parameter :: v_st = 40.d5            ! Gaia3 + Moutzouri+2022 + Green+2013 estimations
+   real(dp), parameter :: v_st = 45.d5            ! Gaia3 + Moutzouri+2022 + Green+2013 estimations
    real(dp), parameter :: T_st = 3.83d4            ! http://www.pas.rochester.edu/~emamajek/EEM_dwarf_UBVIJHK_colors_Teff.txt
    real(dp), parameter :: T_st_ad = k*T_st/mec2    ! Adimensional stellar temperature
    real(dp), parameter :: L_st = 1.9d5*L_sun      ! 
@@ -36,7 +36,7 @@ module system_parameters
    !--------------------------------------------------------------------------------------
    ! ISM
    real(dp), parameter :: v_ISM = v_st             ! 
-   real(dp), parameter :: n_ISM = 50.d0            ! Moutzouri+ 2022 - Green & Mackey 2019
+   real(dp), parameter :: n_ISM = 15.d0            ! Moutzouri+ 2022 - Green & Mackey 2019
    real(dp), parameter :: T_ISM = 8.d3             ! 
    real(dp), parameter :: T_ISM_ad = k*T_ISM/mec2  ! Adimensional ISM temperature
    real(dp), parameter :: mu_ISM = 1.38_dp          ! K2018; 0.5 for pure H ionized
@@ -74,12 +74,17 @@ module system_parameters
    !--------------------------------------------------------------------------------------
    ! Non-thermal particles
    real(dp), dimension(:), allocatable :: efi_ac_sh! particle accel. efficiency at the shocks  (l)
-   real(dp), parameter :: frac_sh = sqrt(0.1)      ! fraction sqrt(UB_sw/UB_equipartition_sw), f_NT=1
-   real(dp), parameter :: frac_NT = 1.d-1          ! Fraction L_NT/L_inj_perp, alpha=0.35, eta_B=0.1
-   real(dp), parameter :: inj_e = frac_NT*0.1d0   ! Fraction L_NT_e/L_iny_perp 
+   real(dp), parameter :: frac_sh = sqrt(0.2)      ! fraction sqrt(UB_sw/UB_equipartition_sw), f_NT=1
+   real(dp), parameter :: frac_NT = 2.d-1          ! Fraction L_NT/L_inj_perp, alpha=0.35, eta_B=0.1
+   real(dp), parameter :: inj_e = frac_NT*0.5d0   ! Fraction L_NT_e/L_iny_perp 
    real(dp), parameter :: inj_p = frac_NT-inj_e    ! Fraction L_NT_p/L_iny_perp
-   character, parameter :: diff_regime = 'Valle'      ! del Valle+2018
-   !character(len=*), parameter :: diff_regime = 'Bohm'  ! Bohm diffusion
+   !character(len=*), parameter :: diff_regime = 'Valle'      ! del Valle+2018
+   character(len=*), parameter :: diff_regime = 'Bohm'  ! Bohm diffusion
+   real(dp), parameter :: lambda_diff = 1.d0
+
+   !--------------------------------------------------------------------------------------
+   ! Isothermal shock width parameter
+   real(dp), parameter :: frac_H = 0.05d0
 
 
    !============================================================================

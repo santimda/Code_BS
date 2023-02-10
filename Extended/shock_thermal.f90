@@ -93,7 +93,7 @@ module shock_thermal
     real(dp) :: v_sh
     real(dp) :: Eph_0, Eph_min, Eph_max, Eph_int, Eph(mE_ph), dEph
     real(dp) :: nu(mE_ph)
-    real(dp) :: log_nu_int,flux,flux0,flux1,flux2,flux3,flux4,flux5
+    real(dp) :: log_nu_int,flux,flux0,flux110,flux1,flux2,flux3,flux4,flux5
     real(dp) :: integral,integ,integ_ion,integ_HL
     real(dp) :: A(m_theta)
     real(dp) :: emi_ff_nu(m_theta,mE_ph), emi_ion_nu
@@ -113,7 +113,7 @@ module shock_thermal
     real(dp) :: L_tot,L_th(mE_ph),L_ion(mE_ph),L_ion_tot
     real(dp) :: S(mE_ph),S1,S2,S3,S4,S5,S_ion(mE_ph)
     integer :: nl, i_ph
-    Integer :: i_890M,i_1G,i_3G,i_5G,i_6G,i_10G
+    Integer :: i_890M,i_1G,i_3G,i_5G,i_6G,i_10G,i_110M
     integer :: N_avg
     real(dp), allocatable :: g_ff(:,:)
 
@@ -205,12 +205,14 @@ module shock_thermal
     log_nu_int = log(nu(2)/nu(1))
     flux = 1.d26/(4.d0*pi*(distance)**2) ! luminosity to flux in mJy
 
-    i_890M = int(log(890.d6/nu(1))/log_nu_int) + 1        ! 1.4 GHz 
+    i_110M = int(log(110.d6/nu(1))/log_nu_int) + 1        ! 110 MHz
+    i_890M = int(log(890.d6/nu(1))/log_nu_int) + 1        ! 890 MHz
     i_1G = int(log(1.42d9/nu(1))/log_nu_int) + 1        ! 1.4 GHz
     i_3G = int(log(3.00d9/nu(1))/log_nu_int) + 1        ! 3.0 GHz
     i_5G = int(log(4.86d9/nu(1))/log_nu_int) + 1        ! 4.8 GHz
     i_6G = int(log(6.d9/nu(1))/log_nu_int) + 1        ! 6.0 GHz
     i_10G = int(log(10.d9/nu(1))/log_nu_int) + 1        ! 10. GHz
+    flux110 =flux/nu(i_110M) 
     flux0 = flux/nu(i_890M)
     flux1 = flux/nu(i_1G)   
     flux2 = flux/nu(i_3G) 
@@ -282,6 +284,7 @@ module shock_thermal
 
     print*, '\n f-f emission from post shock layer:'
 
+    write(*,90) 'S_110MHz[mJy]=',L_th(i_110M)*Eph(i_110M)*flux110
     write(*,90) 'S_890MHz[mJy]=',L_th(i_890M)*Eph(i_890M)*flux0
     write(*,90) 'S_1.4GHz[mJy]=',L_th(i_1G)*Eph(i_1G)*flux1
     write(*,90) 'S_3.0GHz[mJy]=',L_th(i_3G)*Eph(i_3G)*flux2
@@ -376,6 +379,7 @@ module shock_thermal
       print*, '\n f-f emission from the RS:'
     end if
 
+    write(*,90) 'S_110MHz[mJy]=',L_ion(i_110M)*Eph(i_110M)*flux110
     write(*,90) 'S_890MHz[mJy]=',L_ion(i_890M)*Eph(i_890M)*flux0
     write(*,90) 'S_1.4GHz[mJy]=',L_ion(i_1G)*Eph(i_1G)*flux1
     write(*,90) 'S_3.0GHz[mJy]=',L_ion(i_3G)*Eph(i_3G)*flux2

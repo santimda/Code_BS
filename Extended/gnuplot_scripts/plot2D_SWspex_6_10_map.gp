@@ -1,5 +1,5 @@
 set encoding iso_8859_1
-ang_deg = 20.
+ang_deg = 10.
 ang = ang_deg*pi/180.  # rotation angle to match observed map (Ben2020)
 set title 'Spex with 10./6. GHz data'
 set title ''
@@ -25,7 +25,7 @@ set size ratio 0.9
 set label 1 "" at 0.0,0.0 front point pointtype 7 lc 3 lw 2 ps 1
 set label 2 "Star" at 1.0,0.0 font "Helvetica,21" front textcolor lt 3
 set label 2 "{/ZapfDingbats \110}" at -0.05,0.05 front textcolor rgb '#008B8B' font "Helvetica,28"
-set arrow 4 from -0.01,0.1 to -0.17,0.46 head filled front linecolor rgb '#6495ED' linewidth 2.0
+set arrow 4 from -0.01,0.1 to -0.09,0.49 head filled front linecolor rgb '#6495ED' linewidth 2.0
 
 #set object 5 ellipse center graph 0.91,0.91 size 1./6.,1./6. angle 0. fc rgb "grey" fs solid 1.0 border -1 front
 
