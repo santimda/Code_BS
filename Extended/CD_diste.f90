@@ -196,7 +196,7 @@ module CD_diste
 
             t_loss(l,i) = 1.d0/(1.d0/t_coole(l,i) + 1.d0/t_esc) ! general losses
 
-            t_ac = efi_ac_sh(l)*E_e(i)/(B(l)*c*qe)
+            t_ac = lambda_diff * efi_ac_sh(l)*E_e(i)/(B(l)*c*qe)
 
 
             write(70,*) l,E_e(i)/eV,t_ic,t_sy,t_br,t_diff,t_ac,t_coole(l,i),t_adv(l),t_cell(l),t_ic_st,t_ic_IR,t_esc,t_loss(l,i),t_adi(l),t_coul,t_ion

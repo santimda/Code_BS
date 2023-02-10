@@ -20,9 +20,9 @@
       if (diff_regime == 'Valle') then       ! del Valle+2018
         delta=0.5d0
         D_10_GeV = 1.d28
-        Diff = D_10_GeV*(E/(1.d9*eV))**delta  !cm^2 s^-1
+        Diff = lambda_diff*D_10_GeV*(E/(1.d9*eV))**delta  !cm^2 s^-1
       else if (diff_regime == 'Bohm') then  ! Bohm diff
-        Diff = E*c/(3.d0*qe*B) !cm^2 s^-1
+        Diff = lambda_diff*E*c/(3.d0*qe*B) !cm^2 s^-1
       else 
         write(*,*) 'ERROR, UNKNOWN DIFFUSION'
         stop

@@ -161,7 +161,7 @@ module CD_distp
 
             t_loss(l,i) = 1.d0/(1.d0/t_coolp(l,i) + 1.d0/t_esc) ! general losses
 
-            t_ac = efi_ac_sh(l)*E_p(i)/(B(l)*c*qe)
+            t_ac = lambda_diff * efi_ac_sh(l)*E_p(i)/(B(l)*c*qe)
 
             write(70,*) l,E_p(i)/eV,t_ac,t_pp,t_adv(l),t_diff,t_coolp(l,i),t_cell(l),t_esc,t_loss(l,i),t_adi(l)
 
