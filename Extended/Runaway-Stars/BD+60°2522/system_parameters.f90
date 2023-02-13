@@ -9,7 +9,7 @@ module system_parameters
    !====================================================================
 
    real(dp), parameter :: distance = 2.99d0*kpc  !+- 0.05kpc  source distance (Gaia)
-   real(dp), parameter :: inclination = 65.d0*pi/180.d0  ! angle between the star motion and the LOS in rad   
+   real(dp), parameter :: inclination = 56.d0*pi/180.d0  ! Green+ 2019
    ! i = 0° is face-on, i = 90° corresponds to BS in front of the star, i = -90° is BS behind the star
    real(dp), parameter :: incli = pi/2.d0 - inclination  ! angle that I use
    real(dp), parameter :: theta_max = (125.d0/180.d0)*pi ! ~ extension of the BS modelled ~ pi/2
@@ -17,7 +17,7 @@ module system_parameters
    !--------------------------------------------------------------------------------------
    ! Star
    ! Catalogued as O6.5V star by Sota+2011
-   real(dp), parameter :: v_st = 45.d5            ! Gaia3 + Moutzouri+2022 + Green+2013 estimations
+   real(dp), parameter :: v_st = 42.d5            ! Gaia3 + Moutzouri+2022 + Green+2013 estimations
    real(dp), parameter :: T_st = 3.83d4            ! http://www.pas.rochester.edu/~emamajek/EEM_dwarf_UBVIJHK_colors_Teff.txt
    real(dp), parameter :: T_st_ad = k*T_st/mec2    ! Adimensional stellar temperature
    real(dp), parameter :: L_st = 1.9d5*L_sun      ! 
