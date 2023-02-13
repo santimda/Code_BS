@@ -93,7 +93,7 @@ module shock_thermal
     real(dp) :: v_sh
     real(dp) :: Eph_0, Eph_min, Eph_max, Eph_int, Eph(mE_ph), dEph
     real(dp) :: nu(mE_ph)
-    real(dp) :: log_nu_int,flux,flux0,flux110,flux1,flux2,flux3,flux4,flux5
+    real(dp) :: log_nu_int,flux,flux0,flux325,flux1,flux2,flux3,flux4,flux5
     real(dp) :: integral,integ,integ_ion,integ_HL
     real(dp) :: A(m_theta)
     real(dp) :: emi_ff_nu(m_theta,mE_ph), emi_ion_nu
@@ -111,9 +111,9 @@ module shock_thermal
     !real(dp) :: F_nu(m_l,mE_ph),F_nu_phi(m_l,mE_ph)
     real(dp) :: n_BB(m_theta,mE_ph), T_min(m_theta)
     real(dp) :: L_tot,L_th(mE_ph),L_ion(mE_ph),L_ion_tot
-    real(dp) :: S(mE_ph),S1,S2,S3,S4,S5,S_ion(mE_ph)
+    real(dp) :: S(mE_ph),S0,S1,S2,S3,S4,S5,S_ion(mE_ph)
     integer :: nl, i_ph
-    Integer :: i_890M,i_1G,i_3G,i_5G,i_6G,i_10G,i_110M
+    Integer :: i_890M,i_1G,i_3G,i_5G,i_6G,i_10G,i_325M
     integer :: N_avg
     real(dp), allocatable :: g_ff(:,:)
 
@@ -205,14 +205,14 @@ module shock_thermal
     log_nu_int = log(nu(2)/nu(1))
     flux = 1.d26/(4.d0*pi*(distance)**2) ! luminosity to flux in mJy
 
-    i_110M = int(log(110.d6/nu(1))/log_nu_int) + 1        ! 110 MHz
+    i_325M = int(log(325.d6/nu(1))/log_nu_int) + 1        ! 325 MHz
     i_890M = int(log(890.d6/nu(1))/log_nu_int) + 1        ! 890 MHz
     i_1G = int(log(1.42d9/nu(1))/log_nu_int) + 1        ! 1.4 GHz
     i_3G = int(log(3.00d9/nu(1))/log_nu_int) + 1        ! 3.0 GHz
     i_5G = int(log(4.86d9/nu(1))/log_nu_int) + 1        ! 4.8 GHz
     i_6G = int(log(6.d9/nu(1))/log_nu_int) + 1        ! 6.0 GHz
     i_10G = int(log(10.d9/nu(1))/log_nu_int) + 1        ! 10. GHz
-    flux110 =flux/nu(i_110M) 
+    flux325 =flux/nu(i_325M) 
     flux0 = flux/nu(i_890M)
     flux1 = flux/nu(i_1G)   
     flux2 = flux/nu(i_3G) 
@@ -245,9 +245,10 @@ module shock_thermal
         emi_ff_nu(l,i_ph) = ( cte_l_1(l) * exp(-Eph(i_ph)/(k*T_HL(l))) * g_ff(l,i_ph) )/h  ! erg/s/cm3/erg
         alpha_ff_nu1(l,i_ph) = 3.7d8 * (Zq**2*(rho(l)/mp/mu_ISM)**2/sqrt(T_HL(l)) ) * (1.d0-exp(-h*nu(i_ph)/(k*T_HL(l))) )/nu(i_ph)**3 * g_ff(l,i_ph)
         Tau_1(l,i_ph) = alpha_ff_nu1(l,i_ph)*H_1(l)
-        !if ( Tau_1(l,i_ph)>= 1.d0 ) then
-        !  write(*,96) 'Region 1 is optically thick at angle', theta(l)*180./pi, 'and frequency', nu(i_ph)/1.d6, 'MHz'
-        !end if 
+        if (l==2) print*, Tau_1(l,i_ph)
+        if ( Tau_1(l,i_ph)>= 1.d0 ) then
+          write(*,96) 'Region 1 is optically thick at angle', theta(l)*180./pi, 'and frequency', nu(i_ph)/1.d6, 'MHz'
+        end if 
       
         dEph = Eph(i_ph)*(Eph_int - 1.d0)
         integ = integ + emi_ff_nu(l,i_ph)*dEph
@@ -284,7 +285,7 @@ module shock_thermal
 
     print*, '\n f-f emission from post shock layer:'
 
-    write(*,90) 'S_110MHz[mJy]=',L_th(i_110M)*Eph(i_110M)*flux110
+    write(*,90) 'S_325MHz[mJy]=',L_th(i_325M)*Eph(i_325M)*flux325
     write(*,90) 'S_890MHz[mJy]=',L_th(i_890M)*Eph(i_890M)*flux0
     write(*,90) 'S_1.4GHz[mJy]=',L_th(i_1G)*Eph(i_1G)*flux1
     write(*,90) 'S_3.0GHz[mJy]=',L_th(i_3G)*Eph(i_3G)*flux2
@@ -336,9 +337,9 @@ module shock_thermal
         emi_ion_nu = ( cte_l(l) * exp(-Eph(i_ph)/(k*T(l))) * g_ff(l,i_ph) )/h ! erg/s/cm3/Hz
         alpha_ff_nu2(l,i_ph) = 3.7d8 * (Zq**2*n_a(l)**2/sqrt(T(l))) * (1.d0-exp(-h*nu(i_ph)/(k*T(l))) )/nu(i_ph)**3 * g_ff(l,i_ph)
         Tau_2(l,i_ph) = alpha_ff_nu2(l,i_ph)*H_theta(l)
-        !if ( Tau_2(l,i_ph)>= 1.d0 ) then
-        !  write(*,96) 'Region 2 is optically thick at angle', theta(l)*180./pi, 'and frequency', nu(i_ph)/1.d6, 'MHz'
-        !end if
+        if ( Tau_2(l,i_ph)>= 1.d0 ) then
+          write(*,96) 'Region 2 is optically thick at angle', theta(l)*180./pi, 'and frequency', nu(i_ph)/1.d6, 'MHz'
+        end if
 
         f_vol_ion(l) = emi_ion_nu*dV_ring(l)
         F_nu_ion(l,i_ph) = f_vol_ion(l)*Eph(i_ph)    ! erg/s
@@ -379,7 +380,7 @@ module shock_thermal
       print*, '\n f-f emission from the RS:'
     end if
 
-    write(*,90) 'S_110MHz[mJy]=',L_ion(i_110M)*Eph(i_110M)*flux110
+    write(*,90) 'S_325MHz[mJy]=',L_ion(i_325M)*Eph(i_325M)*flux325
     write(*,90) 'S_890MHz[mJy]=',L_ion(i_890M)*Eph(i_890M)*flux0
     write(*,90) 'S_1.4GHz[mJy]=',L_ion(i_1G)*Eph(i_1G)*flux1
     write(*,90) 'S_3.0GHz[mJy]=',L_ion(i_3G)*Eph(i_3G)*flux2
@@ -394,39 +395,44 @@ module shock_thermal
 
     ! Hot layer
     if (radiative) then
-      open(25, file='CD_hot_layer_1GHz.dat')
-      open(26, file='CD_hot_layer_3GHz.dat')
-      open(27, file='CD_hot_layer_5GHz.dat')
-      open(28, file='CD_hot_layer_6GHz.dat')
-      open(29, file='CD_hot_layer_10GHz.dat')
+      open(23, file='CD_hot_layer_325MHz.dat')
+      open(24, file='CD_hot_layer_1GHz.dat')
+      open(25, file='CD_hot_layer_3GHz.dat')
+      open(26, file='CD_hot_layer_5GHz.dat')
+      open(27, file='CD_hot_layer_6GHz.dat')
+      open(28, file='CD_hot_layer_10GHz.dat')
 
       do l = 1,m_l
         do i_ph = 1, mE_ph
           F_nu_phi(l,i_ph) = F_nu(l,i_ph)/mphi/4.d0   ! 4 quadrants, but already mirrored
           !if (l==2 .and. (nu(i_ph) >= nu_av_min)) print*, 'F_HOT =', F_nu(l,i_ph), nu(i_ph)/1.d9
         end do
+        S0 = F_nu_phi(l,i_325M)*flux325
         S1 = F_nu_phi(l,i_1G)*flux1
         S2 = F_nu_phi(l,i_3G)*flux2
         S3 = F_nu_phi(l,i_5G)*flux3
         S4 = F_nu_phi(l,i_6G)*flux5
         S5 = F_nu_phi(l,i_10G)*flux5
-        write(25,*) S1
-        write(26,*) S2
-        write(27,*) S3
-        write(28,*) S4
-        write(29,*) S5
+        write(23,*) S0
+        write(24,*) S1
+        write(25,*) S2
+        write(26,*) S3
+        write(27,*) S4
+        write(28,*) S5
       end do
 
+      close(23)
+      close(24)
       close(25)
       close(26)
       close(27)
       close(28)
-      close(29)
     end if
 
     !------------------------------------------------------------
     ! Emission from the RS and the isothermal region in the FS
     if (shock /= 'BOTH') then
+      open(29,file='CD_th_'//shock//'_325MHz.dat') ! 325 MHz
       open(30,file='CD_th_'//shock//'_1GHz.dat') ! 1.4 GHz
       open(31,file='CD_th_'//shock//'_3GHz.dat') ! 3.0 GHz
       open(32,file='CD_th_'//shock//'_5GHz.dat') ! 4.8 GHz
@@ -439,11 +445,13 @@ module shock_thermal
         F_nu_phi_ion(l,i_ph) = F_nu_ion(l,i_ph)/mphi/4.d0   ! 4 quadrants
         !if (l==2 .and. (nu(i_ph) >= nu_av_min)) print*, 'F_ion =', F_nu_ion(l,i_ph), nu(i_ph)/1.d9
       end do
+      S0 = F_nu_phi_ion(l,i_325M)*flux325
       S1 = F_nu_phi_ion(l,i_1G)*flux1
       S2 = F_nu_phi_ion(l,i_3G)*flux2
       S3 = F_nu_phi_ion(l,i_5G)*flux3
       S4 = F_nu_phi_ion(l,i_6G)*flux4
       S5 = F_nu_phi_ion(l,i_10G)*flux5
+      write(29,*) S0
       write(30,*) S1
       write(31,*) S2
       write(32,*) S3
@@ -451,6 +459,7 @@ module shock_thermal
       write(34,*) S5
     end do
 
+    close(29)
     close(30)
     close(31)
     close(32)

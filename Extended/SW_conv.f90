@@ -5,9 +5,184 @@ module SW_conv
    implicit none
 
    private
-   public :: SW_conv1G_run, SW_conv3G_run, SW_conv5G_run, SW_conv6G_run, SW_conv10G_run, SW_convavg_run, SW_spex_run, SW_spex_6_10_run
+   public :: SW_conv325M_run, SW_conv1G_run, SW_conv3G_run, SW_conv5G_run, SW_conv6G_run, SW_conv10G_run, SW_convavg_run, SW_spex_run, SW_spex_6_10_run
 
    contains
+
+   !============================================================================
+   ! SW_conv1G_run
+   !============================================================================
+
+   subroutine SW_conv325M_run(shock)
+      character(LEN=*), intent(in) :: shock
+      integer, parameter :: m_tot = (2*(mphi-1))*(m_theta*2)   ! Total number of data
+      !real(dp), parameter :: sigma_x = 16.d0, sigma_y = 4.d0  ! LOFAR https://science.astron.nl/telescopes/lofar/lofar-system-overview/observing-modes/lofar-imaging-capabilities-and-sensitivity/ 
+      real(dp), parameter :: sigma_x = 77.d0, sigma_y = 77.d0
+      real(dp) :: x_map(m_tot),y_map(m_tot)
+      real(dp) :: F_325Mabs(m_tot),F_325Mun(m_tot)
+      real(dp) :: ancho_x, ancho_y, D_x, D_y,ci
+      real(dp) :: x_c0,y_c0,d_pesada2,suma,D_f,atenua,sum,mJy_beam
+      real(dp), dimension(:), allocatable :: x_c,y_c
+      real(dp), dimension(:,:), allocatable :: F_map325Mabs
+      integer :: m_x,m_y
+      integer, parameter:: m_map = mphi*mr_map
+      real(dp) :: A_beam,A_cell, suma2,x_map2(m_map),y_map2(m_map),S_map2(m_tot)
+      real(dp) ::  suma3,S_map3(m_tot)
+      real(dp) :: w_x, w_y
+
+      A_beam = 2*pi*sigma_x*sigma_y     ! = Gaussian normalization factor 
+      A_cell = f_Ny**2*sigma_x*sigma_y ! cell sample size
+
+      ci = abs(cos(incli))
+
+      open(188,file='R0_proj.dat')
+         write(188,*) 0.d0,R0_proj/abs(cos(incli))
+      close(188)
+
+      !///////////////////////////////////////////////////////
+      !-------------------------------------------------------
+      ! Initialize the data for the convolution region
+
+      ancho_x = 4.d0*R0_proj/ci * 1.3d0 ! [mas](extra margin)
+      ancho_y = 2.d0*(1.+ci)*R0_proj/ci * 1.3d0 ! [mas](extra margin)
+
+      D_x = f_Ny*sigma_x
+      D_y = f_Ny*sigma_y
+
+      m_x = int(ancho_x/D_x) ! Number of ellipses in the x-direction
+      m_y = int(ancho_y/D_y) ! Number of ellipses in the y-direction
+      x_c0 = -ancho_x/2.d0   ! Center of the first ellipse 
+      y_c0 = -ancho_y*(3.-ci)/4.d0
+      allocate( x_c(m_x), y_c(m_y), F_map325Mabs(m_x,m_y)  )
+
+      !//////////////////////////////////////////////////////
+      !------------------------------------------------------
+      ! Data read
+
+      sum = 0.d0
+      if (shock == 'BOTH') then
+         open(13,file='sync_radiomap_325MHz.dat')
+      else if (shock /= 'BOTH') then
+         open(13,file='sync_radiomap_'//shock//'_325MHz.dat')
+      end if
+      do l = 1, m_tot
+         read(13,*) y_map(l),x_map(l),F_325Mun(l),F_325Mabs(l)
+         sum = sum + F_325Mabs(l)
+      enddo
+      write(*,*) 'Pre-conv: sync'
+      write(*,80) 'S(325MHz)=',sum,'mJy'
+      close(13)
+
+      sum = 0.d0
+      if (shock == 'BOTH') then
+         open(133,file='th_ff_map_325M.dat')
+      else if (shock /= 'BOTH') then
+         open(133,file='th_ff_map_'//shock//'325M.dat')
+      end if
+      do l = 1, m_tot
+         read(133,*) S_map2(l)
+         sum = sum + S_map2(l)
+      enddo
+      write(*,*) 'Pre-conv: ff'
+      write(*,80) 'S_ff(325M)=',sum,'mJy'
+      close(133)
+
+      if ((shock == 'BOTH') .or. (shock == 'FS')) then 
+         sum = 0.d0
+         open(233,file='hot_layer_325MHz.dat')
+         do l = 1, m_tot
+            read(233,*) S_map3(l)
+            sum = sum + S_map3(l)
+         end do
+         write(*,*) 'Pre-conv: hot layer'
+         write(*,80) 'S(325MHz)=',sum,'mJy'
+      end if
+
+      !------------------------------------------
+
+      w_x = 2.d0*sigma_x**2! Weight in x distance
+      w_y = 2.d0*sigma_y**2! Weight in y distance
+
+      do i = 1, m_x
+         x_c(i) = x_c0 + (i-0.5)*D_x  ! x-coord of the center of the i-th ellipse
+
+         do j = 1, m_y
+            y_c(j) = y_c0 + (j-0.5)*D_y  ! y-coord of the center of the (x_i,y_j) ellipse
+
+            suma = 0.d0  !1.d-9  ! simulate noise (?)
+            do l = 1, m_tot
+               d_pesada2 = ((x_map(l)-x_c(i))**2)/w_x + ((y_map(l)-y_c(j))**2)/w_y
+               if (d_pesada2 < 6.d0) then      
+                  ! Gaussian beam -> /(sigma*sqrt(2*pi)), both in x and y
+                  atenua = exp( -d_pesada2 ) !/ norm
+                  D_F = F_325Mabs(l)*atenua
+               else
+                  D_F = 0.d0 ! flux drops < 1e-3 farther from there, no need to sum
+               endif
+               suma = suma + D_f
+            enddo
+
+            suma2 = 0.d0
+            do l = 1, m_map
+               d_pesada2 = ((x_map(l)-x_c(i))**2)/w_x + ((y_map(l)-y_c(j))**2)/w_y
+               if (d_pesada2 < 6.d0) then      
+                  ! Gaussian beam -> /(sigma*sqrt(2*pi)), both in x and y
+                  atenua = exp( -d_pesada2 ) !/ norm
+                  D_F = S_map2(l)*atenua
+               else
+                  D_F = 0.d0 ! flux drops < 1e-3 farther from there, no need to sum
+               endif
+               suma2 = suma2 + D_f
+            enddo
+
+            suma3 = 0.d0
+            do l = 1, m_map
+               d_pesada2 = ((x_map(l)-x_c(i))**2)/w_x + ((y_map(l)-y_c(j))**2)/w_y
+               if (d_pesada2 < 6.d0) then      
+                  ! Gaussian beam -> /(sigma*sqrt(2*pi)), both in x and y
+                  atenua = exp( -d_pesada2 ) !/ norm
+                  D_F = S_map3(l)*atenua
+               else
+                  D_F = 0.d0 ! flux drops < 1e-3 farther from there, no need to sum
+               endif
+               suma3 = suma3 + D_f
+            enddo
+
+            F_map325Mabs(i,j) = suma + suma2 + suma3
+         enddo
+
+      enddo
+
+      !///////////////////////////////////////////////////////////////
+      !
+      ! Data storage + consistency check:
+
+      mJy_beam = A_cell/A_beam ! Transform mJy/beam --> mJy (for consistency checks)
+
+      sum = 0.d0
+      open (17,file='SW_conv_325Mabs.dat')
+      do i = 1, m_x
+         do j = 1, m_y
+            write(17,60) x_c(i), y_c(j), F_map325Mabs(i,j)
+            sum = sum + F_map325Mabs(i,j)*mJy_beam
+         enddo
+         write(17,*) 
+      enddo
+      write(*,*) 'Post-conv:'
+      write(*,80) 'S(325MHz)=',sum,'mJy'
+      write(*,*) ''
+      close(17)
+
+      60  format(F11.4,X,F11.4,X,E11.4)
+      80  format(A11,X,Es10.2,X,A3)
+
+      deallocate (x_c,y_c,F_map325Mabs)
+
+   END subroutine SW_conv325M_run
+
+   !============================================================================
+   ! SW_conv325M_run (END)
+   !============================================================================
 
    !============================================================================
    ! SW_conv1G_run
@@ -39,10 +214,6 @@ module SW_conv
       A_cell = f_Ny**2*sigma_x*sigma_y ! cell sample size
 
       ci = abs(cos(incli))
-
-      open(188,file='R0_proj.dat')
-         write(188,*) 0.d0,R0_proj/abs(cos(incli))
-      close(188)
 
       !///////////////////////////////////////////////////////
       !-------------------------------------------------------
