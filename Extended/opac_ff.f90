@@ -261,6 +261,10 @@ module opac_ff
       write(*,'(a, F6.3)') ' R_str(pc) = ', R_str/pc
       write(*,'(a, F5.2)') ' R_str/R0 = ', R_str/R0
 
+      open(100,file='Stromgren.dat')
+      write(100,*) R_str
+      close(100)
+
       !----------------------------------------------------------
       ! Define some variables
 

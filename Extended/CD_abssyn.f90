@@ -1,5 +1,6 @@
 module CD_abssyn
-  use global      
+  use global
+  use gaunt_factor  
   implicit none
   public :: CD_abssyn_run
 
@@ -8,7 +9,7 @@ module CD_abssyn
     !========================================================================
     !        abssyn_run        
     !========================================================================
-  	 !This module calculates the f-f absorption of radio emission from the shock.
+  	 ! This module calculates the f-f absorption of radio emission from the shock.
     ! This program calculates the total radio opacity for a radio photon 
     ! emitted from a position (x(l),y(l)) in the CD. The output is the file
     ! radsyn.dat which contains E(i), L_sy(E(i), L_sy_abs(E(i)).
@@ -17,10 +18,11 @@ module CD_abssyn
     ! the star. The f-f absorption in the shock is negligible given the large T
     !========================================================================
   
-    subroutine CD_abssyn_run(shock)
+    subroutine CD_abssyn_run(shock,radiative)
       !$ use omp_lib
 !      real(dp), intent(in) :: phi
       character(LEN=*), intent(in) :: shock
+      logical, intent(in) :: radiative
       real(dp) :: dtheta, alphaffw(mr_ff,mE_ff)
 !      real(dp) :: alpha_FS(mr_ff,mE_ff)
       Real(dp) :: r_ff(mr_ff),dr_ff
@@ -36,12 +38,17 @@ module CD_abssyn
       integer, parameter :: m_l = 2*m_theta  ! CD position, both sides
       real(dp) :: dnu_avg,h_avg
       real(dp) :: emi_tot(m_l),emi_avg(m_l),emi_tot_abs(m_l),emi_avg_abs(m_l)
-      Logical :: integra
+      real(dp) :: H_theta(m_l), H_IL(m_theta), rho(m_theta), n(m_l), R_str
+      real(dp) :: alpha_IL(m_l,m_nu), alpha_str(i)
+      Logical :: integra, inside
+      real(dp), allocatable :: gaunt(:,:), gaunt_str(:)
+      real(dp) :: tau_str(m_nu)
  
-      allocate( tauff(m_l,m_nu) ) 
+      allocate( tauff(m_l,m_nu),tau_IL(m_l,m_nu),tau_tot(m_l,m_nu) ) 
       allocate( x(m_l),y(m_l),z(m_l) )
       allocate( nu(m_nu),Lsy(m_l,m_nu),Lsy_tot(m_nu),Lsy_tot_abs(m_nu) )
       allocate( Lsy_RS(m_l,m_nu),Lsy_FS(m_l,m_nu) )
+      allocate( gaunt(m_l,m_nu), gaunt_str(m_nu) )
   
 !100  format(A15,X,Es10.2)
 
@@ -58,7 +65,24 @@ module CD_abssyn
       cinc = cos(incli)
       dtheta = theta(2)-theta(1)  ! Equiesp.
       ! set omp threads number
-      !$ call omp_set_num_threads(nth)  
+      !$ call omp_set_num_threads(nth)
+
+      !======================================================
+      ! Read data of the IL
+      if ((shock == 'BOTH') .and. radiative) then
+         open(20,file='termo_FS.dat')
+         open(21,file='H_FS.dat')
+         do l=1, m_theta
+            read(20,*) dummy,dummy,dummy,dummy,dummy,dummy,dummy,dummy,dummy,dummy,dummy,rho(l)
+            read(21,*) dummy, H_IL(l), dummy, dummy
+            n(l) = rho(l)/mu_SISM/mp
+            n(l+m_theta) = rho(l)/mu_SISM/mp
+            H_theta(l) = H_IL(l) 
+            H_theta(l+m_theta) = H_IL(l)
+         end do
+         close(20)
+         close(21)
+      end if
 
       !======================================================
       !
@@ -93,6 +117,13 @@ module CD_abssyn
       end do
       close(18)
 
+      !======================================================
+      do l=1,m_l
+         do i=1,m_nu
+            call gaunt_ff_calc(nu,m_nu,T_ISM,Zq_ISM,gaunt(l,i))
+         end do
+      end do
+
       !/////////////////////////////////////////////////////////////////////
       !
       ! We calculate the total f-f opacity, tauff, for photons coming from a 
@@ -103,7 +134,7 @@ module CD_abssyn
       inu_max = int( log(0.5d9/nu(1))/log_nu_int ) + 1
 !      write(*,*) 'inu_max=', inu_max
 
-      do l=1,m_l        ! Position in the CD 
+      do l=1,m_l        ! Position in the CD
 
          if (l <= m_theta) then
             dr0 = 0.2d0*r_norm(l)*R0               ! Estimate of the shock width, USE H0 for consistency!!!!
@@ -142,18 +173,54 @@ module CD_abssyn
                endif
                
                x1 = x1 + dr_x ! CHECK
-               y1 = y1 + dr_y
+               y1 = y1 + dr_y              
+            end do
+
+            inside = .true.
+            do while(inside)
+               r1 = sqrt(x1**2. + y1**2. + z1**2.)                     
                
+               theta1 = abs(atan(y1/x1))
+               i_theta = min( int((theta1 - theta(1))/dtheta) + 1 , m_theta)
+               
+               if ( r1 < r_norm(i_theta)*R0 .or. i_theta == m_theta) then ! "inside" the BS
+                  alpha_IL(l,i) = 3.7d8 * (Zq_ISM**2*n(i_theta)**2/sqrt(T_ISM)) * (1.d0-exp(-h*nu(i)/(k*T_ISM)) )/nu(i)**3 * gaunt(i_theta,i)
+                  tau_IL(l,i) = alpha_IL(l,i)*H_theta(i_theta)
+               else
+                  inside = .false.
+               endif
+               
+               x1 = x1 + dr_x ! CHECK
+               y1 = y1 + dr_y
             end do
          end do
          ! !$omp end parallel do
 
       end do
 
+      !==============================================
+      open(30,file='Stromgren.dat')
+      read(30,*) R_str
+      do i=1,m_nu
+         call gaunt_ff_calc(nu,m_nu,T_ISM,Zq_ISM,gaunt_str(i))
+      end do
+      close(30)
+
+      do i=1,m_nu
+         alpha_str(i) = 3.7d8 * (Zq_ISM**2*n_ISM**2/sqrt(T_ISM)) * (1.d0-exp(-h*nu(i)/(k*T_ISM)) )/nu(i)**3 * gaunt_str(i)
+         tau_str(i) = alpha_str(i)*R_str
+         print*, tau_str(i), nu(i)/1.d6
+      end do
+
       open (25,file='CD_tauff.dat')
       do l=1,m_l
          do i=1,m_nu
-            write(25,*) l,nu(i),tauff(l,i) 
+            if (shock == 'BOTH') then
+               tau_tot(l,i) = tauff(l,i) + tau_IL(l,i) + tau_str(i)
+            else
+               tau_tot(l,i) = tauff(l,i)
+            end if
+            write(25,*) l,nu(i),tau_tot(l,i)
          end do
       end do
       close(25)
@@ -237,7 +304,7 @@ module CD_abssyn
          do i=1,m_nu
             Lsy_tot(i) = Lsy_tot(i) + Lsy(l,i)
             if (i < inu_max) then !  The abs was calculated at these freqs  
-               Lsy_tot_abs(i) = Lsy_tot_abs(i) + Lsy(l,i)*exp(-tauff(l,i))  
+               Lsy_tot_abs(i) = Lsy_tot_abs(i) + Lsy(l,i)*exp(-tau_tot(l,i))  
             else
                Lsy_tot_abs(i) = Lsy_tot_abs(i) + Lsy(l,i)
             endif
@@ -245,17 +312,17 @@ module CD_abssyn
          end do
          
          emision0 = Lsy(l,i_325M) * flux0 ! At 325 MHz
-         emision0_abs = emision0 * exp(-tauff(l,i_325M))
+         emision0_abs = emision0 * exp(-tau_tot(l,i_325M))
          emision1 = Lsy(l,i_1G) * flux1 ! At 1.4 GHz
-         emision1_abs = emision1 * exp(-tauff(l,i_1G))
+         emision1_abs = emision1 * exp(-tau_tot(l,i_1G))
          emision2 = Lsy(l,i_3G) * flux2 ! At 3.0 GHz
-         emision2_abs = emision2 * exp(-tauff(l,i_3G))
+         emision2_abs = emision2 * exp(-tau_tot(l,i_3G))
          emision3 = Lsy(l,i_5G) * flux3 ! At 4.8 GHz
-         emision3_abs = emision3 * exp(-tauff(l,i_5G))
+         emision3_abs = emision3 * exp(-tau_tot(l,i_5G))
          emision4 = Lsy(l,i_6G) * flux4 ! At 6.0 GHz
-         emision4_abs = emision4 * exp(-tauff(l,i_6G))
+         emision4_abs = emision4 * exp(-tau_tot(l,i_6G))
          emision5 = Lsy(l,i_10G) * flux5 ! At 10. GHz
-         emision5_abs = emision5 * exp(-tauff(l,i_10G))
+         emision5_abs = emision5 * exp(-tau_tot(l,i_10G))
          
          write(70,*) u_proj,v_proj,emision0,emision0_abs
          write(71,*) u_proj,v_proj,emision1,emision1_abs
@@ -298,7 +365,7 @@ module CD_abssyn
             if ((nu(i) >= nu_av_min) .and. (nu(i) <= nu_av_max)) then
                dnu_avg = nu(i)*(h_avg-1.d0)
                emi_tot(l) = emi_tot(l) + Lsy(l,i)*flux/nu(i) * dnu_avg
-               emi_tot_abs(l) = emi_tot_abs(l) + Lsy(l,i)*exp(-tauff(l,i))*flux/nu(i) * dnu_avg
+               emi_tot_abs(l) = emi_tot_abs(l) + Lsy(l,i)*exp(-tau_tot(l,i))*flux/nu(i) * dnu_avg
             end if
          end do
          emi_avg(l) = emi_tot(l)/(nu_av_max-nu_av_min)
@@ -318,7 +385,9 @@ module CD_abssyn
       end do
      close(34)
 
-      deallocate( tauff ) 
+      deallocate( tauff,tau_IL,tau_tot )
+      deallocate( gaunt_str )
+      deallocate( gaunt ) 
       deallocate( x,y,z,nu,Lsy,Lsy_tot,Lsy_tot_abs,Lsy_RS,Lsy_FS )
    
     END subroutine CD_abssyn_run

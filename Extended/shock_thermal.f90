@@ -245,7 +245,6 @@ module shock_thermal
         emi_ff_nu(l,i_ph) = ( cte_l_1(l) * exp(-Eph(i_ph)/(k*T_HL(l))) * g_ff(l,i_ph) )/h  ! erg/s/cm3/erg
         alpha_ff_nu1(l,i_ph) = 3.7d8 * (Zq**2*(rho(l)/mp/mu_ISM)**2/sqrt(T_HL(l)) ) * (1.d0-exp(-h*nu(i_ph)/(k*T_HL(l))) )/nu(i_ph)**3 * g_ff(l,i_ph)
         Tau_1(l,i_ph) = alpha_ff_nu1(l,i_ph)*H_1(l)
-        if (l==2) print*, Tau_1(l,i_ph)
         if ( Tau_1(l,i_ph)>= 1.d0 ) then
           write(*,96) 'Region 1 is optically thick at angle', theta(l)*180./pi, 'and frequency', nu(i_ph)/1.d6, 'MHz'
         end if 
@@ -334,7 +333,11 @@ module shock_thermal
         ! write(*,*) i_ph, l, gffinter, 9.77d0*(1.d0+0.13d0*log10(T(l)**1.5d0/Zq_sw/(Eph(i_ph)/h))) ! aprox 
         ! Emission from the ionized layer by the star's radiation field. T = 8.000 K (FS)
         ! Thermal emission
-        emi_ion_nu = ( cte_l(l) * exp(-Eph(i_ph)/(k*T(l))) * g_ff(l,i_ph) )/h ! erg/s/cm3/Hz
+        if (shock == 'RS') then
+          emi_ion_nu = ( cte_l(l) * exp(-Eph(i_ph)/(k*T(l))) * g_ff(l,i_ph) )/h ! erg/s/cm3/Hz
+        else if (shock == 'FS') then
+          emi_ion_nu = frac_H*( cte_l(l) * exp(-Eph(i_ph)/(k*T(l))) * g_ff(l,i_ph) )/h
+        end if
         alpha_ff_nu2(l,i_ph) = 3.7d8 * (Zq**2*n_a(l)**2/sqrt(T(l))) * (1.d0-exp(-h*nu(i_ph)/(k*T(l))) )/nu(i_ph)**3 * g_ff(l,i_ph)
         Tau_2(l,i_ph) = alpha_ff_nu2(l,i_ph)*H_theta(l)
         if ( Tau_2(l,i_ph)>= 1.d0 ) then

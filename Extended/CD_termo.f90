@@ -361,7 +361,7 @@ module CD_termo
          if (.not. radiative) then
             H_theta(l) = dot_M/(2.*pi*y_eff(l)*rho(l)*v_t(l))   ! dot_M = 2*pi*y_eff(l)*H(l)*rho(l)*v_t(l)
          else if (radiative) then
-            H_theta(l) = frac_H * dot_M/(2.*pi*y_eff(l)*v_t(l)*rho_IL(l)) - H_1(l)*rho(l)/rho_IL(l)
+            H_theta(l) = dot_M/(2.*pi*y_eff(l)*v_t(l)*rho_IL(l)) - H_1(l)*rho(l)/rho_IL(l)
          end if
       end do
 
@@ -431,7 +431,7 @@ module CD_termo
       allocate( alpha_sh(m_theta) )
       open(20,file='alpha_'//shock//'.dat')
       do l = 1, m_theta
-         alpha_sh(l) = 2.2_dp   ! Value used for BD+43°3654
+         alpha_sh(l) = 2.08_dp   ! Value used for BD+43°3654
          !alpha_sh(l) = (r(l)+2.d0)/(r(l)-1.d0)
          !dummy = r(l)/(1.d0 + r(l)*v_A(l)/v_sh)         
          !print *, r(l), r(l)/(1.d0 + r(l)*v_ARH(l)/v_sh)

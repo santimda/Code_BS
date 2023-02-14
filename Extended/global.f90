@@ -96,7 +96,7 @@ module global
 
    ! f-f
    integer, parameter :: mE_ff = m_nu, mr_ff = 1640, mr_map = 1000
-   real(dp), dimension(:,:), allocatable :: tauff
+   real(dp), dimension(:,:), allocatable :: tauff, tau_IL, tau_tot
    real(dp), parameter :: nu_min_ff = 10.d6    ! 10 MHz 
    real(dp), parameter :: nu_max_ff = 1.d12   ! 1 THz
    real(dp) :: alphaff_w(mr_ff,m_nu), r_w(mr_ff)

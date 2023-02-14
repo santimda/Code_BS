@@ -436,7 +436,7 @@ Subroutine abs_maps(SHOCK)
 
             if (abssyn_calc) then
                print *, 'Calculate the free-free synchrotron absorption'
-               call CD_abssyn_run(shock) !(phi)
+               call CD_abssyn_run(shock, radiative = .true.) !(phi)
                if (shock /= 'BOTH') then
                   open (45,file='radsyn_abs_'//shock//'.dat')
                else if (shock == 'BOTH') then
