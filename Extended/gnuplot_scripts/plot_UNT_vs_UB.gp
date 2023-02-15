@@ -11,10 +11,10 @@ set label "NAME" at graph 0.05,0.95 font "Helvetica,18"
 set terminal postscript color solid enhanced dl 6.5 lw 2.7 "Helvetica" 20
 set output 'UNT_vs_UB.eps'
 
-plot '../ENTp_FS.dat' u 1:4 t 'FS' w l lw 3,\
-	 '../ENTp_RS.dat' u 1:4 t 'RS' w l lw 3 
+#plot '../ENTp_FS.dat' u 1:4 t 'FS' w l lw 3,\
+#	 '../ENTp_RS.dat' u 1:4 t 'RS' w l lw 3 
 
-#, '../ENTe_FS.dat' u 1:3 w l lw 3  --> electrons are completely subdominant
+plot	'../ENTe_RS.dat' u 1:4 w l lw 3  #--> electrons are completely subdominant
 
 !./fixbb UNT_vs_UB.eps
 !epstopdf UNT_vs_UB.eps

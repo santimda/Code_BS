@@ -351,7 +351,7 @@ module CD_diste
             dE_e = E_e(i)*(Eint_e - 1.d0)  
             E_NT = E_NT + E_e(i)*N_etot(l,i)*dE_e
          end do
-         E_NT = E_NT * 2.d0*mphi ! Total NT energy in each BS "ring"
+         E_NT = E_NT * 4.d0*mphi ! Total NT energy in each BS "ring"
          U_NT = E_NT/dV_ring(l)
          write(80,*) l, E_NT, U_NT, U_NT/(B(l)**2/(8.d0*pi))! Store the energy density as well
          suma = suma + E_NT
