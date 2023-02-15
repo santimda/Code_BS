@@ -431,7 +431,7 @@ module CD_termo
       allocate( alpha_sh(m_theta) )
       open(20,file='alpha_'//shock//'.dat')
       do l = 1, m_theta
-         alpha_sh(l) = 2.08_dp   ! Value used for BD+43°3654
+         alpha_sh(l) = 2.5_dp   ! Value used for BD+43°3654
          !alpha_sh(l) = (r(l)+2.d0)/(r(l)-1.d0)
          !dummy = r(l)/(1.d0 + r(l)*v_A(l)/v_sh)         
          !print *, r(l), r(l)/(1.d0 + r(l)*v_ARH(l)/v_sh)

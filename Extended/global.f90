@@ -46,6 +46,7 @@ module global
    ! dist
    real(dp), parameter :: Emin_e = 2.d0*mec2   ! ~1 MeV
    real(dp), parameter :: Emin_e_inj = Emin_e  ! Emin_e_inj >= Emin_e
+   real(dp), parameter :: E_tran = 3.d9*eV    ! Divides both injection regimes
    real(dp), parameter :: Emax_e = 1.d15*eV    ! 1 PeV
    real(dp) :: Eint_e,dE_e
    real(dp), dimension(:,:), allocatable :: N_etot ! Ne(theta,E_i)
@@ -97,6 +98,7 @@ module global
    ! f-f
    integer, parameter :: mE_ff = m_nu, mr_ff = 1640, mr_map = 1000
    real(dp), dimension(:,:), allocatable :: tauff, tau_IL, tau_tot
+   real(dp), dimension(:), allocatable :: tau_str
    real(dp), parameter :: nu_min_ff = 10.d6    ! 10 MHz 
    real(dp), parameter :: nu_max_ff = 1.d12   ! 1 THz
    real(dp) :: alphaff_w(mr_ff,m_nu), r_w(mr_ff)

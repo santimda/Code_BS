@@ -26,6 +26,7 @@ module CD_diste
       real(dp) :: log_coul,gdot_coul,cte_coul,t_coul
       real(dp) :: log10Emaxl,R_acel(m_theta),Q,integral
       real(dp) :: E_dot(m_theta,mE_e),Emax_e0(m_theta),rg_e_max(m_theta),Ka,E_NT,dV_ring(m_theta),U_NT
+      real(dp) :: E_corr(m_theta)
       real(dp) :: N_e0(mE_e),n_a(m_theta),L_inj(m_theta),dR(m_theta)
       real(dp) :: L_inj_e(m_theta), suma, f1, f2, f
       real(dp) :: dE_aprox, cool
@@ -43,11 +44,11 @@ module CD_diste
       end interface
 
       interface
-      function fQ(E,Emin,Emax,alpha) ! function Q(E)
+      function fQ(E,E_tr,Emin,Emax,E_c,alpha,alpha_0) ! function Q(E)
          use iso_fortran_env, only: dp => real64
          implicit none
          real(dp) :: fQ
-         real(dp), intent(in) :: E,Emin,Emax,alpha
+         real(dp), intent(in) :: E,Emin,Emax,alpha,E_tr,E_c,alpha_0
       end function fQ
       end interface
 
@@ -217,23 +218,24 @@ module CD_diste
       !========================================================================
 
       ! Consider different starting points for each linear emitter
+      do l=1, m_theta
+         E_corr(l) = E_tran**(alpha_1-alpha_sh(l))
+      end do
 
       N_etot = 0.d0
-
       ! At the starting point of the line we calculate the distribution 
       ! Ne_0(E_0), the cooling rate Edot0, and we sum it to Ne_tot(l,i)
 
       Do l_min = 1, m_theta_inj_max ! After m_theta_inj_max, particles are no longer accelerated
-
          ! Q = Ka*E**-alpha*e^(-E/Emax), alpha=2. The normalization constant Ka is obtained 
          ! by the condition: integral Q(E')*E'dE' = Linj. [Linj]=erg/s, [Ka]=erg/s, [Q]=1/erg/seg
           
          ! The integral is solved with the trapezoid method; Q(E) is obtained from fQ
          integral = 0.d0
          i = 1
-         f1 = E_e(1) * fQ(E_e(1), Emin_e_inj, Emax_e0(l_min),alpha_sh(1))
+         f1 = E_e(1) * fQ(E_e(1), Emin_e_inj, E_tran, Emax_e0(l_min), E_corr(1), alpha_sh(1), alpha_1)
          do while (i < mE_e .and. E_e(i+1) < 10.d0*Emax_e0(l_min))
-           f2 = E_e(i+1) * fQ(E_e(i+1), Emin_e_inj, Emax_e0(l_min),alpha_sh(l_min))
+           f2 = E_e(i+1) * fQ(E_e(i+1), Emin_e_inj, E_tran, Emax_e0(l_min), E_corr(l_min), alpha_sh(l_min), alpha_1)
            f = (f1 + f2)/2.d0
            dE_e = E_e(i)*(Eint_e-1.d0)
            integral = integral + f*dE_e
@@ -252,7 +254,7 @@ module CD_diste
             ! N(E)=1/|dE/dt|*int_E^Emax Q(E')dE' = Q(E)*dt, with |dE/dt|= E/t_cool 
             ! in [erg/seg], dt = min(t_cell,t_cool) so that [N(E)]=1/erg
    
-            Q = Ka * fQ(E_e(i), Emin_e_inj, Emax_e0(l_min),alpha_sh(l_min))
+            Q = Ka * fQ(E_e(i), Emin_e_inj, E_tran, Emax_e0(l_min), E_corr(l_min), alpha_sh(l_min), alpha_1)
             N_e0(i) = Q * min(t_cell(l_min),t_coole(l_min,i))
             N_etot(l_min,i) = N_etot(l_min,i) + N_e0(i)  
 
@@ -349,7 +351,7 @@ module CD_diste
             dE_e = E_e(i)*(Eint_e - 1.d0)  
             E_NT = E_NT + E_e(i)*N_etot(l,i)*dE_e
          end do
-         E_NT = E_NT * 4.d0*mphi ! Total NT energy in each BS "ring"
+         E_NT = E_NT * 2.d0*mphi ! Total NT energy in each BS "ring"
          U_NT = E_NT/dV_ring(l)
          write(80,*) l, E_NT, U_NT, U_NT/(B(l)**2/(8.d0*pi))! Store the energy density as well
          suma = suma + E_NT
@@ -401,6 +403,7 @@ module CD_diste
       real(dp) :: E_dot(m_theta,mE_e),Emax_e0(m_theta),Ka,E_NT,dV_ring(m_theta),U_NT
       real(dp) :: N_e0(mE_e),n_a(m_theta),L_inj(m_theta),dR(m_theta),N_total_i
       real(dp) :: L_inj_e(m_theta), f1, f2, f
+      real(dp) :: E_corr(m_theta)
 
       interface
       subroutine Biseccion(c_sy,Bl,logEmax,c1,c2,T1,tbr,tad,xi,Rdiff)
@@ -412,11 +415,11 @@ module CD_diste
       end interface
 
       interface
-      function fQ(E,Emin,Emax,alpha) ! function Q(E)
+      function fQ(E,E_tr,Emin,Emax,E_c,alpha,alpha_0) ! function Q(E)
          use iso_fortran_env, only: dp => real64
          implicit none
          real(dp) :: fQ
-         real(dp), intent(in) :: E,Emin,Emax,alpha
+         real(dp), intent(in) :: E,Emin,E_tr,Emax,E_c,alpha,alpha_0
       end function fQ
       end interface
 
@@ -510,6 +513,9 @@ module CD_diste
       !========================================================================
 
       ! Consider different starting points for each linear emitter
+      do l=1, m_theta
+         E_corr(l) = E_tran**(alpha_1-alpha_sh(l))
+      end do
 
       N_etot = 0.d0
       Do l_min = 1, m_theta_inj_max ! After m_theta_inj_max, particles are no longer accelerated
@@ -520,9 +526,9 @@ module CD_diste
          ! The integral is solved with the trapezoid method; Q(E) is obtained from fQ
          integral = 0.d0
          i = 1
-         f1 = E_e(1) * fQ(E_e(1), Emin_e_inj, Emax_e0(l_min),alpha_sh(1))
+         f1 = E_e(1) * fQ(E_e(1), Emin_e_inj, E_tran, Emax_e0(l_min), E_corr(1), alpha_sh(1),alpha_1)
          do while (i < mE_e .and. E_e(i+1) < 10.d0*Emax_e0(l_min))
-           f2 = E_e(i+1) * fQ(E_e(i+1), Emin_e_inj, Emax_e0(l_min),alpha_sh(l_min))
+           f2 = E_e(i+1) * fQ(E_e(i+1), Emin_e_inj, E_tran, Emax_e0(l_min), E_corr(l_min), alpha_sh(l_min), alpha_1)
            f = (f1 + f2)/2.d0
            dE_e = E_e(i)*(Eint_e-1.d0)
            integral = integral + f*dE_e
@@ -539,7 +545,7 @@ module CD_diste
             ! N(E)=1/|dE/dt|*int_E^Emax Q(E')dE' = Q(E)*dt, with |dE/dt|= E/t_cool 
             ! in [erg/seg], dt = min(t_cell,t_cool) so that [N(E)]=1/erg
    
-            Q = Ka * fQ(E_e(i), Emin_e_inj, Emax_e0(l_min),alpha_sh(l_min))
+            Q = Ka * fQ(E_e(i), Emin_e_inj, E_tran, Emax_e0(l_min), E_corr(l_min), alpha_sh(l_min), alpha_1)
             N_e0(i) = Q * min(t_cell(l_min),t_coole(l_min,i))
             N_etot(l_min,i) = N_etot(l_min,i) + N_e0(i)  
 
@@ -726,13 +732,15 @@ end Function resta
 
 !=========================================================================
 
-Function fQ(E, Emin, Emax, alpha)
+Function fQ(E, Emin, E_tr, Emax, E_c, alpha, alpha_0)
    use global  
    implicit none
    real(dp) :: fQ
-   real(dp),intent(in) :: E, Emin, Emax, alpha
+   real(dp),intent(in) :: E, Emin, E_tr, Emax, alpha, alpha_0, E_c
    if (E < Emin) then
       fQ = 0.d0 ! no injection
+   else if (Emin < E .and. E < E_tr) then
+      fQ = E**(-alpha_0)*E_c
    else
       fQ = E**(-alpha)*exp(-E/Emax)
    endif
