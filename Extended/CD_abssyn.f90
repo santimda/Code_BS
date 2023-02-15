@@ -39,16 +39,15 @@ module CD_abssyn
       real(dp) :: dnu_avg,h_avg
       real(dp) :: emi_tot(m_l),emi_avg(m_l),emi_tot_abs(m_l),emi_avg_abs(m_l)
       real(dp) :: H_theta(m_l), H_IL(m_theta), rho(m_theta), n(m_l), R_str
-      real(dp) :: alpha_IL(m_l,m_nu), alpha_str(i)
+      real(dp) :: alpha_IL(m_l,m_nu), alpha_str(m_nu)
       Logical :: integra, inside
       real(dp), allocatable :: gaunt(:,:), gaunt_str(:)
-      real(dp) :: tau_str(m_nu)
  
-      allocate( tauff(m_l,m_nu),tau_IL(m_l,m_nu),tau_tot(m_l,m_nu) ) 
+      allocate( tauff(m_l,m_nu),tau_IL(m_l,m_nu),tau_str(m_nu),tau_tot(m_l,m_nu) ) 
       allocate( x(m_l),y(m_l),z(m_l) )
       allocate( nu(m_nu),Lsy(m_l,m_nu),Lsy_tot(m_nu),Lsy_tot_abs(m_nu) )
       allocate( Lsy_RS(m_l,m_nu),Lsy_FS(m_l,m_nu) )
-      allocate( gaunt(m_l,m_nu), gaunt_str(m_nu) )
+      allocate( gaunt(m_l,m_nu),gaunt_str(m_nu) )
   
 !100  format(A15,X,Es10.2)
 
@@ -200,16 +199,16 @@ module CD_abssyn
 
       !==============================================
       open(30,file='Stromgren.dat')
-      read(30,*) R_str
+         read(30,*) R_str
+      close(30)
+
       do i=1,m_nu
          call gaunt_ff_calc(nu,m_nu,T_ISM,Zq_ISM,gaunt_str(i))
       end do
-      close(30)
 
       do i=1,m_nu
          alpha_str(i) = 3.7d8 * (Zq_ISM**2*n_ISM**2/sqrt(T_ISM)) * (1.d0-exp(-h*nu(i)/(k*T_ISM)) )/nu(i)**3 * gaunt_str(i)
          tau_str(i) = alpha_str(i)*R_str
-         print*, tau_str(i), nu(i)/1.d6
       end do
 
       open (25,file='CD_tauff.dat')
@@ -237,7 +236,7 @@ module CD_abssyn
          end do
          end do
          close(32)
-      
+
       else if (shock == 'FS') then
          open (33,file='emisyn_FS.dat')
          do l=1,m_theta
@@ -385,9 +384,8 @@ module CD_abssyn
       end do
      close(34)
 
-      deallocate( tauff,tau_IL,tau_tot )
-      deallocate( gaunt_str )
-      deallocate( gaunt ) 
+      deallocate( tauff,tau_IL,tau_str,tau_tot )
+      deallocate( gaunt, gaunt_str )
       deallocate( x,y,z,nu,Lsy,Lsy_tot,Lsy_tot_abs,Lsy_RS,Lsy_FS )
    
     END subroutine CD_abssyn_run
