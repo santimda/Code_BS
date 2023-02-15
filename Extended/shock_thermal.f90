@@ -245,9 +245,9 @@ module shock_thermal
         emi_ff_nu(l,i_ph) = ( cte_l_1(l) * exp(-Eph(i_ph)/(k*T_HL(l))) * g_ff(l,i_ph) )/h  ! erg/s/cm3/erg
         alpha_ff_nu1(l,i_ph) = 3.7d8 * (Zq**2*(rho(l)/mp/mu_ISM)**2/sqrt(T_HL(l)) ) * (1.d0-exp(-h*nu(i_ph)/(k*T_HL(l))) )/nu(i_ph)**3 * g_ff(l,i_ph)
         Tau_1(l,i_ph) = alpha_ff_nu1(l,i_ph)*H_1(l)
-        if ( Tau_1(l,i_ph)>= 1.d0 ) then
-          write(*,96) 'Region 1 is optically thick at angle', theta(l)*180./pi, 'and frequency', nu(i_ph)/1.d6, 'MHz'
-        end if 
+        !if ( Tau_1(l,i_ph)>= 1.d0 ) then
+        !  write(*,96) 'Region 1 is optically thick at angle', theta(l)*180./pi, 'and frequency', nu(i_ph)/1.d6, 'MHz'
+        !end if 
       
         dEph = Eph(i_ph)*(Eph_int - 1.d0)
         integ = integ + emi_ff_nu(l,i_ph)*dEph
@@ -340,9 +340,9 @@ module shock_thermal
         end if
         alpha_ff_nu2(l,i_ph) = 3.7d8 * (Zq**2*n_a(l)**2/sqrt(T(l))) * (1.d0-exp(-h*nu(i_ph)/(k*T(l))) )/nu(i_ph)**3 * g_ff(l,i_ph)
         Tau_2(l,i_ph) = alpha_ff_nu2(l,i_ph)*H_theta(l)
-        if ( Tau_2(l,i_ph)>= 1.d0 ) then
-          write(*,96) 'Region 2 is optically thick at angle', theta(l)*180./pi, 'and frequency', nu(i_ph)/1.d6, 'MHz'
-        end if
+        !if ( Tau_2(l,i_ph)>= 1.d0 ) then
+        !  write(*,96) 'Region 2 is optically thick at angle', theta(l)*180./pi, 'and frequency', nu(i_ph)/1.d6, 'MHz'
+        !end if
 
         f_vol_ion(l) = emi_ion_nu*dV_ring(l)
         F_nu_ion(l,i_ph) = f_vol_ion(l)*Eph(i_ph)    ! erg/s
