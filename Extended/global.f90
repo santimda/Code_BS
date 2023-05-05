@@ -20,8 +20,8 @@ module global
    integer, parameter :: mE_e = 300    ! energy resolution for electrons
    integer, parameter :: mE_p = 300    ! energy resolution for protons < mE_f 
    integer, parameter :: mE_f = 500    ! it is the same for br, p-p and IC
-   integer, parameter :: mE_ph = 300   ! energy resolution for thermal f-f emission in the shocks 
-   integer, parameter :: mphi = 30      ! amount of linear-emitters
+   integer, parameter :: mE_ph = 600   ! energy resolution for thermal f-f emission in the shocks 
+   integer, parameter :: mphi = 4      ! amount of linear-emitters
    real(dp) :: delta_phi = 0.5*pi/(mphi-1.d0) ! angular separation between linear-emitters
    real(dp) :: d_phi = 0.5*pi/mphi     ! angular width of each linear-emitter or wedge
 
@@ -46,7 +46,7 @@ module global
    ! dist
    real(dp), parameter :: Emin_e = 2.d0*mec2   ! ~1 MeV
    real(dp), parameter :: Emin_e_inj = Emin_e  ! Emin_e_inj >= Emin_e
-   real(dp), parameter :: E_tran = 3.d9*eV    ! Divides both injection regimes
+   real(dp), parameter :: E_tran = 4.d9*eV    ! Divides both injection regimes
    real(dp), parameter :: Emax_e = 1.d15*eV    ! 1 PeV
    real(dp) :: Eint_e,dE_e
    real(dp), dimension(:,:), allocatable :: N_etot ! Ne(theta,E_i)
@@ -273,27 +273,37 @@ module global
 
 
    !============================================================================
-   ! Difussion coefficient
+   ! lambda_cool
 
-   !Function Difussion(E,B)
-   !   real(dp) :: Difussion, D_10_GeV, delta
-   !   real(dp), intent(in) :: E, B
+   Function lambda_cool(T)
+      real(dp), intent(in) :: T
+      real(dp) :: lambda_cool
+      
+      if (T < 1.d4) then
+            lambda_cool = 4.d-29 * T**0.8     ! GER
+         else if ((1.d4 <= T) .AND. (T <= 1.d5)) then    ! Myasnikov+ 1998
+            lambda_cool = 7.d-27 * T
+         else if ((1.d5 < T) .AND. (T <= 4.d7)) then
+            lambda_cool = 7.d-19 * T**(-0.6) 
+         else if (T > 4.d7) then
+            lambda_cool = 3.d-27 * sqrt(T)
+      end if
 
-      !character :: diff_regime --> Defined in system_parameters
-   !   if (diff_regime == 'V') then       ! del Valle+2018
-   !     delta=0.5d0
-   !     D_10_GeV = 1.d28
-   !     Difussion = D_10_GeV*(E/(1.d9*eV))**delta  !cm^2 s^-1
-   !   else if (diff_regime == 'B') then  ! Bohm diff
-   !     Difussion = E*c/(3.d0*qe*B) !cm^2 s^-1
-   !   else 
-   !     write(*,*) 'ERROR, UNKNOWN DIFFUSION'
-   !     stop
-   !   endif
-   ! end Function Difussion
+   end Function lambda_cool
 
 
    !============================================================================
+   ! lambda_ff
 
+   Function lambda_ff(T)
+      real(dp), intent(in) :: T
+      real(dp) :: lambda_ff
+
+      lambda_ff = 3.d-27 * sqrt(T)
+
+   end Function lambda_ff
+
+   !============================================================================
+   !============================================================================
 
 END module global
