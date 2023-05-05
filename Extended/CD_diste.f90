@@ -739,7 +739,7 @@ Function fQ(E, Emin, E_tr, Emax, E_c, alpha, alpha_0)
    real(dp),intent(in) :: E, Emin, E_tr, Emax, alpha, alpha_0, E_c
    if (E < Emin) then
       fQ = 0.d0 ! no injection
-   else if (Emin < E .and. E < E_tr) then
+   else if (Emin <= E .and. E < E_tr) then
       fQ = E**(-alpha_0)*E_c
    else
       fQ = E**(-alpha)*exp(-E/Emax)
