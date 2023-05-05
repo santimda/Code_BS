@@ -135,7 +135,7 @@ contains
     i_890M = int(log(890.d6/nu(1))/log_nu_int) + 1  
     i_1G = int(log(1.4d9/nu(1))/log_nu_int) + 1  
     i_3G = int(log(3.0d9/nu(1))/log_nu_int) + 1     
-    write(*,80) 'S_110M[mJy]=', Lsy_tot(i_110M)*(mphi*4.)/(4.*pi*distance**2*nu(i_150M))*1.d26 ! mphi emitters, 4 quadrants
+    write(*,80) 'S_110M[mJy]=', Lsy_tot(i_110M)*(mphi*4.)/(4.*pi*distance**2*nu(i_110M))*1.d26 ! mphi emitters, 4 quadrants
     write(*,80) 'S_150M[mJy]=', Lsy_tot(i_150M)*(mphi*4.)/(4.*pi*distance**2*nu(i_150M))*1.d26 ! mphi emitters, 4 quadrants
     write(*,80) 'S_890MHz[mJy]=', Lsy_tot(i_890M)*(mphi*4.)/(4.*pi*distance**2*nu(i_890M))*1.d26
     write(*,80) 'S_1.4GHz[mJy]=', Lsy_tot(i_1G)*(mphi*4.)/(4.*pi*distance**2*nu(i_1G))*1.d26 ! mphi emitters, 4 quadrants

@@ -9,6 +9,9 @@ echo "5: HD-319881"
 echo "6: IRAS-20321+4009"
 echo "7: RCW-49-S1"
 echo "8: G1"
+echo "9: Lambda_Cep"
+echo "10: O4"
+echo "11: Vela_X-1"
 
 echo -n "Enter the integer value and press [ENTER]: " 
 read name_number
@@ -39,6 +42,15 @@ case $name_number in
 	8)
 	name='G1'
 	;;
+	9)
+	name='Lambda_Cep'
+	;;
+	10)
+	name='O4'
+	;;
+	11)
+	name='Vela_X-1'
+	;;
 	*)
 	echo "Unknown scenario, exit"
 	exit
@@ -62,8 +74,6 @@ script_list+=(plot_termo_radiative.gp)
 script_list+=(plot_Linj_RS.gp)
 script_list+=(plot_radadi_RS.gp)
 script_list+=(plot_tiempos_e_RS.gp)
-script_list+=(plot_tiempos_e_RS_90.gp)
-script_list+=(plot_tiempos_e_RS_165.gp)
 script_list+=(plot_tiempos_p_RS.gp)
 script_list+=(plot_Emaxe_RS.gp)
 script_list+=(plot_Emaxp_RS.gp)
