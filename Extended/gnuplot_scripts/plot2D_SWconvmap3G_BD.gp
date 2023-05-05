@@ -41,7 +41,7 @@ set ylabel '{/Symbol D}DEC [arcmin]'
 set cblabel 'Flux [mJy beam^{-1}]'
 set yrange [-1.5:5.5]
 set xrange [-6.5:6.5]
-set cbrange [0.0:7]
+set cbrange [0.0:7.]
 
 set pm3d interpolate 0,0
 set view map
@@ -64,6 +64,8 @@ coc = sqrt(8.*log(2.))
 siz_x = 12.5/60.#*coc
 siz_y = 20.2/60.#*coc
 set object 5 ellipse center graph 0.92,0.92 size siz_x/cosd,siz_y angle ang_deg fc rgb "grey" fs solid 1.0 border -1 front
+
+set label "3 GHz" at graph 0.05,0.9 font "Helvetica,18" front
 
 splot '../SW_conv_3Gabs.dat' u (($1*cos(ang)+$2*sin(ang))/60.):(($1*sin(ang)-$2*cos(ang))/60.):($3) w pm3d,\
       'cont.dat' w l lt -1 lw 1.5,\
