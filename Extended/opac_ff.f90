@@ -261,10 +261,6 @@ module opac_ff
       write(*,'(a, F6.3)') ' R_str(pc) = ', R_str/pc
       write(*,'(a, F5.2)') ' R_str/R0 = ', R_str/R0
 
-      open(100,file='Stromgren.dat')
-      write(100,*) R_str
-      close(100)
-
       !----------------------------------------------------------
       ! Define some variables
 
@@ -317,6 +313,10 @@ module opac_ff
       end do
 
       vol_str = (4.d0/3.d0) * pi * R_str**3 - vol
+
+      open(100,file='Stromgren.dat')
+         write(100,*) R_str, vol_str
+      close(100)
 
       do i=1,mE_ff
          Lnu(i) = 6.8d-38 * Zq_ISM**2 * n_ISM**2 * g_ff_ISM(i) * exp(-h*nu_ISM(i)/k/T_ISM) / sqrt(T_ISM)
