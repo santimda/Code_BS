@@ -137,6 +137,10 @@ module CD_radpp
 
     write(*,80) 'L_pp=',sum_pp*mphi*2.d0
 
+    open(20,file='radpp_tot_'//shock//'.dat')
+      write(20,*) sum_pp*mphi*2.d0
+    close(20) 
+
     !---------------------------------------
     !
     !   Save data
