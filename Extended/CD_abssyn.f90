@@ -28,12 +28,14 @@ module CD_abssyn
       Real(dp) :: r_ff(mr_ff),dr_ff
       Real(dp) :: theta1,x1,y1,z1,r1,dr0,x1_0,y1_0,z1_0
       Real(dp) :: dr_x,dr_y,tginc,sinc,cinc
-      Real(dp) :: Ef(m_nu),log_nu_int,flux,flux0,flux1,flux2,flux3,flux4,flux5
+      Real(dp) :: Ef(m_nu),log_nu_int,flux,flux0,flux1,flux2,flux3,flux4,flux5,flux190,flux150,flux325
       Real(dp) :: u_proj,v_proj  ! coords in the plane of the sky 
       Real(dp) :: emision0,emision1,emision2,emision3
       Real(dp) :: emision0_abs,emision1_abs,emision2_abs,emision3_abs,convert
-      Real(dp) :: emision4,emision4_abs,emision5,emision5_abs
-      Integer :: ir,nl,inu_max,i_325M,i_1G,i_3G,i_5G,i_6G,i_10G,i_ff,i_theta
+      Real(dp) :: emision4,emision4_abs,emision5,emision5_abs,emision190,emision190_abs
+      Real(dp) :: emision150,emision150_abs,emision325,emision325_abs
+      Integer :: ir,nl,inu_max,i_ff,i_theta
+      Integer :: i_110M,i_150M,i_190M,i_325M,i_1G,i_3G,i_5G,i_6G,i_10G 
       integer :: N_avg
       integer, parameter :: m_l = 2*m_theta  ! CD position, both sides
       real(dp) :: dnu_avg,h_avg
@@ -262,13 +264,19 @@ module CD_abssyn
          !close(33)
       end if
 
+      i_110M = int(log(1.1d8/nu(1))/log_nu_int) + 1       ! 110 MHz
+      i_150M = int(log(1.5d8/nu(1))/log_nu_int) + 1       ! 150 MHz
+      i_190M = int(log(1.9d8/nu(1))/log_nu_int) + 1
       i_325M = int(log(3.25d8/nu(1))/log_nu_int) + 1       ! 325 MHz
       i_1G = int(log(1.42d9/nu(1))/log_nu_int) + 1        ! 1.4 GHz
       i_3G = int(log(3.00d9/nu(1))/log_nu_int) + 1         ! 3.0 GHz
       i_5G = int(log(4.86d9/nu(1))/log_nu_int) + 1        ! 4.8 GHz
       i_6G = int(log(6.d9/nu(1))/log_nu_int) + 1        ! 6.0 GHz
       i_10G = int(log(10.d9/nu(1))/log_nu_int) + 1        ! 10. GHz
-      flux0 = flux/nu(i_325M)
+      flux0 = flux/nu(i_110M)
+      flux150 = flux/nu(i_150M)
+      flux190 = flux/nu(i_190M)
+      flux325 = flux/nu(i_325M)
       flux1 = flux/nu(i_1G)   
       flux2 = flux/nu(i_3G) 
       flux3 = flux/nu(i_5G)
@@ -280,14 +288,20 @@ module CD_abssyn
       ! Also stores the emission projected in the plane of the sky, (u_proj,v_proj)
 
       if (shock /= 'BOTH') then
-         open(70,file='CD_sync_radiomap_'//shock//'325MHz.dat') ! 325 MHz
+         open(70,file='CD_sync_radiomap_'//shock//'110MHz.dat') ! 110 MHz
+         open(150,file='CD_sync_radiomap_'//shock//'150MHz.dat') ! 150 MHz
+         open(190,file='CD_sync_radiomap_'//shock//'190MHz.dat') ! 190 MHz
+         open(325,file='CD_sync_radiomap_'//shock//'325MHz.dat') ! 325 MHz
          open(71,file='CD_sync_radiomap_'//shock//'1GHz.dat') ! 1.4 GHz
          open(72,file='CD_sync_radiomap_'//shock//'3GHz.dat') ! 3.0 GHz
          open(73,file='CD_sync_radiomap_'//shock//'5GHz.dat') ! 4.8 GHz
          open(74,file='CD_sync_radiomap_'//shock//'6GHz.dat') ! 6.0 GHz
          open(75,file='CD_sync_radiomap_'//shock//'10GHz.dat') ! 10. GHz
       else if (shock == 'BOTH') then
-         open(70,file='CD_sync_radiomap_325MHz.dat') ! 325 MHz
+         open(70,file='CD_sync_radiomap_110MHz.dat') ! 110 MHz
+         open(150,file='CD_sync_radiomap_150MHz.dat') ! 150 MHz
+         open(190,file='CD_sync_radiomap_190MHz.dat') ! 190 MHz
+         open(325,file='CD_sync_radiomap_325MHz.dat') ! 325 MHz
          open(71,file='CD_sync_radiomap_1GHz.dat') ! 1.4 GHz
          open(72,file='CD_sync_radiomap_3GHz.dat') ! 3.0 GHz
          open(73,file='CD_sync_radiomap_5GHz.dat') ! 4.8 GHz
@@ -310,20 +324,37 @@ module CD_abssyn
 
          end do
          
-         emision0 = Lsy(l,i_325M) * flux0 ! At 325 MHz
-         emision0_abs = emision0 * exp(-tau_tot(l,i_325M))
+         emision0 = Lsy(l,i_110M) * flux0 ! At 110 MHz
+         emision0_abs = emision0 * exp(-tau_tot(l,i_110M))
+
+         emision150 = Lsy(l,i_150M) * flux150 ! At 150 MHz
+         emision150_abs = emision150 * exp(-tau_tot(l,i_150M))
+
+         emision190 = Lsy(l,i_190M) * flux190 ! At 190 MHz
+         emision190_abs = emision190 * exp(-tau_tot(l,i_190M))
+
+         emision325 = Lsy(l,i_325M) * flux325 ! At 325 MHz
+         emision325_abs = emision325 * exp(-tau_tot(l,i_325M))
+
          emision1 = Lsy(l,i_1G) * flux1 ! At 1.4 GHz
          emision1_abs = emision1 * exp(-tau_tot(l,i_1G))
+
          emision2 = Lsy(l,i_3G) * flux2 ! At 3.0 GHz
          emision2_abs = emision2 * exp(-tau_tot(l,i_3G))
+
          emision3 = Lsy(l,i_5G) * flux3 ! At 4.8 GHz
          emision3_abs = emision3 * exp(-tau_tot(l,i_5G))
+
          emision4 = Lsy(l,i_6G) * flux4 ! At 6.0 GHz
          emision4_abs = emision4 * exp(-tau_tot(l,i_6G))
+
          emision5 = Lsy(l,i_10G) * flux5 ! At 10. GHz
          emision5_abs = emision5 * exp(-tau_tot(l,i_10G))
          
          write(70,*) u_proj,v_proj,emision0,emision0_abs
+         write(150,*) u_proj,v_proj,emision150,emision150_abs
+         write(190,*) u_proj,v_proj,emision190,emision190_abs
+         write(325,*) u_proj,v_proj,emision325,emision325_abs
          write(71,*) u_proj,v_proj,emision1,emision1_abs
          write(72,*) u_proj,v_proj,emision2,emision2_abs
          write(73,*) u_proj,v_proj,emision3,emision3_abs
@@ -331,6 +362,9 @@ module CD_abssyn
          write(75,*) u_proj,v_proj,emision5,emision5_abs
       end do
       close(70)
+      close(150)
+      close(190)
+      close(325)
       close(71)
       close(72)
       close(73)
@@ -369,7 +403,7 @@ module CD_abssyn
          end do
          emi_avg(l) = emi_tot(l)/(nu_av_max-nu_av_min)
          emi_avg_abs(l) = emi_tot_abs(l)/(nu_av_max-nu_av_min)
-         write(73,*) u_proj,v_proj,emi_avg(l),emi_avg_abs(l)
+         write(76,*) u_proj,v_proj,emi_avg(l),emi_avg_abs(l)
       end do
       close(76)
 
