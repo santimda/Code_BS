@@ -58,11 +58,11 @@ module CD_termo
       if (shock == 'RS') then
          v_sh = v_w
          L_sh = L_wind
-         frac_mu = mu_sw/mu_w
+         frac_mu = 1.d0! mu/mu_w
       else if (shock == 'FS') then
          v_sh = v_ISM
          L_sh = L_ISM
-         frac_mu = mu_SISM/mu_ISM
+         frac_mu = 1.d0 !mu_SISM/mu
       end if
          
       !-----------------------------------------------------------------
@@ -146,7 +146,7 @@ module CD_termo
       rho_min(1) = rho_med(1)
       rho_new(1) = cte_ad * 2.d0 * P_new(1)/v_sh**2 ! 0.5*v_sh**2 = 0.5*v_t(l)**2 + (g_ad/(g_ad-1.))*P(l)/rho(l), v_t(1) = 0.
       Mach(1) = v_perp(1)/C_s_med(1)
-      T_new(1) = P_new(1)*mp*mu_sw/rho_new(1)/k     ! mu_SISM = mu_sw
+      T_new(1) = P_new(1)*mp*mu/rho_new(1)/k     ! mu_SISM = mu
       Beq0_new = sqrt( 8.d0 * pi * P_new(1) )
       B_new(1) = frac_sh * Beq0_new
       v_A_new(1) = B_new(1) / sqrt(4.d0*pi*rho_new(1)) ! Alfven speed
@@ -210,7 +210,7 @@ module CD_termo
          endif
 
          C_s_sh_new(l) = sqrt(g_ad*P_new(l)/rho_new(l))           ! Sound speed in the shocked fluid 
-         T_new(l) = P_new(l)*mp*mu_sw/rho_new(l)/k     ! mu_SISM = mu_sw    
+         T_new(l) = P_new(l)*mp*mu/rho_new(l)/k     ! mu_SISM = mu    
          Mach(l) = v_perp(l)/C_s_med(l)
 
          ! Kinetic energy p/ unit mass in the upstream region = Kinetic p/ unit mass + specific enthalpy in the downstream region
@@ -268,15 +268,7 @@ module CD_termo
       open(43,file='t_th_'//shock//'.dat')
 
       do l=1,m_theta
-         if (T(l) < 1.d4) then
-            lambda_tot(l) = 4.d-29 * T(l)**0.8     ! GER
-         else if ((1.d4 <= T(l)) .AND. (T(l) <= 1.d5)) then    ! Myasnikov+ 1998
-            lambda_tot(l) = 7.d-27 * T(l)
-         else if ((1.d5 < T(l)) .AND. (T(l) <= 4.d7)) then
-            lambda_tot(l) = 7.d-19 * T(l)**(-0.6) 
-         else if (T(l) > 4.d7) then
-            lambda_tot(l) = 3.d-27 * sqrt(T(l))
-         end if
+         lambda_tot(l) = lambda_cool(T(l))
 
          if (shock == 'RS') then
             t_th(l) = k*T(l)/(r(l) * rho_med(l)/(mu_w * mp) * lambda_tot(l) )/(g_ad-1.d0) ! Thermal losses
@@ -315,7 +307,7 @@ module CD_termo
             T_IL(1) = T_ISM
          end if
          rho_IL(1) = rho(1)*(T(1)/T_IL(1))
-         n_IL(1) = rho_IL(1)/mp/mu_ISM
+         n_IL(1) = rho_IL(1)/mp/mu
          do l=2,m_theta
             T_IL(l) = (t_th(l)/t_adv(l))*T(l)
             if (T(l) <= T_IL(l)) then
@@ -324,7 +316,7 @@ module CD_termo
                T_IL(l) = T_ISM
             end if
             rho_IL(l) = rho(l)*(T(l)/T_IL(l))
-            n_IL(l) = rho_IL(l)/mp/mu_ISM
+            n_IL(l) = rho_IL(l)/mp/mu
          end do
          do l=1,m_theta
             write(45,*) theta(l), T_IL(l)
@@ -417,6 +409,9 @@ module CD_termo
       end do
       close(42)
 
+      if (shock == 'RS') then
+         write(*,80) 'L_inj_w =', L_sh
+      end if
       write(*,80) 'L_inj('//shock//') =', L_inj_tot*(mphi*4.) ! It was just 1 quadrant
       write(*,81) 'L_NT/L_sh('//shock//') [%] =', frac_NT*(L_inj_tot*mphi*4.)/L_sh*100.d0
       if (shock == 'RS') then
@@ -431,7 +426,8 @@ module CD_termo
       allocate( alpha_sh(m_theta) )
       open(20,file='alpha_'//shock//'.dat')
       do l = 1, m_theta
-         alpha_sh(l) = 2.5_dp   ! Value used for BD+43°3654
+         !alpha_sh(l) = 2.55_dp
+         alpha_sh(l) = 3._dp
          !alpha_sh(l) = (r(l)+2.d0)/(r(l)-1.d0)
          !dummy = r(l)/(1.d0 + r(l)*v_A(l)/v_sh)         
          !print *, r(l), r(l)/(1.d0 + r(l)*v_ARH(l)/v_sh)
@@ -475,10 +471,10 @@ module CD_termo
       write(*,41) 'R0/Rst =', R0/R_st
       if (shock == 'RS') then
          write(*,41) 'rho0/rho_w =',rho(1)/(Mdot/(4.d0*pi*R0**2*v_w))  
-         write(*,41) 'n_a0 =',rho(1)/mp/mu_sw
+         write(*,41) 'n_a0 =',rho(1)/mp/mu
       else if (shock == 'FS') then
          write(*,41) 'rho0/rho_ISM =',rho(1)/rho_ISM 
-         write(*,41) 'n_a0 =',rho(1)/mp/mu_ISM
+         write(*,41) 'n_a0 =',rho(1)/mp/mu
       end if     
       write(*,41) 'P0 =',P(1)
       write(*,41) 'v0_t =',v_t(1)

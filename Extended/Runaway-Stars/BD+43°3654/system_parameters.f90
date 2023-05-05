@@ -8,6 +8,7 @@ module system_parameters
    ! This module contains the parameters of the specific system modelled
    !====================================================================
 
+   character(len=*), parameter :: system = 'BD+43'
    real(dp), parameter :: distance = 1.72d0*kpc !+- 0.02kpc  source distance (Gaia)
    real(dp), parameter :: inclination = 60.d0*pi/180.d0  ! angle between the star motion and the LOS in rad
    ! i = 0° is face-on, i = 90° corresponds to BS in front of the star, i = -90° is BS behind the star
@@ -16,6 +17,10 @@ module system_parameters
    !real(dp), parameter :: R0_proj = 5.d0*60.d3          ! projected BS distance to the star (5') in mas  
    !real(dp), parameter :: R0 = R0_proj*(distance/kpc)*UA/abs(cos(incli)) ! linear distance to the BS stagnation point
    real(dp), parameter :: theta_max = (120.d0/180.d0)*pi ! ~ extension of the BS modelled ~ pi/2
+
+   ! Relative abundances (for solar composition)
+   real(dp), parameter :: X_ab = 0.73d0, Y_ab = 0.25d0
+   real(dp), parameter :: Z_ab = 1.d0 - X_ab - Y_ab ! X + Y + Z = 1
 
    !--------------------------------------------------------------------------------------
    ! Star
@@ -38,6 +43,9 @@ module system_parameters
    real(dp), parameter :: L_wind = 0.5d0*(Mdot*v_w**2) ! Wind kinetic power
    real(dp), parameter :: T_wind = 0.3*T_st        ! Drew1990
    real(dp), parameter :: v_st_rot = 0.1d0*v_w     ! Rule-of-thumb
+   real(dp), parameter :: mu = 4.d0/(3.d0 + 5.d0*X_ab - Z_ab) ! mean atomic weight = 4/(3+5X-Z) for complete ionization
+   real(dp), parameter :: mu_e = 2.d0/(1.d0 + X_ab)    ! mu_e = 2/(1+X) only for Z=0; mu_e > mu! 
+   real(dp), parameter :: mu_i = 1.d0/(1.d0/mu - 1.d0/mu_e)
    real(dp), parameter :: mu_w = 1.5_dp            ! Leitherer 1995 
    real(dp), parameter :: Zq_w = 1.0_dp            ! Z = rms ionic charge
    real(dp), parameter :: gamma_w = 1.0_dp         ! Leitherer 1995
@@ -57,7 +65,7 @@ module system_parameters
    real(dp), parameter :: T_ISM = 8.d3             ! warm ISM (Brookes p.136 uses T=8e3)
    real(dp), parameter :: T_ISM_ad = k*T_ISM/mec2  ! Adimensional ISM temperature
    !real(dp), parameter :: mu_ISM = 1.38_dp          ! K2018; 0.5 for pure H ionized
-   real(dp), parameter :: mu_ISM = 0.615_dp
+   real(dp), parameter :: mu_ISM = mu !0.615_dp
    real(dp), parameter :: alpha_ISM = k*T_ISM/(v_ISM**2*mp*mu_ISM)! = P_thermal_ISM/P_kin_ISM
    real(dp), parameter :: lambda = alpha_ISM/(alpha_ISM + 1.d0)
    !real(dp), parameter :: Zq_ISM = 1.0_dp           ! Z = rms ionic charge
@@ -74,9 +82,9 @@ module system_parameters
 
    !--------------------------------------------------------------------------------------
    ! Shocked stellar-wind (sw)
-   real(dp), parameter :: mu_sw = 0.615_dp         ! mean atomic weight = 4/(6x+y+2) for complete ionization 
-   real(dp), parameter :: mu_e_sw = 1.173_dp       ! mu_e = 2/(1+x)
-   real(dp), parameter :: mu_i_sw = 1.d0/(1/mu_sw-1/mu_e_sw)  
+   real(dp), parameter :: mu_sw = mu! 0.615_dp         ! mean atomic weight = 4/(6x+y+2) for complete ionization 
+   real(dp), parameter :: mu_e_sw = mu_e! 1.173_dp       ! mu_e = 2/(1+x)
+   real(dp), parameter :: mu_i_sw = mu_i !1.d0/(1/mu_sw-1/mu_e_sw)  
    real(dp), parameter :: Zq_sw = 1.23_dp        
    real(dp), parameter :: gamma_sw = 1.34_dp
    real(dp), parameter :: T_6 = 1.d0               ! temperature in MK, should scale with v_w?
@@ -94,8 +102,10 @@ module system_parameters
    !--------------------------------------------------------------------------------------
    ! Non-thermal particles
    real(dp), dimension(:), allocatable :: efi_ac_sh! particle accel. efficiency at the shocks  (l)
-   !real(dp), parameter :: frac_sw = sqrt(0.999_dp) ! fraction sqrt(UB_sw/UB_equipartition_sw)
-   real(dp), parameter :: frac_sh = sqrt(0.06_dp)      ! fraction sqrt(UB_sw/UB_equipartition_sw), f_NT=1
+   !real(dp), parameter :: frac_sh = sqrt(0.5_dp) ! fraction sqrt(UB_sw/UB_equipartition_sw)
+   !real(dp), parameter :: frac_sh = sqrt(0.07_dp)     ! fraction sqrt(UB_sw/UB_equipartition_sw), f_NT=1
+   real(dp), parameter :: frac_sh = sqrt(0.043_dp)  ! used this value
+   !real(dp), parameter :: frac_sh = sqrt(0.045_dp)
    !real(dp), parameter :: alpha_sw = 2.2_dp        ! injection spectral index in the sw 
    !real(dp), parameter :: frac_NT = 1.53d-1       ! Fraction L_NT/L_inj_perp, alpha=0.05, eta_B=1
    !real(dp), parameter :: frac_NT = 1.14d-1          ! Fraction L_NT/L_inj_perp, alpha=0.35, eta_B=0.1
@@ -104,17 +114,19 @@ module system_parameters
    !real(dp), parameter :: frac_NT = 4.28d-2          ! Fraction L_NT/L_inj_perp, alpha=0.05, eta_B=1
    !real(dp), parameter :: frac_NT = 2.86d-2          ! Fraction L_NT/L_inj_perp, alpha=0.2, eta_B=1
    !real(dp), parameter :: frac_NT = 1.33d-2          ! Fraction L_NT/L_inj_perp, alpha=0.35, eta_B=1
-   real(dp), parameter :: alpha_1 = -1.2d0          ! Injection index below E_tran
-   real(dp), parameter :: frac_NT = 1.d-1
-   real(dp), parameter :: inj_e = frac_NT*6.d-1   ! Fraction L_NT_e/L_iny_perp 
+   real(dp), parameter :: alpha_1 = -3.d0          ! Injection index below E_tran   used this value
+   !real(dp), parameter :: alpha_1 = 2.55_dp
+   !real(dp), parameter :: frac_NT = 0.5_dp
+   real(dp), parameter :: frac_NT = 0.086_dp       ! used this value
+   real(dp), parameter :: inj_e = frac_NT*5.d-1   ! Fraction L_NT_e/L_iny_perp 
    real(dp), parameter :: inj_p = frac_NT-inj_e    ! Fraction L_NT_p/L_iny_perp
    !character(len=*), parameter :: diff_regime = 'Valle'      ! del Valle+2018
    character(len=*), parameter :: diff_regime = 'Bohm'  ! Bohm diffusion
-   real(dp), parameter :: lambda_diff = 2.d3
+   real(dp), parameter :: lambda_diff = 1.d0
 
    !--------------------------------------------------------------------------------------
    ! Isothermal shock width parameter
-   real(dp), parameter :: frac_H = 0.02d0
+   real(dp), parameter :: frac_H = 0.01d0
 
 
    !============================================================================
