@@ -26,6 +26,7 @@ module CD_distp
       real(dp) :: E_dot(m_theta,mE_p),Emax_p0(m_theta),rg_p_max(m_theta),Ka,E_NT,U_NT
       real(dp) :: N_p0(mE_p),n_a(m_theta),L_inj(m_theta),dR(m_theta),dV_ring(m_theta)
       real(dp) :: L_inj_p(m_theta), suma, b_pp, L1, f1, f2, f
+      real(dp) :: L_inj_p_tot
       real(dp) :: dE_aprox, cool
       real(dp), parameter :: k_pp = 0.5d0
       integer :: index1,index2,count,steps
@@ -69,6 +70,14 @@ module CD_distp
       close(12)
       dR = R0*dR               ! The file contained dR/R0, not dR [cm]
       L_inj_p = inj_p*L_inj    ! The cell size is already taken into account in L_inj
+
+      open(21,file='L_inj_p_'//shock//'.dat')
+         l_inj_p_tot = 0.d0
+         do l=1,m_theta
+            l_inj_p_tot = l_inj_p_tot + L_inj_p(l)
+         end do
+         write(21,*) L_inj_p_tot
+      close(21)
       
       open(11,file='termo_'//shock//'.dat') 
       do l=1,m_theta
