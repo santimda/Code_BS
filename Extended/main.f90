@@ -100,6 +100,7 @@ PROGRAM main
    use CD_radic, only: CD_radic_st_run,CD_radic_IR_run
    use CD_radpp, only: CD_radpp_run
    use CD_rot, only: CD_rot_run
+   use radstr, only: radstr_run
    
    implicit none
    80 format(A9,X,Es10.2)
@@ -184,6 +185,9 @@ PROGRAM main
                end do
                close(35)
                LIC_all = LIC_all + LIC_int
+               open(54,file='rad_IC_st_tot_'//shock//'.dat')
+                  write(54,*) LIC_all
+               close(54)
             endif
 
             ! -----------------------------------------------------------------------------
@@ -261,9 +265,10 @@ PROGRAM main
             do i_E = 1,mE_f
                read(42,*) E_br(i_E),Lbr_one
                Lbr_sh_tot(i_E) = Lbr_one*mphi *4.d0
+
                ! Multiply by a factor 2 because of the axial symmetry in the SW
                ! and "mirroring" for y < 0
-               write(52,*) E_br(i_E),Lbr_sh_tot(i_E) 
+               write(52,*) E_br(i_E),Lbr_sh_tot(i_E)
             end do
             close(42)
             close(52)
@@ -378,7 +383,13 @@ PROGRAM main
 
    ENDIF
 
-
+   !================================================================
+   
+   if (stromgren .and. electrons .and. protons .and. (.not. radiative)) then
+      print*, '\n Calculate the NT emission from the H II region:'
+      call radstr_run(shock)
+   end if
+   
    !================================================================
 
 End Subroutine Calculate

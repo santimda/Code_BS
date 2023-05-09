@@ -128,6 +128,10 @@ contains
     ENDDO     ! l
     
     write(*,80) 'L_syn(unabsorbed)=',sum_sy*(mphi*4.) ! mphi emitters, 4 quadrants
+
+    open(100, file='radsyn_tot_'//shock//'.dat')
+      write(100,*) sum_sy*(mphi*4.)
+    close(100)
     
     log_nu_int = log(nu(2)/nu(1))
     i_110M = int(log(1.1d8/nu(1))/log_nu_int) + 1

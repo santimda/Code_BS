@@ -29,6 +29,7 @@ module CD_diste
       real(dp) :: E_corr(m_theta)
       real(dp) :: N_e0(mE_e),n_a(m_theta),L_inj(m_theta),dR(m_theta)
       real(dp) :: L_inj_e(m_theta), suma, f1, f2, f
+      real(dp) :: L_inj_e_tot
       real(dp) :: dE_aprox, cool
       integer :: index1,index2,count,steps
       logical :: new_count
@@ -72,6 +73,14 @@ module CD_diste
       close(12)
       dR = R0*dR               ! The file contained dR/R0, not dR [cm]
       L_inj_e = inj_e*L_inj    ! The cell size is already taken into account in L_inj
+
+      open(21,file='L_inj_e_'//shock//'.dat')
+         l_inj_e_tot = 0.d0
+         do l=1,m_theta
+            l_inj_e_tot = l_inj_e_tot + L_inj_e(l)
+         end do
+         write(21,*) L_inj_e_tot
+      close(21)
 
       open(11,file='termo_'//shock//'.dat') 
       do l = 1, m_theta
