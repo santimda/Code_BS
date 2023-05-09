@@ -70,7 +70,7 @@ module radstr
 		
 		t_pp = 1.d15/n_p
 
-		! We estimate that apporx 0.1*L_pp is radiated by E_tran
+		! We estimate that approx 0.1*L_pp is radiated by E_tran
 		L_pp_Etran = 0.1d0*(t_esc/t_pp)*L_inj_p
 
 		! Protons with E = E_tran radiate mostly at sim 0.1E_tran
@@ -114,7 +114,7 @@ module radstr
 		
 		t_br = 1.d15/n_e
 
-		! We estimate that apporx 0.1*L_pp is radiated by E_tran
+		! We estimate that approx 0.1*L_Br is radiated by E_tran
 		L_br_Etran = 0.1d0*(t_esc/t_br)*L_inj_e
 
 		! Electrons with E = E_tran radiate mostly at sim E_tran
