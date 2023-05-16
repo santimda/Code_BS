@@ -17,7 +17,7 @@ module system_parameters
    ! i = 0° is face-on, i = 90° corresponds to BS in front of the star, i = -90° is BS behind the star
    real(dp), parameter :: incli = pi/2.d0 - inclination  ! angle that I use
    ! incli = 90° is BS in front of the star, incli = 0° is edge-on,  incli = -90° is BS behind the star
-   real(dp), parameter :: theta_max = (70.d0/180.d0)*pi ! ~ extension of the BS modelled ~ pi/2
+   real(dp), parameter :: theta_max = (80.d0/180.d0)*pi ! ~ extension of the BS modelled ~ pi/2
 
    ! Relative abundances (for solar composition)
    real(dp), parameter :: X_ab = 0.73d0, Y_ab = 0.25d0
@@ -89,8 +89,10 @@ module system_parameters
    !--------------------------------------------------------------------------------------
    ! Non-thermal particles
    real(dp), dimension(:), allocatable :: efi_ac_sh! particle accel. efficiency at the shocks  (l)
-   real(dp), parameter :: frac_sh = sqrt(0.1)      ! fraction sqrt(UB_sw/UB_equipartition_sw), f_NT=1
-   real(dp), parameter :: frac_NT = 0.2_dp          ! Fraction L_NT/L_inj_perp, alpha=0.35, eta_B=0.1
+   real(dp), parameter :: frac_sh = sqrt(0.05)      ! fraction sqrt(UB_sw/UB_equipartition_sw), f_NT=1
+   !real(dp), parameter :: frac_sh = sqrt(0.15)
+   real(dp), parameter :: frac_NT = 0.1_dp          ! Fraction L_NT/L_inj_perp, alpha=0.35, eta_B=0.1
+   !real(dp), parameter :: frac_NT = 0.3_dp
    real(dp), parameter :: alpha_1 = -3.d0
    real(dp), parameter :: inj_e = frac_NT*0.5d0   ! Fraction L_NT_e/L_iny_perp 
    real(dp), parameter :: inj_p = frac_NT-inj_e    ! Fraction L_NT_p/L_iny_perp

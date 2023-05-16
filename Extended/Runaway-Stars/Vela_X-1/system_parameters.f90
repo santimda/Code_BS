@@ -81,12 +81,11 @@ module system_parameters
    !--------------------------------------------------------------------------------------
    ! Non-thermal particles
    real(dp), dimension(:), allocatable :: efi_ac_sh! particle accel. efficiency at the shocks  (l)
-   !real(dp), parameter :: frac_sh = sqrt(0.04)      ! fraction sqrt(UB_sw/UB_equipartition_sw), f_NT=1 used value
-   real(dp), parameter :: frac_sh = sqrt(0.001)
-   !real(dp), parameter :: alpha_1 = -1.5d0          ! Injection index below E_tran
+   real(dp), parameter :: frac_sh = sqrt(0.04)      ! fraction sqrt(UB_sw/UB_equipartition_sw), f_NT=1 used value
+   !real(dp), parameter :: frac_sh = sqrt(0.001)
    real(dp), parameter :: alpha_1 = -3.d0
-   !real(dp), parameter :: frac_NT = 0.08_dp          ! Fraction L_NT/L_inj_perp, alpha=0.35, eta_B=0.1 used value
-   real(dp), parameter :: frac_NT = 0.002_dp
+   real(dp), parameter :: frac_NT = 0.08_dp          ! Fraction L_NT/L_inj_perp, alpha=0.35, eta_B=0.1 used value
+   !real(dp), parameter :: frac_NT = 0.002_dp
    real(dp), parameter :: inj_e = frac_NT*0.5d0   ! Fraction L_NT_e/L_iny_perp 
    real(dp), parameter :: inj_p = frac_NT-inj_e    ! Fraction L_NT_p/L_iny_perp
    !character(len=*), parameter :: diff_regime = 'Valle'      ! del Valle+2018
@@ -95,7 +94,8 @@ module system_parameters
 
    !--------------------------------------------------------------------------------------
    ! Isothermal shock width parameter
-   real(dp), parameter :: frac_H = 0.9d0
+   !real(dp), parameter :: frac_H = 0.8d0
+   real(dp), parameter :: frac_H = 0.01d0
 
 
    !============================================================================
