@@ -2,8 +2,8 @@ set encoding iso_8859_1
 set key out
 set key box opaque height 0.6 #width 0.50 
 set key horiz samplen 3. spacing 1.01 font ",20"
-set xrange [-6:14]
-set yrange [25:33]
+set xrange [-7:14]
+set yrange [25:34]
 set xtics 3; set mxtics 3
 set ytics 1; set mytics 2
 set xlabel 'log_{10} ({/Symbol e} [eV])'
@@ -64,27 +64,32 @@ plot '../radsyn_RS_tot.dat' u (log10($1)):(log10($2)) t 'sync' w l lw 2.4 dt 2, 
      '../radic_st_RS_tot.dat' u (log10($1)):(log10($2)) t 'IC-star' w l lw 2.4 dt 4 smooth bezier, \
      '../radbr_RS_tot.dat' u (log10($1)):(log10($2)) t 'rel. br.' w l lw 2.4 lc rgb "coral" dt 5 smooth bezier, \
      '../radpp_RS_tot.dat' u (log10($1)):(log10($2)) t 'p-p' w l lw 2.4 dt 6 smooth bezier, \
+     '../rad_pp_str.dat' u (log10($1)):(log10($2)) t 'p-p HII' dt 6 lc rgb "red",\
+     '../rad_Br_str.dat' u (log10($1)):(log10($2)) t 'Br. HII' dt 6 lc rgb "blue",\
      './data_XMM_UL.dat' u ($1):($2+cor):($3):($4) w xerrorbars pt 1 lc rgb 'purple' t '',\
      './data_XMM_UL.dat' u ($1):($2+cor):(0):(-0.6) t '' with vector lt 1 lw 2.0 lc rgb 'purple',\
-
-#     log10(10**f1(x)+10**g1(x)+10**j1(x)+10**k1(x)+10**hh(x)) t 'Total' lw 3,\
-#     './sens_CTA_100h.dat' u (log10(1.e6*($1))):(log10(($2)*a)) t 'CTA' w l lt 3 lc rgb "black" lw 4,\
-#     './sens_HESS_100h.dat' u (log10($1*1.e6)):(log10(($2)*a)) t 'HESS' w l lc 'grey40' lw 4,\
-#     './data_radio2020_1.5.dat' u 1:2:3:4:5:6 w xyerrorbars pt 4 lc 5 t 'Ben2020',\
-#     './data_radio2010.dat' u 1:2:3:4:5:6 w xyerrorbars pt 7 lc 7 t '',\
-#     './data_XMM_UL.dat' u ($1):($2+cor):($3):($4) w xerrorbars pt 1 lc rgb 'purple' t '',\
-#     './data_XMM_UL.dat' u ($1):($2+cor):(0):(-0.6) t '' with vector lt 1 lw 2.0 lc rgb 'purple',\
+     './sens_CTA_100h.dat' u (log10(1.e6*($1))):(log10(($2)*a)) t 'CTA' w l lt 3 lc rgb "black" lw 4,\
+     './sens_HESS_100h.dat' u (log10($1*1.e6)):(log10(($2)*a)) t 'HESS' w l lc 'grey40' lw 4,\
+     './data_XMM_UL.dat' u ($1):($2+cor):($3):($4) w xerrorbars pt 1 lc rgb 'purple' t '',\
+     './data_XMM_UL.dat' u ($1):($2+cor):(0):(-0.6) t '' with vector lt 1 lw 2.0 lc rgb 'purple',\
+     './data_Fermi_UL.dat' u (log10($1*1.e9)):(log10($2*a*eV)):(log10($3*1.e9)):(log10($4*1.e9)) t "" w xerrorbars pt 1 lc rgb 'orange',\
+     './data_Fermi_UL.dat' u (log10($1*1.e9)):(log10($2*a*eV)):(0):(-0.6) t '' with vector lt 1 lw 2.0 lc rgb 'orange'
 #     './data_Suzaku_UL.dat' u ($1):($2):($3):($4) w xerrorbars pt 1 lc rgb '#32CD32' t '',\
 #     './data_Suzaku_UL.dat' u ($1):($2):(0):(-0.6) t '' with vector lt 1 lw 2.0 lc rgb '#32CD32',\
 #     './data_Fermi_UL.dat' u 1:2:3:4 w xerrorbars pt 1 lc rgb 'orange' t '',\
-#     './data_Fermi_UL.dat' u 1:2:(0):(-0.6) t '' with vector lt 1 lw 2.0 lc rgb 'orange'
+#    './data_Fermi_UL.dat' u 1:2:(0):(-0.6) t '' with vector lt 1 lw 2.0 lc rgb 'orange'
+
+#     log10(10**f1(x)+10**g1(x)+10**j1(x)+10**k1(x)+10**hh(x)) t 'Total' lw 3,\
+
+
+#     './data_radio2020_1.5.dat' u 1:2:3:4:5:6 w xyerrorbars pt 4 lc 5 t 'Ben2020',\
+#     './data_radio2010.dat' u 1:2:3:4:5:6 w xyerrorbars pt 7 lc 7 t '',\
 
 #     './data_XMM_UL.dat' u (log10($1*1.e3)):(log10($2*a)):(log10($3*1.e3)):(log10($4*1.e3)) w xerrorbars pt 1 lc rgb 'purple' t '',\
 #     './data_XMM_UL.dat' u (log10($1*1.e3)):(log10($2*a)):(0):(-0.6) t '' with vector lt 1 lw 2.0 lc rgb 'purple',\
 #     './data_Suzaku_UL.dat' u (log10($1*1.e3)):(log10($2)):(log10($3*1.e3)):(log10($4*1.e3)) w xerrorbars pt 1 lc rgb '#32CD32' t '',\
 #     './data_Suzaku_UL.dat' u (log10($1*1.e3)):(log10($2)):(0):(-0.6) t '' with vector lt 1 lw 2.0 lc rgb '#32CD32',\
 #     './data_Fermi_UL.dat' u (log10($1*1.e9)):(log10($2*a*eV)):(log10($3*1.e9)):(log10($4*1.e9)) w xerrorbars pt 1 lc rgb 'orange' t '',\
-#     './data_Fermi_UL.dat' u (log10($1*1.e9)):(log10($2*a*eV)):(0):(-0.6) t '' with vector lt 1 lw 2.0 lc rgb 'orange'
 #, \
 # './data_Brookes2016.dat' u (log10(($1)*10**9*h/eV)):(log10(($1)*10**9*a*($2)*10**(-26))):(log10(1+($3)/($1))):(log10(1.+($4)/($2))) w xyerrorbars pt 7 t 'GMRT'
 #, \#     './data_radio_digi.dat' u 1:2
