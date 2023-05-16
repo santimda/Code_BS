@@ -413,6 +413,7 @@ module CD_termo
          write(*,80) 'L_inj_w =', L_sh
       end if
       write(*,80) 'L_inj('//shock//') =', L_inj_tot*(mphi*4.) ! It was just 1 quadrant
+      write(*,80) 'L_NT_('//shock//') =',  frac_NT*(L_inj_tot*mphi*4.)
       write(*,81) 'L_NT/L_sh('//shock//') [%] =', frac_NT*(L_inj_tot*mphi*4.)/L_sh*100.d0
       if (shock == 'RS') then
          write(*,82) 'L_inj(RS)/L_w =', L_inj_tot*(mphi*4.)/L_sh
