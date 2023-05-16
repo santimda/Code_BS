@@ -18,17 +18,19 @@ module radstr
 		real(dp) :: R_str
 		real(dp) :: L_inj_p_BS, L_inj_p, Lpp_sh_tot
 		real(dp) :: L_inj_e_BS, L_inj_e, Lbr_sh_tot, LIC_sh_tot, Lsy_sh_tot
-		real(dp) :: L_pp_Etran, L_br_Etran
+		real(dp) :: L_pp_Etran, L_br_Etran, L_IC_Etran, L_sy_Etran
 		real(dp) :: E_pp(mE_f), E_br(mE_f)
 		real(dp) :: Lpp_sh(mE_f), Lbr_sh(mE_f)
-		real(dp) :: t_diff,t_adv,t_esc,t_pp,t_br
+		real(dp) :: t_diff,t_adv,t_esc,t_pp,t_br,t_IC_CMB,t_sy
 		real(dp) :: n_e, n_p
 		real(dp), parameter :: B_str = 1.d-6
 
-
+		90    format(A8,X,Es10.2)
+		91    format(A7,X,Es10.2)
 		81    format(A13,X,Es10.2,X,Es10.2)
 		82    format(A15,X,Es10.2)
 		83    format(A13,X,Es10.2)
+		84    format(A14,X,Es10.2)
 
 		open(100,file='Stromgren.dat')
 			read(100,*) R_str, dummy
@@ -37,6 +39,10 @@ module radstr
 		t_diff = R_str**2/(2.d0*Diff(E_tran,B_str))
 		t_adv = R_str/V_st
 		t_esc = 1./( 1./t_adv + 1.d0/t_diff )
+		write(*,90) 'D_diff =', Diff(E_tran,B_str)
+		write(*,90) 't_diff =', t_diff
+		write(*,91) 't_adv =', t_adv
+		write(*,91) 't_esc =', t_esc
 
 		n_p = (mu/mu_i)*n_ISM
 		n_e = (mu/mu_e)*n_ISM
@@ -62,19 +68,23 @@ module radstr
 		end do
 		!---------------------------------------------------
 
-		L_inj_p = L_inj_p_BS - Lpp_sh_tot
+		L_inj_p = 4.d0*mphi*L_inj_p_BS - Lpp_sh_tot
 
-		write(*,81) 'L_inj_p_HII =', L_inj_p, L_inj_p_BS
+		write(*,81) 'L_inj_p_HII =', L_inj_p, 4.d0*mphi*L_inj_p_BS
 
 		!---------------------------------------------------
 		
 		t_pp = 1.d15/n_p
 
 		! We estimate that approx 0.1*L_pp is radiated by E_tran
-		L_pp_Etran = 0.1d0*(t_esc/t_pp)*L_inj_p
+		L_pp_Etran = 1.d-2*(t_esc/t_pp)*L_inj_p
 
 		! Protons with E = E_tran radiate mostly at sim 0.1E_tran
 		write(*,82) 'L_pp(100 MeV) =', L_pp_Etran
+
+		open(50,file='rad_pp_str.dat')
+			write(50,*) 0.1d0*E_tran/eV, L_pp_Etran
+		close(50) 
 
 		!---------------------------------------------------
 		!---------------------------------------------------
@@ -106,20 +116,43 @@ module radstr
 			read(43,*) Lsy_sh_tot
 		close(43)
 
-		L_inj_e = L_inj_e_BS - (Lbr_sh_tot + LIC_sh_tot + Lsy_sh_tot)
+		L_inj_e = 4.d0*mphi*L_inj_e_BS - (Lbr_sh_tot + LIC_sh_tot + Lsy_sh_tot)
 
-		write(*,81) 'L_inj_e_HII =', L_inj_e, L_inj_e_BS
+		write(*,81) 'L_inj_e_HII =', L_inj_e, 4.d0*mphi*L_inj_e_BS
+
+		!---------------------------------------------------
+
+		!t_sy = E_tran*(4.d0/3.d0*c*sigma_T*(B_str**2/8.d0/pi)*(E_tran/mec2)**2)**(-1.)
+
+		! We estimate that approx 0.1*L_sy is radiated by E_tran
+		!L_sy_Etran = 0.1d0*(t_esc/t_sy)*L_inj_e
+
+		! Electrons with E = E_tran radiate mostly at sim E_tran
+		!write(*,84) 'L_sy(75 MHz) =', L_sy_Etran
 
 		!---------------------------------------------------
 		
 		t_br = 1.d15/n_e
+		write(*,91) 't_Br. =', t_br
 
 		! We estimate that approx 0.1*L_Br is radiated by E_tran
-		L_br_Etran = 0.1d0*(t_esc/t_br)*L_inj_e
+		L_br_Etran = 1.d-2*(t_esc/t_br)*L_inj_e
 
 		! Electrons with E = E_tran radiate mostly at sim E_tran
 		write(*,83) 'L_br(1 GeV) =', L_br_Etran
 
+		open(60,file='rad_Br_str.dat')
+			write(60,*) E_tran/eV, L_br_Etran
+		close(60)
+
+		!---------------------------------------------------
+		!t_IC_CMB = E_tran*(4.d0/3.d0*c*sigma_T*U_CMB*(E_tran/mec2)**2)**(-1.)
+
+		! We estimate that approx 0.1*L_IC_CMB is radiated by E_tran
+		!L_IC_Etran = 0.1d0*(t_esc/t_IC_CMB)*L_inj_e
+
+		! Electrons with E = E_tran radiate mostly at sim E_cmb*(E_tran/mc2)**2
+		!write(*,84) 'L_IC(40 keV) =', L_IC_Etran
 
 	end subroutine radstr_run
 
