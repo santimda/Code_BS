@@ -23,7 +23,9 @@ module radstr
 		real(dp) :: Lpp_sh(mE_f), Lbr_sh(mE_f)
 		real(dp) :: t_diff,t_adv,t_esc,t_pp,t_br,t_IC_CMB,t_sy
 		real(dp) :: n_e, n_p
+		real(dp) :: D_diff
 		real(dp), parameter :: B_str = 1.d-6
+		character(len=*), parameter :: diff_regime = 'G'
 
 		90    format(A8,X,Es10.2)
 		91    format(A7,X,Es10.2)
@@ -36,10 +38,10 @@ module radstr
 			read(100,*) R_str, dummy
 		close(100)
 
-		t_diff = R_str**2/(2.d0*Diff(E_tran,B_str))
+		t_diff = R_str**2/(6.d0*Diff(E_tran,B_str,diff_regime))
 		t_adv = R_str/V_st
 		t_esc = 1./( 1./t_adv + 1.d0/t_diff )
-		write(*,90) 'D_diff =', Diff(E_tran,B_str)
+		write(*,90) 'D_diff =', Diff(E_tran,B_str,diff_regime)
 		write(*,90) 't_diff =', t_diff
 		write(*,91) 't_adv =', t_adv
 		write(*,91) 't_esc =', t_esc
