@@ -424,7 +424,7 @@ Subroutine abs_maps(SHOCK)
    Lsy_sh_abs = 0.d0
 
    if (shock /= 'BOTH') then
-      open(11, file='sync_radiomap_'//shock//'_110MHz.dat')
+      open(1111, file='sync_radiomap_'//shock//'_110MHz.dat')
       open(1500, file='sync_radiomap_'//shock//'_150MHz.dat') 
       open(19,file='sync_radiomap_'//shock//'_190MHz.dat')
       open(325,file='sync_radiomap_'//shock//'_325MHz.dat')
@@ -433,7 +433,7 @@ Subroutine abs_maps(SHOCK)
       open(60,file='sync_radiomap_'//shock//'_6GHz.dat')
       open(100,file='sync_radiomap_'//shock//'_10GHz.dat')
       open(91,file='sync_radiomap_avg_'//shock//'.dat')
-      open(12,file='th_ff_map_'//shock//'_110M.dat')
+      open(120,file='th_ff_map_'//shock//'_110M.dat')
       open(16,file='th_ff_map_'//shock//'_150M.dat')
       open(20,file='th_ff_map_'//shock//'_190M.dat')
       open(326,file='th_ff_map_'//shock//'_325M.dat')
@@ -443,7 +443,7 @@ Subroutine abs_maps(SHOCK)
       open(1001,file='th_ff_map_'//shock//'_10G.dat')
       open(92,file='th_ff_map'//shock//'avg.dat')
    else if (shock == 'BOTH') then
-      open(11,file='sync_radiomap_110MHz.dat')
+      open(1111,file='sync_radiomap_110MHz.dat')
       open(1500,file='sync_radiomap_150MHz.dat')
       open(19,file='sync_radiomap_190MHz.dat')
       open(325,file='sync_radiomap_325MHz.dat')
@@ -452,7 +452,7 @@ Subroutine abs_maps(SHOCK)
       open(60,file='sync_radiomap_6GHz.dat')
       open(100,file='sync_radiomap_10GHz.dat')
       open(91,file='sync_radiomap_avg.dat')
-      open(12,file='th_ff_map_110M.dat')
+      open(120,file='th_ff_map_110M.dat')
       open(16,file='th_ff_map_150M.dat')
       open(20,file='th_ff_map_190M.dat')
       open(326,file='th_ff_map_325M.dat')
@@ -464,7 +464,7 @@ Subroutine abs_maps(SHOCK)
    end if
 
    if ((shock == 'BOTH') .or. (shock == 'FS')) then
-      open(13,file='hot_layer_110MHz.dat')
+      open(1113,file='hot_layer_110MHz.dat')
       open(17,file='hot_layer_150MHz.dat')
       open(21,file='hot_layer_190MHz.dat')
       open(327,file='hot_layer_325MHz.dat')
@@ -562,16 +562,16 @@ Subroutine abs_maps(SHOCK)
                      read(113,*) S_hot
                   end if
                   S_th = S_th_FS + S_th_RS
-                  write(11,*) u_proj,v_proj,emi,emi_abs
-                  write(12,*) S_th
+                  write(1111,*) u_proj,v_proj,emi,emi_abs
+                  write(120,*) S_th
                   if ((shock == 'BOTH') .or. (shock == 'FS')) then
-                     write(13,*) S_hot
+                     write(1113,*) S_hot
                   end if
                   if (i_phi.ne.1) then ! .and. i_phi.ne.mphi) then
-                     write(11,*) u_proj,-v_proj,emi,emi_abs ! symmetry???
-                     write(12,*) S_th
+                     write(1111,*) u_proj,-v_proj,emi,emi_abs ! symmetry???
+                     write(120,*) S_th
                      if ((shock == 'BOTH') .or. (shock == 'FS')) then
-                        write(13,*) S_hot
+                        write(1113,*) S_hot
                      end if
                   endif
 
@@ -793,7 +793,7 @@ Subroutine abs_maps(SHOCK)
          end do
    end if
 
-   close(11)
+   close(1111)
    close(1500)
    close(19)
    close(325)
@@ -802,7 +802,7 @@ Subroutine abs_maps(SHOCK)
    close(60)
    close(100)
    close(91)
-   close(12)
+   close(120)
    close(16)
    close(20)
    close(326)
@@ -812,7 +812,7 @@ Subroutine abs_maps(SHOCK)
    close(1001)
    close(92)
    if ((shock == 'BOTH') .or. (shock == 'FS')) then
-      close(13)
+      close(1113)
       close(17)
       close(21)
       close(327)
@@ -838,8 +838,8 @@ Subroutine abs_maps(SHOCK)
 
    if (convolution) then
       print *, 'Convolution of the emission map with the instrument response'
-      !call SW_conv110M_run(shock)
-      call SW_conv150M_run(shock)
+      call SW_conv110M_run(shock)
+      !call SW_conv150M_run(shock)
       !call SW_conv190M_run(shock)
       !call SW_conv325M_run(shock)
       !call SW_conv1G_run(shock)
@@ -847,7 +847,7 @@ Subroutine abs_maps(SHOCK)
       !call SW_conv5G_run(shock)
       !call SW_conv6G_run(shock)
       !call SW_conv10G_run(shock)
-      !call SW_convavg_run(shock)
+      call SW_convavg_run(shock)
       !call SW_spex_110_190_run
       !call SW_spex_run
       !call SW_spex_6_10_run

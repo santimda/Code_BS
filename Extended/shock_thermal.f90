@@ -483,7 +483,7 @@ module shock_thermal
       write(29,*) S0
       write(151,*) S150
       write(30,*) S190
-      write(325,*) S325
+      write(326,*) S325
       write(31,*) S1
       write(32,*) S2
       write(33,*) S3
