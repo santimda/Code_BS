@@ -45,8 +45,8 @@ module SW_conv
       !-------------------------------------------------------
       ! Initialize the data for the convolution region
 
-      ancho_x = 4.d0*R0_proj/ci * 1.3d0 ! [mas](extra margin)
-      ancho_y = 2.d0*(1.+ci)*R0_proj/ci * 1.3d0 ! [mas](extra margin)
+      ancho_x = 4.d0*R0_proj/ci * 5.3d0 ! [mas](extra margin)
+      ancho_y = 2.d0*(1.+ci)*R0_proj/ci * 5.3d0 ! [mas](extra margin)
 
       D_x = f_Ny*sigma_x
       D_y = f_Ny*sigma_y
@@ -193,7 +193,11 @@ module SW_conv
    subroutine SW_conv150M_run(shock)
       character(LEN=*), intent(in) :: shock
       integer, parameter :: m_tot = (2*(mphi-1))*(m_theta*2)   ! Total number of data
-      real(dp), parameter :: sigma_x = 25.d0, sigma_y = 25.d0
+      real(dp), parameter :: theta_x = 25.d0, theta_y = 25.d0  ! The FWHM
+      !real(dp), parameter :: coc = sqrt(8.d0*log(2.d0))  ! Conversion factor between FWHM and sigma
+      real(dp), parameter :: coc = 1.d0
+      real(dp), parameter :: sigma_x = theta_x/coc, sigma_y = theta_y/coc  ! The sigma
+      !real(dp), parameter :: sigma_x = 25.d0, sigma_y = 25.d0
       real(dp) :: x_map(m_tot),y_map(m_tot)
       real(dp) :: F_150Mabs(m_tot),F_150Mun(m_tot)
       real(dp) :: ancho_x, ancho_y, D_x, D_y,ci
@@ -538,7 +542,12 @@ module SW_conv
    subroutine SW_conv325M_run(shock)
       character(LEN=*), intent(in) :: shock
       integer, parameter :: m_tot = (2*(mphi-1))*(m_theta*2)   ! Total number of data
-      real(dp), parameter :: sigma_x = 77.d0, sigma_y = 77.d0
+      !real(dp), parameter :: sigma_x = 77.d0, sigma_y = 77.d0 ! Brookes
+      real(dp), parameter :: theta_x = 54., theta_y = 54.d0/sin(dec)  ! The FWHM (full axis, not semi-axis)
+      !real(dp), parameter :: theta_x = 77., theta_y = 54.  ! The FWHM (full axis, not semi-axis)
+      !real(dp), parameter :: coc = sqrt(8.d0*log(2.d0))  ! Conversion factor between FWHM and sigma
+      real(dp), parameter :: coc = 1.d0
+      real(dp), parameter :: sigma_x = theta_x/coc, sigma_y = theta_y/coc  ! The sigma
       real(dp) :: x_map(m_tot),y_map(m_tot)
       real(dp) :: F_325Mabs(m_tot),F_325Mun(m_tot)
       real(dp) :: ancho_x, ancho_y, D_x, D_y,ci
@@ -564,8 +573,8 @@ module SW_conv
       !-------------------------------------------------------
       ! Initialize the data for the convolution region
 
-      ancho_x = 4.d0*R0_proj/ci * 1.3d0 ! [mas](extra margin)
-      ancho_y = 2.d0*(1.+ci)*R0_proj/ci * 1.3d0 ! [mas](extra margin)
+      ancho_x = 4.d0*R0_proj/ci * 2.3d0 ! [mas](extra margin)
+      ancho_y = 2.d0*(1.+ci)*R0_proj/ci * 2.3d0 ! [mas](extra margin)
 
       D_x = f_Ny*sigma_x
       D_y = f_Ny*sigma_y
@@ -890,10 +899,14 @@ module SW_conv
       character(LEN=*), intent(in) :: shock
       integer, parameter :: m_tot = (2*(mphi-1))*(m_theta*2)    ! Total number of data
       !real(dp), parameter :: coc = sqrt(8.d0*log(2.d0))         ! theta to sigma
-      !real(dp), parameter :: theta_x = 20.2d0, theta_y = 12.5d0   ! HPBW = Resolution 
-      !real(dp), parameter :: sigma_x = theta_x/coc, sigma_y = theta_y/coc   ! Benaglia2010
+      real(dp), parameter :: coc = 1.d0
+      real(dp), parameter :: theta_x = 20.2d0, theta_y = 12.5d0   ! HPBW = Resolution 
+      !real(dp), parameter :: theta_x = 20.d0, theta_y = 10.d0
+      real(dp), parameter :: sigma_x = theta_x/coc, sigma_y = theta_y/coc   ! Benaglia2010
       !real(dp), parameter :: sigma_x = 20.2d0, sigma_y = 12.5d0   ! Benaglia2020
-      real(dp), parameter :: sigma_x = 20.2d0, sigma_y = 12.5d0  ! Benaglia2021
+      !real(dp), parameter :: sigma_x = 20.2d0/coc, sigma_y = 12.5d0/coc  ! Benaglia2021
+      !real(dp), parameter :: sigma_x = 13.d0, sigma_y = 10.d0  ! Benaglia2021
+      !real(dp), parameter :: sigma_x = 10.d0, sigma_y = 5.d0
       !real(dp), parameter :: sigma_x = 10.d0, sigma_y = 10.d0  ! Moutzouri2022
       !real(dp), parameter :: sigma_x = 18.3d0, sigma_y = 9.8d0    ! Moutzouri2022
       real(dp) :: x_map(m_tot),y_map(m_tot)
@@ -908,7 +921,7 @@ module SW_conv
       real(dp) :: S_map3(m_tot),suma3
       real(dp) :: w_x, w_y
 
-      A_beam = 2*pi*sigma_x*sigma_y     ! = Gaussian normalization factor 
+      A_beam = 2.d0*pi*sigma_x*sigma_y     ! = Gaussian normalization factor 
       A_cell = f_Ny**2*sigma_x*sigma_y ! cell sample size
 
       ci = abs(cos(incli))
@@ -989,7 +1002,8 @@ module SW_conv
 
          do j = 1, m_y
             y_c(j) = y_c0 + (j-0.5)*D_y ! y-coord of the center of the (x_i,y_j) ellipse
-
+            !if ((i==m_x/2 .and. j==m_y/2) .or. (i==m_x/2+1 .and. j==m_y/2) &
+            !         .or. (i==m_x/2 .and. j==m_y/2+1) .or. (i==m_x/2+1 .and. j==m_y/2+1)) then
             suma = 0.d0!1.d-9  ! simulate noise (?)
             do l = 1, m_tot
                d_pesada2 = ((x_map(l)-x_c(i))**2)/w_x + ((y_map(l)-y_c(j))**2)/w_y
@@ -1009,7 +1023,7 @@ module SW_conv
                if (d_pesada2 < 6.d0) then      
                   ! Gaussian beam -> /(sigma*sqrt(2*pi)), both in x and y
                   atenua = exp( -d_pesada2 ) !/ norm
-                  D_F = S_map2(l)*atenua
+               D_F = S_map2(l)*atenua
                else
                   D_F = 0.d0 ! flux drops < 1e-3 farther from there, no need to sum
                endif
@@ -1249,7 +1263,10 @@ module SW_conv
       integer, parameter :: m_tot = (2*(mphi-1))*(m_theta*2)   ! Total number of data
       !real(dp), parameter :: sigma_x = 12.d0, sigma_y = 12.d0   ! Benaglia2010
       !real(dp), parameter :: sigma_x = 20.2d0, sigma_y = 12.5d0  ! Benaglia2021
-      real(dp), parameter :: sigma_x = 10.d0, sigma_y = 10.d0  ! Moutzouri2022
+      !real(dp), parameter :: sigma_x = 10.d0, sigma_y = 10.d0  ! Moutzouri2022
+      real(dp), parameter :: theta_x = 16.d0, theta_y = 10.d0     ! BD+ 60?
+      real(dp), parameter :: coc = 1.d0
+      real(dp), parameter :: sigma_x = theta_x/coc, sigma_y = theta_y/coc
       !real(dp), parameter :: coc = sqrt(8.d0*log(2.d0))        ! Benaglia gives sigma, not theta!
       !real(dp), parameter :: theta_x = sigma_x*coc, theta_y = sigma_y*coc ! HPBW = Resolution (Ben2010)  
       real(dp) :: x_map(m_tot),y_map(m_tot)
@@ -1423,7 +1440,10 @@ module SW_conv
       integer, parameter :: m_tot = (2*(mphi-1))*(m_theta*2)   ! Total number of data
       !real(dp), parameter :: sigma_x = 12.d0, sigma_y = 12.d0   ! Benaglia2010
       !real(dp), parameter :: sigma_x = 20.2d0, sigma_y = 12.5d0  ! Benaglia2021
-      real(dp), parameter :: sigma_x = 10.d0, sigma_y = 10.d0  ! Moutzouri2022
+      !real(dp), parameter :: sigma_x = 10.d0, sigma_y = 10.d0  ! Moutzouri2022
+      real(dp), parameter :: theta_x = 16.d0, theta_y = 10.d0     ! BD+ 60?
+      real(dp), parameter :: coc = 1.d0
+      real(dp), parameter :: sigma_x = theta_x/coc, sigma_y = theta_y/coc
       !real(dp), parameter :: coc = sqrt(8.d0*log(2.d0))        ! Benaglia gives sigma, not theta!
       !real(dp), parameter :: theta_x = sigma_x*coc, theta_y = sigma_y*coc ! HPBW = Resolution (Ben2010)  
       real(dp) :: x_map(m_tot),y_map(m_tot)
@@ -1600,10 +1620,11 @@ module SW_conv
       !real(dp), parameter :: sigma_x = 20.2d0, sigma_y = 12.5d0  ! Benaglia2021
       !real(dp), parameter :: sigma_x = 18.3d0, sigma_y = 9.8d0    ! Moutzouri2022
       !real(dp), parameter :: sigma_x = 9.2d0, sigma_y = 7.8d0    ! Moutzouri2022
-      !real(dp), parameter :: sigma_x = 10.d0, sigma_y = 10.d0     ! BD+ 60?
-      real(dp), parameter :: sigma_x = 20.d0, sigma_y = 10.d0    ! BD+43?
-      !    real(dp), parameter :: coc = sqrt(8.d0*log(2.d0))        ! Benaglia gives sigma, not theta!
-      !    real(dp), parameter :: theta_x = sigma_x*coc, theta_y = sigma_y*coc ! HPBW = Resolution (Ben2010)  
+      !real(dp), parameter :: theta_x = 16.d0, theta_y = 10.d0     ! BD+ 60?
+      real(dp), parameter :: theta_x = 19.7d0, theta_y = 8.25d0    ! BD+43?
+      !real(dp), parameter :: coc = sqrt(8.d0*log(2.d0))
+      real(dp), parameter :: coc = 1.d0
+      real(dp), parameter :: sigma_x = theta_x/coc, sigma_y = theta_y/coc ! HPBW = Resolution (Ben2010)  
       real(dp) :: x_map(m_tot),y_map(m_tot)
       real(dp) :: F_avg_abs(m_tot),F_avg_un(m_tot)
       real(dp) :: ancho_x, ancho_y, D_x, D_y,ci
@@ -1627,7 +1648,7 @@ module SW_conv
       !-------------------------------------------------------
       ! Initialize the data for the convolution region
 
-      ancho_x = 4.d0*R0_proj/ci * 1.3d0 ! [mas](extra margin)
+      ancho_x = 4.d0*R0_proj/ci * 2.3d0 ! [mas](extra margin)
       ancho_y = 2.d0*(1.+ci)*R0_proj/ci * 1.3d0 ! [mas](extra margin)
       !ancho_x = 4.d0*R0_proj/ci * 1.3d1 ! [mas](extra margin)
       !ancho_y = 2.d0*(1.+ci)*R0_proj/ci * 1.3d1
@@ -1791,8 +1812,8 @@ module SW_conv
       !-------------------------------------------------------
       ! Initialize the data for the convolution region
 
-      ancho_x = 4.d0*R0_proj/ci * 1.3d0 ! [mas](extra margin)
-      ancho_y = 2.d0*(1.+ci)*R0_proj/ci * 1.3d0 ! [mas](extra margin)
+      ancho_x = 4.d0*R0_proj/ci * 10.3d0 ! [mas](extra margin)
+      ancho_y = 2.d0*(1.+ci)*R0_proj/ci * 10.3d0 ! [mas](extra margin)
 
       D_x = f_Ny*sigma_x
       D_y = f_Ny*sigma_y
@@ -1920,7 +1941,10 @@ module SW_conv
    subroutine SW_spex_6_10_run  
       !real(dp), parameter :: sigma_x = 12.d0, sigma_y = 12.d0   ! Benaglia2010
       !real(dp), parameter :: sigma_x = 20.2d0, sigma_y = 12.5d0  ! Benaglia2021
-      real(dp), parameter :: sigma_x = 10.d0, sigma_y = 10.d0  ! Moutzouri2022
+      !real(dp), parameter :: sigma_x = 10.d0, sigma_y = 10.d0  ! Moutzouri2022
+      real(dp), parameter :: theta_x = 16.d0, theta_y = 10.d0     ! BD+ 60?
+      real(dp), parameter :: coc = 1.d0
+      real(dp), parameter :: sigma_x = theta_x/coc, sigma_y = theta_y/coc
       !    real(dp), parameter :: coc = sqrt(8.d0*log(2.d0))        ! Benaglia gives sigma, not theta!
       !    real(dp), parameter :: theta_x = sigma_x*coc, theta_y = sigma_y*coc ! HPBW = Resolution (Ben2010)
       real(dp) :: ancho_x, ancho_y, D_x, D_y, lognu2nu1, ci

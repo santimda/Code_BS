@@ -21,11 +21,11 @@ module global
    integer, parameter :: mE_p = 300    ! energy resolution for protons < mE_f 
    integer, parameter :: mE_f = 500    ! it is the same for br, p-p and IC
    integer, parameter :: mE_ph = 600   ! energy resolution for thermal f-f emission in the shocks 
-   integer, parameter :: mphi = 4      ! amount of linear-emitters
+   integer, parameter :: mphi = 60      ! amount of linear-emitters
    real(dp) :: delta_phi = 0.5*pi/(mphi-1.d0) ! angular separation between linear-emitters
    real(dp) :: d_phi = 0.5*pi/mphi     ! angular width of each linear-emitter or wedge
 
-   real(dp), parameter :: f_Ny = 0.6d0 ! Nyquist frequency for convolved maps
+   real(dp), parameter :: f_Ny = 0.7d0 ! Nyquist frequency for convolved maps
 
    !===========================================================
 
@@ -46,7 +46,8 @@ module global
    ! dist
    real(dp), parameter :: Emin_e = 2.d0*mec2   ! ~1 MeV
    real(dp), parameter :: Emin_e_inj = Emin_e  ! Emin_e_inj >= Emin_e
-   real(dp), parameter :: E_tran = 4.d9*eV    ! Divides both injection regimes
+   real(dp), parameter :: E_break = 1.8d9*eV    ! Divides both injection regimes
+   !real(dp), parameter :: E_break = 2.d9*eV     ! May be this value?
    real(dp), parameter :: Emax_e = 1.d15*eV    ! 1 PeV
    real(dp) :: Eint_e,dE_e
    real(dp), dimension(:,:), allocatable :: N_etot ! Ne(theta,E_i)

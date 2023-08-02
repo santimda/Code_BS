@@ -9,7 +9,7 @@ module radstr
 
 	!========================================================================================!
 	! This progrma estimates the luminosity emitted via p-p and NT Br. inside the H II region!
-	! We concentrate on particles with E = E_tran											 !
+	! We concentrate on particles with E = E_break											 !
 	!========================================================================================!
 
 	subroutine radstr_run(shock)
@@ -22,7 +22,7 @@ module radstr
 		real(dp) :: E_pp(mE_f), E_br(mE_f)
 		real(dp) :: Lpp_sh(mE_f), Lbr_sh(mE_f)
 		real(dp) :: t_diff,t_adv,t_esc,t_pp,t_br,t_IC_CMB,t_sy
-		real(dp) :: n_e, n_p
+		real(dp) :: n_p
 		real(dp) :: D_diff
 		real(dp), parameter :: B_str = 1.d-6
 		character(len=*), parameter :: diff_regime = 'G'
@@ -38,16 +38,16 @@ module radstr
 			read(100,*) R_str, dummy
 		close(100)
 
-		t_diff = R_str**2/(6.d0*Diff(E_tran,B_str,diff_regime))
+		t_diff = R_str**2/(6.d0*Diff(E_break,B_str,diff_regime))
 		t_adv = R_str/V_st
 		t_esc = 1./( 1./t_adv + 1.d0/t_diff )
-		write(*,90) 'D_diff =', Diff(E_tran,B_str,diff_regime)
+		write(*,90) 'D_diff =', Diff(E_break,B_str,diff_regime)
 		write(*,90) 't_diff =', t_diff
 		write(*,91) 't_adv =', t_adv
 		write(*,91) 't_esc =', t_esc
 
 		n_p = (mu/mu_i)*n_ISM
-		n_e = (mu/mu_e)*n_ISM
+		print*, 'n_p=', n_p
 
 		!---------------------------------------------------
 		!---------------------------------------------------
@@ -78,14 +78,14 @@ module radstr
 		
 		t_pp = 1.d15/n_p
 
-		! We estimate that approx 0.1*L_pp is radiated by E_tran
-		L_pp_Etran = 1.d-2*(t_esc/t_pp)*L_inj_p
+		! We estimate that approx 0.1*L_pp is radiated by E_break
+		L_pp_Etran = 1.d-1*(t_esc/t_pp)*L_inj_p
 
-		! Protons with E = E_tran radiate mostly at sim 0.1E_tran
+		! Protons with E = E_break radiate mostly at sim 0.1E_break
 		write(*,82) 'L_pp(100 MeV) =', L_pp_Etran
 
 		open(50,file='rad_pp_str.dat')
-			write(50,*) 0.1d0*E_tran/eV, L_pp_Etran
+			write(50,*) 0.1d0*E_break/eV, L_pp_Etran
 		close(50) 
 
 		!---------------------------------------------------
@@ -124,36 +124,36 @@ module radstr
 
 		!---------------------------------------------------
 
-		!t_sy = E_tran*(4.d0/3.d0*c*sigma_T*(B_str**2/8.d0/pi)*(E_tran/mec2)**2)**(-1.)
+		!t_sy = E_break*(4.d0/3.d0*c*sigma_T*(B_str**2/8.d0/pi)*(E_break/mec2)**2)**(-1.)
 
-		! We estimate that approx 0.1*L_sy is radiated by E_tran
+		! We estimate that approx 0.1*L_sy is radiated by E_break
 		!L_sy_Etran = 0.1d0*(t_esc/t_sy)*L_inj_e
 
-		! Electrons with E = E_tran radiate mostly at sim E_tran
+		! Electrons with E = E_break radiate mostly at sim E_break
 		!write(*,84) 'L_sy(75 MHz) =', L_sy_Etran
 
 		!---------------------------------------------------
 		
-		t_br = 1.d15/n_e
+		t_br = 1.d15/n_p
 		write(*,91) 't_Br. =', t_br
 
-		! We estimate that approx 0.1*L_Br is radiated by E_tran
-		L_br_Etran = 1.d-2*(t_esc/t_br)*L_inj_e
+		! We estimate that approx 0.1*L_Br is radiated by E_break
+		L_br_Etran = (t_esc/t_br)*L_inj_e
 
-		! Electrons with E = E_tran radiate mostly at sim E_tran
+		! Electrons with E = E_break radiate mostly at sim E_break
 		write(*,83) 'L_br(1 GeV) =', L_br_Etran
 
 		open(60,file='rad_Br_str.dat')
-			write(60,*) E_tran/eV, L_br_Etran
+			write(60,*) E_break/eV, L_br_Etran
 		close(60)
 
 		!---------------------------------------------------
-		!t_IC_CMB = E_tran*(4.d0/3.d0*c*sigma_T*U_CMB*(E_tran/mec2)**2)**(-1.)
+		!t_IC_CMB = E_break*(4.d0/3.d0*c*sigma_T*U_CMB*(E_break/mec2)**2)**(-1.)
 
-		! We estimate that approx 0.1*L_IC_CMB is radiated by E_tran
+		! We estimate that approx 0.1*L_IC_CMB is radiated by E_break
 		!L_IC_Etran = 0.1d0*(t_esc/t_IC_CMB)*L_inj_e
 
-		! Electrons with E = E_tran radiate mostly at sim E_cmb*(E_tran/mc2)**2
+		! Electrons with E = E_break radiate mostly at sim E_cmb*(E_break/mc2)**2
 		!write(*,84) 'L_IC(40 keV) =', L_IC_Etran
 
 	end subroutine radstr_run

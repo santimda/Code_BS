@@ -25,6 +25,7 @@ module CD_distp
       real(dp) :: log10Emaxl,R_acel(m_theta),D_diff,integral,Q
       real(dp) :: E_dot(m_theta,mE_p),Emax_p0(m_theta),rg_p_max(m_theta),Ka,E_NT,U_NT
       real(dp) :: N_p0(mE_p),n_a(m_theta),L_inj(m_theta),dR(m_theta),dV_ring(m_theta)
+      real(dp) :: E_corr(m_theta)
       real(dp) :: L_inj_p(m_theta), suma, b_pp, L1, f1, f2, f
       real(dp) :: L_inj_p_tot
       real(dp) :: dE_aprox, cool
@@ -43,11 +44,11 @@ module CD_distp
       end interface
       
       interface
-      function fQp(E,Emax,alpha) ! function Q(E)
+      function fQp(E,E_tr,Emax,E_c,alpha,alpha_0) ! function Q(E)
          use iso_fortran_env, only: dp => real64
          implicit none
          real(dp) :: fQp
-         real(dp), intent(in) :: E,Emax,alpha
+         real(dp), intent(in) :: E,Emax,alpha,E_tr,E_c,alpha_0
       end function fQp
       end interface
 
@@ -188,6 +189,9 @@ module CD_distp
       !========================================================================
 
       ! Consider different starting points for each linear emitter
+      do l=1, m_theta
+         E_corr(l) = E_break**(alpha_1-alpha_sh(l))
+      end do
       
       N_ptot = 0.d0 ! Array containing N_p(l,i) with all the contributions at a cell "l"
       
@@ -202,9 +206,11 @@ module CD_distp
          ! The integral is solved with the trapezoid method; Q(E) is obtained from fQp
          integral = 0.d0
          i = 1
-         f1 = E_p(1) * fQp(E_p(1), Emax_p0(l_min), alpha_sh(l_min))
+         f1 = E_p(1) * fQp(E_p(1), E_break, Emax_p0(l_min), E_corr(1), alpha_sh(1), alpha_1)
+         !f1 = E_p(1) * fQp(E_p(1), Emax_p0(l_min), alpha_sh(l_min))
          do while (i < mE_p .and. E_p(i+1) < 10.d0*Emax_p0(l_min))
-           f2 = E_p(i+1) * fQp(E_p(i+1), Emax_p0(l_min), alpha_sh(l_min))
+           !f2 = E_p(i+1) * fQp(E_p(i+1), Emax_p0(l_min), alpha_sh(l_min))
+           f2 = E_p(i+1) * fQp(E_p(i+1), E_break, Emax_p0(l_min), E_corr(l_min), alpha_sh(l_min), alpha_1)
            f = (f1 + f2)/2.d0
            dE_p = E_p(i)*(Eint_p-1.d0)
            integral = integral + f*dE_p
@@ -222,7 +228,8 @@ module CD_distp
             ! N(E)=1/|dE/dt|*int_E^Emax Q(E')dE' = Q(E)*dt, with |dE/dt|= E/t_cool 
             ! in [erg/seg], dt = min(t_cell,t_cool) so that [N(E)]=erg/erg**2
 
-            Q = Ka * fQp(E_p(i), Emax_p0(l_min), alpha_sh(l_min))
+            !Q = Ka * fQp(E_p(i), Emax_p0(l_min), alpha_sh(l_min))
+            Q = Ka * fQp(E_p(i), E_break, Emax_p0(l_min), E_corr(l_min), alpha_sh(l_min), alpha_1)
             N_p0(i) = Q * min(t_cell(l_min),t_loss(l_min,i))
             N_ptot(l_min,i) = N_ptot(l_min,i) + N_p0(i)
             
@@ -321,7 +328,7 @@ module CD_distp
          end do
          E_NT = E_NT * 4.d0*mphi ! Total NT energy in each BS "ring"
          U_NT = E_NT/dV_ring(l)
-         write(80,*) l, E_NT, U_NT, U_NT/(B(l)**2/(8.d0*pi))! Store the energy density as well
+         write(80,*) theta(l), E_NT, U_NT, U_NT/(B(l)**2/(8.d0*pi))! Store the energy density as well
          suma = suma + E_NT
       end do
       close(80)
@@ -365,15 +372,23 @@ module CD_distp
       real(dp) :: Emax_p0(m_theta),Ka,E_NT,dV_ring(m_theta),U_NT
       real(dp) :: N_p0(mE_p),n_a(m_theta),L_inj(m_theta),dR(m_theta),N_total_i
       real(dp) :: L_inj_p(m_theta), f1, f2, f
+      real(dp) :: E_corr(m_theta)
       
       interface
-      function fQp(E,Emax,alpha) ! function Q(E)
+      function fQp(E,E_tr,Emax,E_c,alpha,alpha_0) ! function Q(E)
          use iso_fortran_env, only: dp => real64
          implicit none
          real(dp) :: fQp
-         real(dp), intent(in) :: E,Emax,alpha
+         real(dp), intent(in) :: E,E_tr,Emax,E_c,alpha,alpha_0
       end function fQp
       end interface
+      !function fQp(E,Emax,alpha) ! function Q(E)
+      !   use iso_fortran_env, only: dp => real64
+      !   implicit none
+      !   real(dp) :: fQp
+      !   real(dp), intent(in) :: E,Emax,alpha
+      !end function fQp
+      !end interface
 
       allocate( H_theta(m_theta) )
       allocate( P(m_theta),rho(m_theta),T(m_theta),B(m_theta),v_t(m_theta) )
@@ -452,6 +467,9 @@ module CD_distp
       !========================================================================
 
       ! Consider different starting points for each linear emitter
+      do l=1, m_theta
+         E_corr(l) = E_break**(alpha_1-alpha_sh(l))
+      end do
       
       N_ptot = 0.d0 ! Array containing N_p(l,i) with all the contributions at a cell "l"
       Do l_min = 1, m_theta_inj_max ! After m_theta_inj_max, particles are no longer accelerated
@@ -462,9 +480,11 @@ module CD_distp
          ! The integral is solved with the trapezoid method; Q(E) is obtained from fQp
          integral = 0.d0
          i = 1
-         f1 = E_p(1) * fQp(E_p(1), Emax_p0(l_min), alpha_sh(l_min))
+         !f1 = E_p(1) * fQp(E_p(1), Emax_p0(l_min), alpha_sh(l_min))
+         f1 = E_p(1) * fQp(E_p(1), E_break, Emax_p0(l_min), E_corr(1), alpha_sh(1),alpha_1)
          do while (i < mE_p .and. E_p(i+1) < 10.d0*Emax_p0(l_min))
-           f2 = E_p(i+1) * fQp(E_p(i+1), Emax_p0(l_min), alpha_sh(l_min))
+           !f2 = E_p(i+1) * fQp(E_p(i+1), Emax_p0(l_min), alpha_sh(l_min))
+           f2 = E_p(i+1) * fQp(E_p(i+1), E_break, Emax_p0(l_min), E_corr(l_min), alpha_sh(l_min), alpha_1)
            f = (f1 + f2)/2.d0
            dE_p = E_p(i)*(Eint_p-1.d0)
            integral = integral + f*dE_p
@@ -481,7 +501,8 @@ module CD_distp
             ! N(E)=1/|dE/dt|*int_E^Emax Q(E')dE' = Q(E)*dt, with |dE/dt|= E/t_cool 
             ! in [erg/seg], dt = min(t_cell,t_cool) so that [N(E)]=erg/erg**2
 
-            Q = Ka * fQp(E_p(i), Emax_p0(l_min), alpha_sh(l_min))
+            !Q = Ka * fQp(E_p(i), Emax_p0(l_min), alpha_sh(l_min))
+            Q = Ka * fQp(E_p(i), E_break, Emax_p0(l_min), E_corr(l_min), alpha_sh(l_min), alpha_1)
             N_p0(i) = Q * min(t_cell(l_min),t_loss(l_min,i))
             N_ptot(l_min,i) = N_ptot(l_min,i) + N_p0(i)
             
@@ -523,7 +544,7 @@ module CD_distp
          end do
          E_NT = E_NT * 4.d0*mphi ! Total NT energy in each BS "ring"
          U_NT = E_NT/dV_ring(l)
-         write(80,*) l, E_NT, U_NT, U_NT/(8.d0*pi*B(l)**2)! Store the energy density as well
+         write(80,*) l, E_NT, U_NT, U_NT/(B(l)**2/(8.d0*pi))! Store the energy density as well
       end do
       close(80)
 
@@ -663,12 +684,24 @@ end Function resta_p
 
 !=========================================================================
 
-Function fQp(E, Emax, alpha)
-   use global 
-   implicit none 
-   real(dp) :: fQp
-   real(dp),intent(in) :: E, Emax, alpha
+!Function fQp(E, Emax, alpha)
+!   use global 
+!   implicit none 
+!   real(dp) :: fQp
+!   real(dp),intent(in) :: E, Emax, alpha
    
-   fQp = E**(-alpha)*exp(-E/Emax)
+!   fQp = E**(-alpha)*exp(-E/Emax)
 
+!end Function fQp
+
+Function fQp(E, E_tr, Emax, E_c, alpha, alpha_0)
+   use global  
+   implicit none
+   real(dp) :: fQp
+   real(dp),intent(in) :: E, E_tr, Emax, alpha, alpha_0, E_c
+   if (E < E_tr) then
+      fQp = E**(-alpha_0)*E_c
+   else
+      fQp = E**(-alpha)*exp(-E/Emax)
+   endif
 end Function fQp

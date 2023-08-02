@@ -11,7 +11,7 @@ set cblabel 'spex'
 set yrange [-2:2]
 set xrange [-2:2]
 #set palette defined (-1 "purple", 0 "white", 1 "red")
-set cbrange [-0.1:-0.9]
+set cbrange [-0.4:-0.9]
 
 set xtics 2; set mxtics 2; set xlabel offset 0,0.5; set xtics offset 0.0,0.5
 set ytics 1; set mytics 2; set ylabel offset 0.2,0.0; set ytics offset 0.8,0.0

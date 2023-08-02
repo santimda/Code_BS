@@ -2,18 +2,22 @@ eV=1.602176e-12
 set encoding utf8  #iso_8859_1
 set title ''
 #'Electron distribution in RS'
-set xrange [6:13.]
-set yrange [31.:41.]
+set xrange [7.5:14.5]
+set yrange [36.:46.5]
 set xlabel 'log_{10}(E_e [eV])'; set ylabel offset 0.0,-0.1
 set ylabel 'log_{10}({E_e}^2 N_e(E_e) [erg])'; set ylabel offset 0.1,0.0
-set ytics 1 ; set mytics 2
+set ytics 2 ; set mytics 2
 set xtics 1 ; set mxtics 2
 set palette maxcolors 5 # 5 = N_bins
 set cblabel '' #'{/Symbol q}/{/Symbol p}'; set cblabel offset -0.5,-0.8
 set cbtics ("I1" 1.4, "I2" 2.2,"I3" 3.,"I4" 3.8,"I5" 4.6)
 set palette defined ( 0 "#FF8C00", 1 "#8B0000" ) # From dark-orange to dark-red
 set datafile missing
-set label "NAME   RS" at graph 0.74,0.89 font "Helvetica,18"
+set label "BD+43° 3654" at graph 0.715,0.89 font "Helvetica,18"
+set label "E_{break} = 1.8 GeV" at graph 0.715,0.82 font "Helvetica,18"
+set label "p_{1} = 5" at graph 0.715,0.75 font "Helvetica,18"
+set label "p_{2} = -3" at graph 0.715,0.68 font "Helvetica,18"
+
 
 set terminal postscript color solid enhanced dl 1.5 lw 2.5 "Helvetica" 21
 set output 'diste_RS_bin.eps'

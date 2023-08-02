@@ -41,8 +41,8 @@ set xlabel '{/Symbol D}RA [arcmin]'
 set ylabel '{/Symbol D}DEC [arcmin]'
 
 set cblabel 'Flux [mJy beam^{-1}]'
-set xrange [-1.5:1.5]
-set yrange [-1.5:1.5]
+set xrange [-4.:4.] # BD+60
+set yrange [-3.:3.] # BD+60 
 set cbrange [0.0:]
 
 set pm3d interpolate 0,0
@@ -51,9 +51,9 @@ set view map
 set palette defined (0 "white", 1 "grey40")
 unset key
 
-set size ratio 7./13.#7./9.36 # (1.5+5.5)/(cosd*(6.5+6.5))
-set xtics 1; set mxtics 2; set xlabel offset 0,0.5; set xtics offset 0.0,0.5
-set ytics 1; set mytics 2; set ylabel offset 0.2,0.0; set ytics offset 0.8,0.0
+set size ratio 6./8. # BD+60
+set xtics 2; set mxtics 2; set xlabel offset 0,0.5; set xtics offset 0.0,0.5
+set ytics 2; set mytics 2; set ylabel offset 0.2,0.0; set ytics offset 0.8,0.0
 set cbtics 1; set mcbtics 2; set cblabel offset 0.3,0.0; set cbtics offset -0.6,0.0
 
 # BD+ 43
@@ -61,8 +61,8 @@ set cbtics 1; set mcbtics 2; set cblabel offset 0.3,0.0; set cbtics offset -0.6,
 #set label 2 "{/ZapfDingbats \110}" at -0.36,0.0 front textcolor rgb '#008B8B' font "Helvetica,28"
 
 # BD+60
-set arrow 4 from -0.01,0.0 to -0.09,0.49 head filled front linecolor rgb '#6495ED'
-set label 2 "{/ZapfDingbats \110}" at -0.1,0.0 front textcolor rgb '#008B8B' font "Helvetica,28"
+set arrow 4 from -0.01,0.0 to -0.09,0.49 head filled front linecolor rgb '#6495ED' # BD+60
+set label 2 "{/ZapfDingbats \110}" at -0.2,0.0 front textcolor rgb '#008B8B' font "Helvetica,20" # BD+60
 
 coc = sqrt(8.*log(2.))
 #siz_x = 4./60.#*coc

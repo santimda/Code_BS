@@ -228,7 +228,7 @@ module CD_diste
 
       ! Consider different starting points for each linear emitter
       do l=1, m_theta
-         E_corr(l) = E_tran**(alpha_1-alpha_sh(l))
+         E_corr(l) = E_break**(alpha_1-alpha_sh(l))
       end do
 
       N_etot = 0.d0
@@ -242,9 +242,9 @@ module CD_diste
          ! The integral is solved with the trapezoid method; Q(E) is obtained from fQ
          integral = 0.d0
          i = 1
-         f1 = E_e(1) * fQ(E_e(1), Emin_e_inj, E_tran, Emax_e0(l_min), E_corr(1), alpha_sh(1), alpha_1)
+         f1 = E_e(1) * fQ(E_e(1), Emin_e_inj, E_break, Emax_e0(l_min), E_corr(1), alpha_sh(1), alpha_1)
          do while (i < mE_e .and. E_e(i+1) < 10.d0*Emax_e0(l_min))
-           f2 = E_e(i+1) * fQ(E_e(i+1), Emin_e_inj, E_tran, Emax_e0(l_min), E_corr(l_min), alpha_sh(l_min), alpha_1)
+           f2 = E_e(i+1) * fQ(E_e(i+1), Emin_e_inj, E_break, Emax_e0(l_min), E_corr(l_min), alpha_sh(l_min), alpha_1)
            f = (f1 + f2)/2.d0
            dE_e = E_e(i)*(Eint_e-1.d0)
            integral = integral + f*dE_e
@@ -263,7 +263,7 @@ module CD_diste
             ! N(E)=1/|dE/dt|*int_E^Emax Q(E')dE' = Q(E)*dt, with |dE/dt|= E/t_cool 
             ! in [erg/seg], dt = min(t_cell,t_cool) so that [N(E)]=1/erg
    
-            Q = Ka * fQ(E_e(i), Emin_e_inj, E_tran, Emax_e0(l_min), E_corr(l_min), alpha_sh(l_min), alpha_1)
+            Q = Ka * fQ(E_e(i), Emin_e_inj, E_break, Emax_e0(l_min), E_corr(l_min), alpha_sh(l_min), alpha_1)
             N_e0(i) = Q * min(t_cell(l_min),t_coole(l_min,i))
             N_etot(l_min,i) = N_etot(l_min,i) + N_e0(i)  
 
@@ -362,7 +362,7 @@ module CD_diste
          end do
          E_NT = E_NT * 4.d0*mphi ! Total NT energy in each BS "ring"
          U_NT = E_NT/dV_ring(l)
-         write(80,*) l, E_NT, U_NT, U_NT/(B(l)**2/(8.d0*pi))! Store the energy density as well
+         write(80,*) theta(l), E_NT, U_NT, U_NT/(B(l)**2/(8.d0*pi))! Store the energy density as well
          suma = suma + E_NT
       end do
       close(80)
@@ -523,7 +523,7 @@ module CD_diste
 
       ! Consider different starting points for each linear emitter
       do l=1, m_theta
-         E_corr(l) = E_tran**(alpha_1-alpha_sh(l))
+         E_corr(l) = E_break**(alpha_1-alpha_sh(l))
       end do
 
       N_etot = 0.d0
@@ -535,9 +535,9 @@ module CD_diste
          ! The integral is solved with the trapezoid method; Q(E) is obtained from fQ
          integral = 0.d0
          i = 1
-         f1 = E_e(1) * fQ(E_e(1), Emin_e_inj, E_tran, Emax_e0(l_min), E_corr(1), alpha_sh(1),alpha_1)
+         f1 = E_e(1) * fQ(E_e(1), Emin_e_inj, E_break, Emax_e0(l_min), E_corr(1), alpha_sh(1),alpha_1)
          do while (i < mE_e .and. E_e(i+1) < 10.d0*Emax_e0(l_min))
-           f2 = E_e(i+1) * fQ(E_e(i+1), Emin_e_inj, E_tran, Emax_e0(l_min), E_corr(l_min), alpha_sh(l_min), alpha_1)
+           f2 = E_e(i+1) * fQ(E_e(i+1), Emin_e_inj, E_break, Emax_e0(l_min), E_corr(l_min), alpha_sh(l_min), alpha_1)
            f = (f1 + f2)/2.d0
            dE_e = E_e(i)*(Eint_e-1.d0)
            integral = integral + f*dE_e
@@ -554,7 +554,7 @@ module CD_diste
             ! N(E)=1/|dE/dt|*int_E^Emax Q(E')dE' = Q(E)*dt, with |dE/dt|= E/t_cool 
             ! in [erg/seg], dt = min(t_cell,t_cool) so that [N(E)]=1/erg
    
-            Q = Ka * fQ(E_e(i), Emin_e_inj, E_tran, Emax_e0(l_min), E_corr(l_min), alpha_sh(l_min), alpha_1)
+            Q = Ka * fQ(E_e(i), Emin_e_inj, E_break, Emax_e0(l_min), E_corr(l_min), alpha_sh(l_min), alpha_1)
             N_e0(i) = Q * min(t_cell(l_min),t_coole(l_min,i))
             N_etot(l_min,i) = N_etot(l_min,i) + N_e0(i)  
 
@@ -597,7 +597,7 @@ module CD_diste
          end do
          E_NT = E_NT * 4.d0*mphi ! Total NT energy in each BS "ring"
          U_NT = E_NT/dV_ring(l)
-         write(80,*) l, E_NT, U_NT, U_NT/(8.d0*pi*B(l)**2)! Store the energy density as well
+         write(80,*) l, E_NT, U_NT, U_NT/(B(l)**2/8.d0*pi)! Store the energy density as well
       end do
       close(80)
 
