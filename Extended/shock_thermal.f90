@@ -105,6 +105,7 @@ module shock_thermal
     real(dp) :: r(m_theta), v_perp(m_theta), t_th(m_theta)
     real(dp) :: F_nu_iph(m_l,mE_ph), F_nu_tot(m_theta), F_nu_ion_tot(m_theta)
     real(dp) :: F_nu_avg(m_theta), F_nu_ion_avg(m_theta)
+    real(dp) :: theta_min 
     real(dp) :: dnu_avg, h_avg
     real(dp) :: emi_ff_0, vol_slab
     real(dp) :: kappa_alpha(m_theta), S_alpha(m_theta), Area_cell(l), Omega_cell(l)
@@ -120,6 +121,7 @@ module shock_thermal
     integer :: nl, i_ph
     Integer :: i_890M,i_1G,i_3G,i_5G,i_6G,i_10G,i_110M,i_190M,i_150M,i_325M
     integer :: N_avg
+    integer :: l_min
     real(dp), allocatable :: g_ff(:,:)
 
     allocate( H_theta(m_theta), H_1(m_theta), rho(m_theta), T(m_theta), rho_IL(m_theta) )
@@ -578,10 +580,25 @@ module shock_thermal
         read(70,*) x(l),y(l),z(l)
       end do
       close(70)
+      x = R0*x
+      y = R0*y
+      z = R0*z
 
-      open(71,file='S_alpha_tot_'//shock//'.dat')
+      theta_min = 0.1d0 
+      l_min = int(m_theta*2/5)!int( (theta_min/theta_max) * m_theta )
+
       do l=1,m_theta
-        Area_cell(l) = (R_theta(l)*sin(theta(l))) * dR(l) * (2.d0 * pi/mphi)
+        Area_cell(l) = (R_theta(l)*sin(theta(l))) * dR(l) * (2.d0 * pi/mphi) * 206265.**2 ! Arc sec
+      end do
+
+      do l=1,m_theta
+        if (l<l_min) Area_cell(l) = Area_cell(l_min)
+      end do
+
+      open(73,file='Area.dat')
+      open(71,file='S_alpha_tot_'//shock//'.dat')
+      do l=1,m_theta 
+        write(73,*) theta(l), Area_cell(l)
         Omega_cell(l) = Area_cell(l)/distance**2
         kappa_alpha(l) = 2.85d-33 * T(l)**-0.9 * (n_a_e(l)*n_a_i(l))
         S_alpha(l) = kappa_alpha(l) * frac_H * H_theta(l)
@@ -590,6 +607,7 @@ module shock_thermal
         write(71,*) theta(l), S_alpha(l)
       end do
       close(71)
+      close(73)
 
       open(72,file='S_alpha_'//shock//'.dat')
       do l=1,m_l

@@ -12,7 +12,7 @@ module rad_H_alpha
 
       character(LEN=*), intent(in) :: shock
       integer, parameter :: m_tot = (2*(mphi-1))*(m_theta*2)   ! Total number of data
-      real(dp), parameter :: sigma_x = 30.d0, sigma_y = 30.d0  ! Arbitrary
+      real(dp), parameter :: sigma_x = 20.d0, sigma_y = 20.d0  ! Arbitrary
       real(dp) :: x_map(m_tot),y_map(m_tot)
       real(dp) :: F_alpha(m_tot)
       real(dp) :: ancho_x, ancho_y, D_x, D_y,ci
@@ -24,6 +24,8 @@ module rad_H_alpha
       real(dp) :: A_beam
       real(dp) :: S_map(m_tot)
       real(dp) :: w_x, w_y
+
+      print*, '\n Calculate the H_alpha emission map'
 
       A_beam = 2*pi*sigma_x*sigma_y     ! = Gaussian normalization factor 
 
@@ -58,10 +60,7 @@ module rad_H_alpha
       do l = 1, m_tot
          read(10,*) y_map(l),x_map(l),F_alpha(l)
          F_alpha(l) = F_alpha(l)/5.66d-18    ! Convert from cgs to R units
-         sum = sum + F_alpha(l)
       enddo
-      write(*,*) 'Pre-conv: F_H_a'
-      write(*,80) 'S(F_alpha)=',sum,'R'
       close(10)
 
       !------------------------------------------
@@ -81,7 +80,7 @@ module rad_H_alpha
                if (d_pesada2 < 6.d0) then      
                   ! Gaussian beam -> /(sigma*sqrt(2*pi)), both in x and y
                   atenua = exp( -d_pesada2 ) !/ norm
-                  D_F = F_alpha(l)*atenua
+                  D_F = F_alpha(l)*atenua/A_beam
                else
                   D_F = 0.d0 ! flux drops < 1e-3 farther from there, no need to sum
                endif
@@ -101,14 +100,10 @@ module rad_H_alpha
       open (20,file='S_alpha_map.dat')
       do i = 1, m_x
          do j = 1, m_y
-            write(20,60) x_c(i), y_c(j), F_alpha_conv(i,j)/A_beam
-            sum = sum + F_alpha_conv(i,j)/A_beam
+            write(20,60) x_c(i), y_c(j), F_alpha_conv(i,j)
          enddo
          write(20,*) 
       enddo
-      write(*,*) 'Post-conv:'
-      write(*,80) 'S(H_alpha)=',sum,'R'
-      write(*,*) ''
       close(17)
 
       60  format(F11.4,X,F11.4,X,E11.4)
