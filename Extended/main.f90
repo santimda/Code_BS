@@ -73,6 +73,8 @@ PROGRAM main
          call abs_maps('BOTH')
       end if
    end if
+
+   if (rad_alpha .and. FS) call H_alpha_map('FS')
       
    if (verbose) print *, '\n Deallocate vectors'    
    call initialize_deallocate()
@@ -394,6 +396,59 @@ PROGRAM main
 
 End Subroutine Calculate
 
+!============================================================================
+!============================================================================
+
+
+Subroutine H_alpha_map(SHOCK)
+   use global
+   use controls
+   use rad_H_alpha, only: rad_H_alpha_run
+   use CD_rot, only: CD_rot_run
+
+   implicit none
+
+   character(LEN=*), intent(in) :: shock
+   real(dp) :: S_H_alpha
+   real(dp) :: u_proj, v_proj
+   real(dp) :: phi
+   integer :: i_phi,i_l
+
+   if (rad_alpha) then
+   open(71,file='S_alpha_map_'//shock//'.dat')
+
+   phi = 0
+
+   if (rotate) then
+      do i_phi=1,mphi
+         print *, 'i(phi)=',i_phi,'/',mphi
+         call CD_rot_run(phi)
+         open(70,file='S_alpha_'//shock//'.dat')
+
+         do i_l = 1,2*m_theta
+            read(70,*) u_proj,v_proj,S_H_alpha
+            write(71,*) u_proj,v_proj,S_H_alpha
+            if (i_phi.ne.1) then
+               write(71,*) u_proj,-v_proj,S_H_alpha
+            endif
+         end do
+
+         close(70)
+
+         phi = phi + delta_phi
+      end do
+   end if
+
+   close(71)
+
+   if (convolution_alpha) then
+      call rad_H_alpha_run(shock)
+   end if
+
+   end if
+
+   End Subroutine H_alpha_map
+
 
 
 !============================================================================
@@ -427,7 +482,7 @@ Subroutine abs_maps(SHOCK)
       open(1111, file='sync_radiomap_'//shock//'_110MHz.dat')
       open(1500, file='sync_radiomap_'//shock//'_150MHz.dat') 
       open(19,file='sync_radiomap_'//shock//'_190MHz.dat')
-      open(325,file='sync_radiomap_'//shock//'_325MHz.dat')
+      open(3255,file='sync_radiomap_'//shock//'_325MHz.dat')
       open(3333,file='sync_radiomap_'//shock//'_3GHz.dat')
       open(50,file='sync_radiomap_'//shock//'_5GHz.dat')
       open(60,file='sync_radiomap_'//shock//'_6GHz.dat')
@@ -446,7 +501,7 @@ Subroutine abs_maps(SHOCK)
       open(1111,file='sync_radiomap_110MHz.dat')
       open(1500,file='sync_radiomap_150MHz.dat')
       open(19,file='sync_radiomap_190MHz.dat')
-      open(325,file='sync_radiomap_325MHz.dat')
+      open(3255,file='sync_radiomap_325MHz.dat')
       open(3333,file='sync_radiomap_3GHz.dat')
       open(50,file='sync_radiomap_5GHz.dat')
       open(60,file='sync_radiomap_6GHz.dat')
@@ -626,13 +681,13 @@ Subroutine abs_maps(SHOCK)
                      read(3253,*) S_hot
                   end if
                   S_th = S_th_FS + S_th_RS
-                  write(325,*) u_proj,v_proj,emi,emi_abs
+                  write(3255,*) u_proj,v_proj,emi,emi_abs
                   write(326,*) S_th
                   if ((shock == 'BOTH') .or. (shock == 'FS')) then
                      write(327,*) S_hot
                   end if
                   if (i_phi.ne.1) then ! .and. i_phi.ne.mphi) then
-                     write(325,*) u_proj,-v_proj,emi,emi_abs ! symmetry???
+                     write(3255,*) u_proj,-v_proj,emi,emi_abs ! symmetry???
                      write(326,*) S_th
                      if ((shock == 'BOTH') .or. (shock == 'FS')) then
                         write(327,*) S_hot
@@ -796,7 +851,7 @@ Subroutine abs_maps(SHOCK)
    close(1111)
    close(1500)
    close(19)
-   close(325)
+   close(3255)
    close(3333)
    close(50)
    close(60)
@@ -838,12 +893,12 @@ Subroutine abs_maps(SHOCK)
 
    if (convolution) then
       print *, 'Convolution of the emission map with the instrument response'
-      call SW_conv110M_run(shock)
+      !call SW_conv110M_run(shock)
       !call SW_conv150M_run(shock)
       !call SW_conv190M_run(shock)
       !call SW_conv325M_run(shock)
       !call SW_conv1G_run(shock)
-      !call SW_conv3G_run(shock)
+      call SW_conv3G_run(shock)
       !call SW_conv5G_run(shock)
       !call SW_conv6G_run(shock)
       !call SW_conv10G_run(shock)

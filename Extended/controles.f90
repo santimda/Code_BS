@@ -29,9 +29,9 @@ logical, parameter :: electrons = yes
 
 logical, parameter :: diste_calc = yes
 logical, parameter :: radsyn_sw_calc = yes
-logical, parameter :: radbr_sw_calc = yes
-logical, parameter :: radic_st_calc = yes
-logical, parameter :: radic_IR_calc = yes
+logical, parameter :: radbr_sw_calc = no
+logical, parameter :: radic_st_calc = no
+logical, parameter :: radic_IR_calc = no
 logical, parameter :: abssyn_calc = no !needs maps = yes
 logical, parameter :: maps_calc = no
 logical, parameter :: convolution = no
@@ -49,7 +49,11 @@ logical, parameter :: escribir_p = yes
 
 !----------
 
-logical, parameter :: stromgren = yes
+logical, parameter :: stromgren = no
+
+!----------
+logical, parameter :: rad_alpha = yes
+logical, parameter :: convolution_alpha = yes
 
 !===================================================
 
