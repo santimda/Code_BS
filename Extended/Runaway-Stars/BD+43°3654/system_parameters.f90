@@ -16,6 +16,7 @@ module system_parameters
    ! incli = 90° is BS in front of the star, incli = 0° is edge-on,  incli = -90° is BS behind the star
    !real(dp), parameter :: R0_proj = 5.d0*60.d3          ! projected BS distance to the star (5') in mas  
    !real(dp), parameter :: R0 = R0_proj*(distance/kpc)*UA/abs(cos(incli)) ! linear distance to the BS stagnation point
+   real(dp), parameter :: dec = 43.98538212854551d0*pi/180.
    real(dp), parameter :: theta_max = (120.d0/180.d0)*pi ! ~ extension of the BS modelled ~ pi/2
 
    ! Relative abundances (for solar composition)
@@ -104,8 +105,11 @@ module system_parameters
    real(dp), dimension(:), allocatable :: efi_ac_sh! particle accel. efficiency at the shocks  (l)
    !real(dp), parameter :: frac_sh = sqrt(0.5_dp) ! fraction sqrt(UB_sw/UB_equipartition_sw)
    !real(dp), parameter :: frac_sh = sqrt(0.07_dp)     ! fraction sqrt(UB_sw/UB_equipartition_sw), f_NT=1
-   real(dp), parameter :: frac_sh = sqrt(0.043_dp)  ! used this value
-   !real(dp), parameter :: frac_sh = sqrt(0.045_dp)
+   !real(dp), parameter :: frac_sh = sqrt(0.04_dp)  ! used this value
+   !real(dp), parameter :: frac_sh = sqrt(0.18)      ! Now this value
+   !real(dp), parameter :: frac_sh = sqrt(0.19)
+   real(dp), parameter :: frac_sh = sqrt(0.2)     ! Final value
+   !real(dp), parameter :: frac_sh = sqrt(0.075_dp)
    !real(dp), parameter :: alpha_sw = 2.2_dp        ! injection spectral index in the sw 
    !real(dp), parameter :: frac_NT = 1.53d-1       ! Fraction L_NT/L_inj_perp, alpha=0.05, eta_B=1
    !real(dp), parameter :: frac_NT = 1.14d-1          ! Fraction L_NT/L_inj_perp, alpha=0.35, eta_B=0.1
@@ -114,11 +118,13 @@ module system_parameters
    !real(dp), parameter :: frac_NT = 4.28d-2          ! Fraction L_NT/L_inj_perp, alpha=0.05, eta_B=1
    !real(dp), parameter :: frac_NT = 2.86d-2          ! Fraction L_NT/L_inj_perp, alpha=0.2, eta_B=1
    !real(dp), parameter :: frac_NT = 1.33d-2          ! Fraction L_NT/L_inj_perp, alpha=0.35, eta_B=1
-   real(dp), parameter :: alpha_1 = -3.d0          ! Injection index below E_tran   used this value
-   !real(dp), parameter :: alpha_1 = 2.55_dp
-   !real(dp), parameter :: frac_NT = 0.5_dp
-   real(dp), parameter :: frac_NT = 0.086_dp       ! used this value
-   real(dp), parameter :: inj_e = frac_NT*5.d-1   ! Fraction L_NT_e/L_iny_perp 
+   real(dp), parameter :: alpha_1 = -1.d0          ! Injection index below E_tran   used this value
+   !real(dp), parameter :: alpha_1 = 2.55d0
+   real(dp), parameter :: frac_NT = 0.12_dp        ! Final value
+   !real(dp), parameter :: frac_NT = 0.08_dp       ! used this value
+   !real(dp), parameter :: frac_NT = 0.114_dp         ! May be this value?
+   !real(dp), parameter :: frac_NT = 0.18_dp          Now this value
+   real(dp), parameter :: inj_e = frac_NT*1.d-1   ! Fraction L_NT_e/L_iny_perp 
    real(dp), parameter :: inj_p = frac_NT-inj_e    ! Fraction L_NT_p/L_iny_perp
    !character(len=*), parameter :: diff_regime = 'Valle'      ! del Valle+2018
    !character(len=*), parameter :: diff_regime = 'Bohm'  ! Bohm diffusion
@@ -126,7 +132,7 @@ module system_parameters
 
    !--------------------------------------------------------------------------------------
    ! Isothermal shock width parameter
-   real(dp), parameter :: frac_H = 0.01d0
+   real(dp), parameter :: frac_H = 0.2d0
 
 
    !============================================================================
