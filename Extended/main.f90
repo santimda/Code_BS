@@ -120,7 +120,7 @@ PROGRAM main
    real(dp) :: dE_sy(m_nu),dE_IC_IR(mE_f),dE_IC_st(mE_f)
    real(dp) :: u_proj,v_proj,emi,emi_abs
    real(dp) :: phi
-   integer :: i_phi,i_E,i_l  
+   integer :: i_phi,i_E  
 
    LIC_st_tot = 0.d0
    Lbr_sh_tot = 0.d0
@@ -459,9 +459,7 @@ Subroutine abs_maps(SHOCK)
    use controls
    use CD_abssyn, only: CD_abssyn_run
    use CD_rot, only: CD_rot_run
-   use SW_conv, only: SW_conv110M_run,SW_conv190M_run, SW_conv1G_run, SW_conv3G_run, SW_conv5G_run
-   use SW_conv, only: SW_conv6G_run, SW_conv10G_run, SW_convavg_run, SW_spex_110_190_run ,SW_spex_run, SW_spex_6_10_run
-   use SW_conv, only: SW_conv150M_run,SW_conv325M_run
+   use SW_conv, only: SW_conv_run, SW_spex_110_190_run ,SW_spex_run, SW_spex_6_10_run
 
    implicit none
 
@@ -488,15 +486,15 @@ Subroutine abs_maps(SHOCK)
       open(60,file='sync_radiomap_'//shock//'_6GHz.dat')
       open(100,file='sync_radiomap_'//shock//'_10GHz.dat')
       open(91,file='sync_radiomap_avg_'//shock//'.dat')
-      open(120,file='th_ff_map_'//shock//'_110M.dat')
-      open(16,file='th_ff_map_'//shock//'_150M.dat')
-      open(20,file='th_ff_map_'//shock//'_190M.dat')
-      open(326,file='th_ff_map_'//shock//'_325M.dat')
-      open(36,file='th_ff_map_'//shock//'_3G.dat')
-      open(55,file='th_ff_map_'//shock//'_5G.dat')
-      open(61,file='th_ff_map_'//shock//'_6G.dat')
-      open(1001,file='th_ff_map_'//shock//'_10G.dat')
-      open(92,file='th_ff_map'//shock//'avg.dat')
+      open(120,file='th_ff_map_'//shock//'_110MHz.dat')
+      open(16,file='th_ff_map_'//shock//'_150MHz.dat')
+      open(20,file='th_ff_map_'//shock//'_190MHz.dat')
+      open(326,file='th_ff_map_'//shock//'_325MHz.dat')
+      open(36,file='th_ff_map_'//shock//'_3GHz.dat')
+      open(55,file='th_ff_map_'//shock//'_5GHz.dat')
+      open(61,file='th_ff_map_'//shock//'_6GHz.dat')
+      open(1001,file='th_ff_map_'//shock//'_10GHz.dat')
+      open(92,file='th_ff_map'//shock//'_avg.dat')
    else if (shock == 'BOTH') then
       open(1111,file='sync_radiomap_110MHz.dat')
       open(1500,file='sync_radiomap_150MHz.dat')
@@ -507,14 +505,14 @@ Subroutine abs_maps(SHOCK)
       open(60,file='sync_radiomap_6GHz.dat')
       open(100,file='sync_radiomap_10GHz.dat')
       open(91,file='sync_radiomap_avg.dat')
-      open(120,file='th_ff_map_110M.dat')
-      open(16,file='th_ff_map_150M.dat')
-      open(20,file='th_ff_map_190M.dat')
-      open(326,file='th_ff_map_325M.dat')
-      open(36,file='th_ff_map_3G.dat')
-      open(55,file='th_ff_map_5G.dat')
-      open(61,file='th_ff_map_6G.dat')
-      open(1001,file='th_ff_map_10G.dat')
+      open(120,file='th_ff_map_110MHz.dat')
+      open(16,file='th_ff_map_150MHz.dat')
+      open(20,file='th_ff_map_190MHz.dat')
+      open(326,file='th_ff_map_325MHz.dat')
+      open(36,file='th_ff_map_3GHz.dat')
+      open(55,file='th_ff_map_5GHz.dat')
+      open(61,file='th_ff_map_6GHz.dat')
+      open(1001,file='th_ff_map_10GHz.dat')
       open(92,file='th_ff_map_avg.dat')
    end if
 
@@ -893,16 +891,16 @@ Subroutine abs_maps(SHOCK)
 
    if (convolution) then
       print *, 'Convolution of the emission map with the instrument response'
-      !call SW_conv110M_run(shock)
-      !call SW_conv150M_run(shock)
-      !call SW_conv190M_run(shock)
-      !call SW_conv325M_run(shock)
-      !call SW_conv1G_run(shock)
-      call SW_conv3G_run(shock)
-      !call SW_conv5G_run(shock)
-      !call SW_conv6G_run(shock)
-      !call SW_conv10G_run(shock)
-      call SW_convavg_run(shock)
+      !call SW_conv_run(shock, '110MHz')
+      !call SW_conv_run(shock, '150MHz')
+      !call SW_conv_run(shock, '190MHz')
+      !call SW_conv_run(shock, '325MHz')
+      !call SW_conv_run(shock, '1GHz')
+      call SW_conv_run(shock, '3GHz')
+      !call SW_conv_run(shock, '5GHz')
+      !call SW_conv_run(shock, '6GHz')
+      !call SW_conv_run(shock, '10GHz')
+      call SW_conv_run(shock, 'avg')
       !call SW_spex_110_190_run
       !call SW_spex_run
       !call SW_spex_6_10_run
