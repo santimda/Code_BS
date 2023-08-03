@@ -36,7 +36,6 @@ module rad_H_alpha
          write(188,*) 0.d0,R0_proj/abs(cos(incli))
       close(188)
 
-      !///////////////////////////////////////////////////////
       !-------------------------------------------------------
       ! Initialize the data for the convolution region
 
@@ -52,7 +51,6 @@ module rad_H_alpha
       y_c0 = -ancho_y*(3.-ci)/4.d0
       allocate( x_c(m_x), y_c(m_y), F_alpha_conv(m_x,m_y)  )
 
-      !//////////////////////////////////////////////////////
       !------------------------------------------------------
       ! Data read
 
@@ -65,6 +63,7 @@ module rad_H_alpha
       close(10)
 
       !------------------------------------------
+      ! Convolve
 
       w_x = 2.d0*sigma_x**2! Weight in x distance
       w_y = 2.d0*sigma_y**2! Weight in y distance
@@ -78,23 +77,20 @@ module rad_H_alpha
             suma = 0.d0  !1.d-9  ! simulate noise (?)
             do l = 1, m_tot
                d_pesada2 = ((x_map(l)-x_c(i))**2)/w_x + ((y_map(l)-y_c(j))**2)/w_y
-               if (d_pesada2 < 6.d0) then      
+               if (d_pesada2 < 6.d0) then  ! flux drops < 1e-3 farther from there, no need to sum    
                   ! Gaussian beam -> /(sigma*sqrt(2*pi)), both in x and y
                   atenua = exp( -d_pesada2 ) !/ norm
-                  D_F = F_alpha(l)*atenua/A_beam
-               else
-                  D_F = 0.d0 ! flux drops < 1e-3 farther from there, no need to sum
+                  D_F = F_alpha(l)*atenua
+                  suma = suma + D_F
                endif
-               suma = suma + D_f
             end do
 
-            F_alpha_conv(i,j) = suma
+            F_alpha_conv(i,j) = suma/A_beam
          end do
 
       end do
 
-      !///////////////////////////////////////////////////////////////
-      !
+      !------------------------------------------
       ! Data storage + consistency check:
 
       sum = 0.d0
