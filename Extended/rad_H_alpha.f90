@@ -24,6 +24,7 @@ module rad_H_alpha
       real(dp) :: A_beam
       real(dp) :: S_map(m_tot)
       real(dp) :: w_x, w_y
+      real(dp), parameter :: R_factor = 5.66d-18
 
       print*, '\n Calculate the H_alpha emission map'
 
@@ -59,7 +60,7 @@ module rad_H_alpha
       open(10,file='S_alpha_map_'//shock//'.dat')
       do l = 1, m_tot
          read(10,*) y_map(l),x_map(l),F_alpha(l)
-         F_alpha(l) = F_alpha(l)/5.66d-18    ! Convert from cgs to R units
+         F_alpha(l) = F_alpha(l)/R_factor    ! Convert from cgs to R units
       enddo
       close(10)
 
