@@ -1,5 +1,5 @@
 module rad_H_alpha
-   ! This program makes emission map of the H_alpha line
+   ! This module calculates the H_alpha line emission map
    use global
    implicit none
 
