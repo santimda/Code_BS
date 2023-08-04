@@ -126,7 +126,6 @@ module shock_thermal
 
     allocate( H_theta(m_theta), H_1(m_theta), rho(m_theta), T(m_theta), rho_IL(m_theta) )
     allocate( F_nu(m_l,mE_ph),F_nu_phi(m_l,mE_ph),F_nu_ion(m_l,mE_ph),F_nu_phi_ion(m_l,mE_ph))
-    allocate( x(m_l), y(m_l), z(m_l) )
 
   90  format(A19,X,Es10.3)
   95  format(A18,X,Es10.3)
@@ -572,17 +571,8 @@ module shock_thermal
     !------------------------------------------------------------
 
     if (radiative) then
-
+      print *, 'Calculate the H_alpha emission'
       convert = 206265/distance
-
-      open(70,file='CDrot.dat')
-      do l=1,m_l
-        read(70,*) x(l),y(l),z(l)
-      end do
-      close(70)
-      x = R0*x
-      y = R0*y
-      z = R0*z
 
       theta_min = 0.1d0 
       l_min = int(m_theta*2/5)!int( (theta_min/theta_max) * m_theta )
@@ -590,50 +580,35 @@ module shock_thermal
       do l=l_min,m_theta
         Area_cell(l) = (R_theta(l)*sin(theta(l))) * dR(l) * (2.d0 * pi/mphi) 
       end do
-
       do l=1,l_min-1
         Area_cell(l) = Area_cell(l_min)
       end do
 
       open(73,file='Area.dat')
       open(71,file='S_alpha_tot_'//shock//'.dat')
-      do l=1,m_theta 
+      do l = 1, m_theta
         write(73,*) theta(l), Area_cell(l)
         Omega_cell(l) = Area_cell(l) * convert**2 
         kappa_alpha(l) = 2.85d-33 * T(l)**(-0.9) * (n_a_e(l)*n_a_i(l)) ! erg/s/cm3/arcsec2
         S_alpha(l) = kappa_alpha(l) * frac_H * H_theta(l)
         S_alpha_map(l) = S_alpha(l) * Omega_cell(l)
-        S_alpha_map(l+m_theta) = S_alpha_map(l)
-        write(71,*) theta(l), S_alpha(l)
+        write(71,*) theta(l), S_alpha_map(l)
+        write(71,*) -theta(l), S_alpha_map(l) ! save also the lower half
       end do
       close(71)
       close(73)
 
-      open(72,file='S_alpha_'//shock//'.dat')
-      do l=1,m_l
-        u_proj = (y(l)+x(l)/abs(tan(incli)))*abs(sin(incli)) * convert 
-        v_proj = z(l)*convert
-        write(72,*) u_proj, v_proj, S_alpha_map(l)
-      end do
-      close(72)
-    end if
-
+    endif
     !------------------------------------------------------------
     !------------------------------------------------------------
 
     deallocate( H_theta, H_1, rho, T, rho_IL )
     deallocate( F_nu,F_nu_phi,F_nu_ion,F_nu_phi_ion )
     deallocate( g_ff )
-    deallocate( x,y,z )
     
   END subroutine shock_thermal_run_spectrum
-
   !============================================================================
   ! shock_thermal_run_spectrum (END)
   !============================================================================
 
 END module shock_thermal
-
-
-!============================================================================
-

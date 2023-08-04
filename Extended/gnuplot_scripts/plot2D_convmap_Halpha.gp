@@ -16,7 +16,7 @@ set cntrparam bspline
 set cntrparam levels discrete 1000., 3000., 5000., 7000.
 unset surface
 set table 'cont.dat'
-splot '../S_alpha_map.dat' u (($1*cos(ang)+$2*sin(ang))/60.):(($1*sin(ang)-$2*cos(ang))/60.):($3)
+splot '../S_alpha_convmap.dat' u (($1*cos(ang)+$2*sin(ang))/60.):(($1*sin(ang)-$2*cos(ang))/60.):($3)
 unset table
 
 reset
@@ -26,7 +26,7 @@ set title ''
 set xlabel '{/Symbol D}RA [arcmin]'
 set ylabel '{/Symbol D}DEC [arcmin]'
 
-set cblabel 'Flux [R]'
+set cblabel 'Surface brightness [R]'
 set xrange [-2.:2.]
 set yrange [-2.:2.]
 #set yrange [-5.:10.]
@@ -49,7 +49,7 @@ set label 2 "{/ZapfDingbats \110}" at -0.07,0.0 front textcolor rgb '#008B8B' fo
 
 set label "H_{/Symbol a}" at graph 0.05,0.9 font "Helvetica,18" front
 
-splot '../S_alpha_map.dat' u (($1*cos(ang)+$2*sin(ang))/60.):(($1*sin(ang)-$2*cos(ang))/60.):($3) w pm3d,\
+splot '../S_alpha_convmap.dat' u (($1*cos(ang)+$2*sin(ang))/60.):(($1*sin(ang)-$2*cos(ang))/60.):($3) w pm3d,\
       '../R0_proj.dat' u (($1*cos(ang)-$2*sin(ang))/60.):(($1*sin(ang)+$2*cos(ang))/60.):1 ps 3 lw 2 pt 1 lc rgb "gold",\
       'cont.dat' w l lt -1 lw 1.5,\
 

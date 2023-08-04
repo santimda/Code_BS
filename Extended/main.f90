@@ -145,7 +145,6 @@ PROGRAM main
       call shock_thermal_run_spectrum(shock, radiative = .false.)
    endif
 
-
    !===============================================================!
    !                                                               ! 
    !                      Electrons                                !
@@ -399,13 +398,11 @@ End Subroutine Calculate
 !============================================================================
 !============================================================================
 
-
-Subroutine H_alpha_map(SHOCK)
+Subroutine H_alpha_map(shock)
    use global
    use controls
-   use rad_H_alpha, only: rad_H_alpha_run
+   use rad_H_alpha, only: rad_H_alpha_run, project_H_alpha_map   
    use CD_rot, only: CD_rot_run
-
    implicit none
 
    character(LEN=*), intent(in) :: shock
@@ -414,41 +411,30 @@ Subroutine H_alpha_map(SHOCK)
    real(dp) :: phi
    integer :: i_phi,i_l
 
-   if (rad_alpha) then
-   open(71,file='S_alpha_map_'//shock//'.dat')
-
-   phi = 0
-
-   if (rotate) then
-      do i_phi=1,mphi
-         print *, 'i(phi)=',i_phi,'/',mphi
-         call CD_rot_run(phi)
-         open(70,file='S_alpha_'//shock//'.dat')
-
-         do i_l = 1,2*m_theta
-            read(70,*) u_proj,v_proj,S_H_alpha
-            write(71,*) u_proj,v_proj,S_H_alpha
-            if (i_phi.ne.1) then
-               write(71,*) u_proj,-v_proj,S_H_alpha
-            endif
-         end do
-
-         close(70)
-
-         phi = phi + delta_phi
+   open(710,file='S_alpha_map_'//shock//'.dat')
+   phi = 0.d0
+   do i_phi = 1,mphi
+      print *, 'i(phi)=',i_phi,'/',mphi
+      call CD_rot_run(phi)
+      call project_H_alpha_map(shock)       ! This projects the H_alpha map in u,v
+      open(70,file='S_alpha_proj_'//shock//'.dat')
+      do i_l = 1,2*m_theta
+         read(70,*) u_proj,v_proj,S_H_alpha
+         write(710,*) u_proj,v_proj,S_H_alpha
+         if (i_phi.ne.1) then
+            write(710,*) u_proj,-v_proj,S_H_alpha
+         endif
       end do
-   end if
-
-   close(71)
+      close(70)
+      phi = phi + delta_phi
+   end do
+   close(710)
 
    if (convolution_alpha) then
       call rad_H_alpha_run(shock)
    end if
 
-   end if
-
    End Subroutine H_alpha_map
-
 
 
 !============================================================================
