@@ -416,7 +416,7 @@ Subroutine H_alpha_map(shock)
    do i_phi = 1,mphi
       print *, 'i(phi)=',i_phi,'/',mphi
       call CD_rot_run(phi)
-      call project_H_alpha_map(shock)       ! This projects the H_alpha map in u,v
+      call project_H_alpha_map(shock, phi)       ! This projects the H_alpha map in u,v
       open(70,file='S_alpha_proj_'//shock//'.dat')
       do i_l = 1,2*m_theta
          read(70,*) u_proj,v_proj,S_H_alpha

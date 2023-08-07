@@ -87,7 +87,8 @@ module CD_termo
       !-----------------------------------------------------------------
       ! Calculate the normal and tangential vectors at each position
       ! using Eqs.12-16 from Christie+16
-
+      if (shock == 'FS') open(15,file='n.dat')
+      
       do l = 1, m_theta
          st = sin(theta(l))
          ct = cos(theta(l))
@@ -103,10 +104,13 @@ module CD_termo
             n_t = (/ -A_z, A_omega /)    ! Tangential vector to the BS surface
             v_vec = v_sh * (/1.d0, 0.d0/)
             v_t_RH(l) = v_sh*max(-A_z,0.)
+            write(15,*) n_t, n_perp
          end if
          v_perp(l) = max( DOT_PRODUCT(v_vec,n_perp), 0.d0 )
          !v_t(l) = max( DOT_PRODUCT(v_vec,n_t), 1.d-10 ) ! Just so we don't get a zero value in l=1
       end do
+
+      if (shock == 'FS') close(15) 
 
       !-----------------------------------------------------------------
       ! particle accel. efficiency at the shock, depending on theta

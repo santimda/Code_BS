@@ -112,6 +112,7 @@ module shock_thermal
     real(dp) :: S_alpha_map(m_l)
     real(dp) :: u_proj, v_proj
     real(dp) :: convert
+    real(dp) :: n_perp(2), n_t_1, n_t_2, n_perp_1, n_perp_2, n_LOS(2)
     real(dp), parameter :: T_f = T_ISM
     !real(dp) :: F_nu(m_l,mE_ph),F_nu_phi(m_l,mE_ph)
     real(dp) :: n_BB(m_theta,mE_ph), T_min(m_theta)
@@ -572,31 +573,31 @@ module shock_thermal
 
     if (radiative) then
       print *, 'Calculate the H_alpha emission'
-      convert = 206265/distance
+      !convert = 206265/distance
 
-      theta_min = 0.1d0 
-      l_min = int(m_theta*2/5)!int( (theta_min/theta_max) * m_theta )
+      !theta_min = 0.1d0 
+      !l_min = int(m_theta*2/5)!int( (theta_min/theta_max) * m_theta )
 
-      do l=l_min,m_theta
-        Area_cell(l) = (R_theta(l)*sin(theta(l))) * dR(l) * (2.d0 * pi/mphi) 
-      end do
-      do l=1,l_min-1
-        Area_cell(l) = Area_cell(l_min)
-      end do
+      !do l=l_min,m_theta
+      !  Area_cell(l) = (R_theta(l)*sin(theta(l))) * dR(l) * (2.d0 * pi/mphi) 
+      !end do
+      !do l=1,l_min-1
+      !  Area_cell(l) = Area_cell(l_min)
+      !end do
 
-      open(73,file='Area.dat')
-      open(71,file='S_alpha_tot_'//shock//'.dat')
+      !open(73,file='Area.dat')
+      open(71,file='kappa_alpha_'//shock//'.dat')
       do l = 1, m_theta
-        write(73,*) theta(l), Area_cell(l)
-        Omega_cell(l) = Area_cell(l) * convert**2 
+       ! write(73,*) theta(l), Area_cell(l)
+       ! Omega_cell(l) = Area_cell(l) * convert**2 
         kappa_alpha(l) = 2.85d-33 * T(l)**(-0.9) * (n_a_e(l)*n_a_i(l)) ! erg/s/cm3/arcsec2
-        S_alpha(l) = kappa_alpha(l) * frac_H * H_theta(l)
-        S_alpha_map(l) = S_alpha(l) * Omega_cell(l)
-        write(71,*) theta(l), S_alpha_map(l)
-        write(71,*) -theta(l), S_alpha_map(l) ! save also the lower half
+       ! S_alpha(l) = kappa_alpha(l) * frac_H * H_theta(l)
+       ! S_alpha_map(l) = S_alpha(l) * Omega_cell(l)
+        write(71,*) theta(l), kappa_alpha(l)
+        write(71,*) -theta(l), kappa_alpha(l) ! save also the lower half
       end do
       close(71)
-      close(73)
+      !close(73)
 
     endif
     !------------------------------------------------------------
