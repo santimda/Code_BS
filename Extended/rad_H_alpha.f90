@@ -23,7 +23,7 @@ module rad_H_alpha
       real(dp) :: S_alpha(m_l), kappa_alpha(m_l)
       real(dp) :: factor_H(m_l), factor_L(m_l), H_eff(m_l)
       real(dp) :: dR(m_theta)
-      real(dp) :: Area_cell(m_l), Omega_cell(m_l)
+      real(dp) :: Area_cell(m_l), Omega_cell(m_l), dV_cell(l)
       allocate( x(m_l), y(m_l), z(m_l), H_theta(m_theta) )
 
       open(10,file='CD.dat')
@@ -34,9 +34,10 @@ module rad_H_alpha
 
       open(13,file='Hnorm_'//shock//'.dat')
       do l = 1,m_theta
-         read(13,*) dummy, H_theta(l), dummy, dummy, dummy, dummy
+         read(13,*) dummy, H_theta(l), dummy, dummy, dV_cell(l), dummy
       end do
       close(13)
+      dV_cell = dV_cell / mphi ! It had the whole ring (2*pi)
 
       n_LOS = (/sin(incli), cos(incli), 0.d0/)
       open(75,file='n.dat')
@@ -58,10 +59,7 @@ module rad_H_alpha
         factor_L(l+m_theta) = abs(dot_product(n_LOS,n_tan_inv))
       end do
       close(75)
-
-      do l=1,m_l
-         Omega_cell(l) = Area_cell(l) * convert**2
-      end do
+      Omega_cell = Area_cell * convert**2
 
       open(70,file='CDrot.dat')
       open(71,file='kappa_alpha_'//shock//'.dat')
@@ -70,10 +68,13 @@ module rad_H_alpha
          read(71,*) dummy, kappa_alpha(l)
       end do
       do l = 1, m_theta
-         H_eff(l) = frac_H*H_theta(l)*factor_H(l) + d_phi*R_theta(l)*sin(angle)*factor_L(l)
+         H_eff(l) = sqrt( (frac_H*H_theta(l)*factor_H(l))**2 + (d_phi*R_theta(l)*sin(angle)*factor_L(l))**2 )
          H_eff(l+m_theta) = frac_H*H_theta(l)*factor_H(l+m_theta) + d_phi*R_theta(l)*sin(angle)*factor_L(l+m_theta)
-         S_alpha(l) = kappa_alpha(l) * H_eff(l) * Omega_cell(l)
-         S_alpha(m_theta+l) = kappa_alpha(l+m_theta) * H_eff(l+m_theta) * Omega_cell(l+m_theta)
+         !S_alpha(l) = kappa_alpha(l) * H_eff(l) * Omega_cell(l)
+         !S_alpha(m_theta+l) = kappa_alpha(l+m_theta) * H_eff(l+m_theta) * Omega_cell(l+m_theta)
+         !print *, Area_cell(l) * H_eff(l), dV_cell(l), (Area_cell(l) * H_eff(l))/dV_cell(l)
+         S_alpha(l) = kappa_alpha(l) * dV_cell(l) * convert**2
+         S_alpha(m_theta+l) = S_alpha(l)
       end do
 
       close(70)
