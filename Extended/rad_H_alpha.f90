@@ -16,6 +16,7 @@ module rad_H_alpha
       real(dp), intent(in) :: angle  
       integer, parameter :: m_l = 2*m_theta  ! CD position, both sides
       real(dp), parameter :: convert = 206265/distance
+      real(dp) :: rho_IL(m_theta), n_a_e(m_theta), n_a_i(m_theta) 
       real(dp) :: S_alpha_map(m_l)
       real(dp) :: u_proj, v_proj
       real(dp) :: n_perp(3), n_tan(3), n_LOS(3), n_perp_inv(3), n_tan_inv(3)
@@ -26,11 +27,25 @@ module rad_H_alpha
       real(dp) :: Area_cell(m_l), Omega_cell(m_l), dV_cell(l)
       allocate( x(m_l), y(m_l), z(m_l), H_theta(m_theta) )
 
+      !-----------------------------------------
+
       open(10,file='CD.dat')
       do l=1,m_theta
          read(10,*) theta(l), r_norm(l), dR(l), dummy, dummy
       end do
       close(10)
+
+      !-----------------------------------------
+
+      open(11,file='termo_'//shock//'.dat')
+      do l=1,m_theta
+         read(11,*) dummy,dummy,dummy,dummy,dummy,dummy,dummy,dummy,dummy,dummy,dummy,rho_IL(l)
+         n_a_e(l) = rho_IL(l)/mp/mu_e
+         n_a_i(l) = rho_IL(l)/mp/mu_i
+      end do
+      close(11)
+
+      !-----------------------------------------
 
       open(13,file='Hnorm_'//shock//'.dat')
       do l = 1,m_theta
@@ -38,6 +53,13 @@ module rad_H_alpha
       end do
       close(13)
       dV_cell = dV_cell / mphi ! It had the whole ring (2*pi)
+
+      !-----------------------------------------
+
+      do l=1,m_theta
+         kappa_alpha(l) = 2.85d-33 * T_ISM**(-0.9) * (n_a_e(l)*n_a_i(l)) ! erg/s/cm3/arcsec2
+         kappa_alpha(m_theta+l) = kappa_alpha(l)
+      end do
 
       n_LOS = (/sin(incli), cos(incli), 0.d0/)
       open(75,file='n.dat')
@@ -62,23 +84,23 @@ module rad_H_alpha
       Omega_cell = Area_cell * convert**2
 
       open(70,file='CDrot.dat')
-      open(71,file='kappa_alpha_'//shock//'.dat')
+      !open(71,file='kappa_alpha_'//shock//'.dat')
       do l=1,m_l 
          read(70,*) x(l),y(l),z(l)
-         read(71,*) dummy, kappa_alpha(l)
+      !   read(71,*) kappa_alpha(l)
       end do
       do l = 1, m_theta
-         H_eff(l) = sqrt( (frac_H*H_theta(l)*factor_H(l))**2 + (d_phi*R_theta(l)*sin(angle)*factor_L(l))**2 )
-         H_eff(l+m_theta) = frac_H*H_theta(l)*factor_H(l+m_theta) + d_phi*R_theta(l)*sin(angle)*factor_L(l+m_theta)
+         H_eff(l) = sqrt( (frac_H*H_theta(l)*factor_H(l))**2 + (d_phi*R_theta(l)*sin(angle))**2 + (dR(l)*factor_L(l))**2)
+         H_eff(l+m_theta) = sqrt( (frac_H*H_theta(l)*factor_H(l+m_theta))**2 + (d_phi*R_theta(l)*sin(angle))**2 + (dR(l)*factor_L(l+m_theta))**2)
          !S_alpha(l) = kappa_alpha(l) * H_eff(l) * Omega_cell(l)
          !S_alpha(m_theta+l) = kappa_alpha(l+m_theta) * H_eff(l+m_theta) * Omega_cell(l+m_theta)
          !print *, Area_cell(l) * H_eff(l), dV_cell(l), (Area_cell(l) * H_eff(l))/dV_cell(l)
-         S_alpha(l) = kappa_alpha(l) * dV_cell(l) * convert**2
+         S_alpha(l) = kappa_alpha(l) * dV_cell(l) * frac_H * convert**2
          S_alpha(m_theta+l) = S_alpha(l)
       end do
 
       close(70)
-      close(71)
+      !close(71)
       x = R0*x
       y = R0*y
       z = R0*z
@@ -105,7 +127,7 @@ module rad_H_alpha
 
       character(LEN=*), intent(in) :: shock
       integer, parameter :: m_tot = (2*(mphi-1))*(m_theta*2)   ! Total number of data
-      real(dp), parameter :: sigma_x = 2.d0, sigma_y = 2.d0  ! Arbitrary
+      real(dp), parameter :: sigma_x = 2.d0, sigma_y = 1.d0  ! Arbitrary
       real(dp) :: x_map(m_tot),y_map(m_tot)
       real(dp) :: F_alpha(m_tot)
       real(dp) :: ancho_x, ancho_y, D_x, D_y,ci

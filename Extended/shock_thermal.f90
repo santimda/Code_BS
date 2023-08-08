@@ -108,7 +108,7 @@ module shock_thermal
     real(dp) :: theta_min 
     real(dp) :: dnu_avg, h_avg
     real(dp) :: emi_ff_0, vol_slab
-    real(dp) :: kappa_alpha(m_theta), S_alpha(m_theta), Area_cell(l), Omega_cell(l)
+    real(dp) :: kappa_alpha(m_l), S_alpha(m_theta), Area_cell(l), Omega_cell(l)
     real(dp) :: S_alpha_map(m_l)
     real(dp) :: u_proj, v_proj
     real(dp) :: convert
@@ -563,45 +563,7 @@ module shock_thermal
       end do
     close(50)
 
-    !------------------------------------------------------------  
-
-    !------------------------------------------------------------
-    !    
-    !    H_alpha emission
-    !
-    !------------------------------------------------------------
-
-    if (radiative) then
-      print *, 'Calculate the H_alpha emission'
-      !convert = 206265/distance
-
-      !theta_min = 0.1d0 
-      !l_min = int(m_theta*2/5)!int( (theta_min/theta_max) * m_theta )
-
-      !do l=l_min,m_theta
-      !  Area_cell(l) = (R_theta(l)*sin(theta(l))) * dR(l) * (2.d0 * pi/mphi) 
-      !end do
-      !do l=1,l_min-1
-      !  Area_cell(l) = Area_cell(l_min)
-      !end do
-
-      !open(73,file='Area.dat')
-      open(71,file='kappa_alpha_'//shock//'.dat')
-      do l = 1, m_theta
-       ! write(73,*) theta(l), Area_cell(l)
-       ! Omega_cell(l) = Area_cell(l) * convert**2 
-        kappa_alpha(l) = 2.85d-33 * T(l)**(-0.9) * (n_a_e(l)*n_a_i(l)) ! erg/s/cm3/arcsec2
-       ! S_alpha(l) = kappa_alpha(l) * frac_H * H_theta(l)
-       ! S_alpha_map(l) = S_alpha(l) * Omega_cell(l)
-        write(71,*) theta(l), kappa_alpha(l)
-        write(71,*) -theta(l), kappa_alpha(l) ! save also the lower half
-      end do
-      close(71)
-      !close(73)
-
-    endif
-    !------------------------------------------------------------
-    !------------------------------------------------------------
+    
 
     deallocate( H_theta, H_1, rho, T, rho_IL )
     deallocate( F_nu,F_nu_phi,F_nu_ion,F_nu_phi_ion )
