@@ -127,7 +127,7 @@ module rad_H_alpha
 
       character(LEN=*), intent(in) :: shock
       integer, parameter :: m_tot = (2*(mphi-1))*(m_theta*2)   ! Total number of data
-      real(dp), parameter :: sigma_x = 2.d0, sigma_y = 1.d0  ! Arbitrary
+      real(dp), parameter :: sigma_x = 2.d0, sigma_y = 2.d0  ! Arbitrary
       real(dp) :: x_map(m_tot),y_map(m_tot)
       real(dp) :: F_alpha(m_tot)
       real(dp) :: ancho_x, ancho_y, D_x, D_y,ci
@@ -154,8 +154,8 @@ module rad_H_alpha
       !-------------------------------------------------------
       ! Initialize the data for the convolution region
 
-      ancho_x = 4.d0*R0_proj/ci * 1.3d0 ! [mas](extra margin)
-      ancho_y = 2.d0*(1.+ci)*R0_proj/ci * 1.3d0 ! [mas](extra margin)
+      ancho_x = 4.d0*R0_proj/ci * 5.3d0 ! [mas](extra margin)
+      ancho_y = 2.d0*(1.+ci)*R0_proj/ci * 5.3d0 ! [mas](extra margin)
 
       D_x = f_Ny*sigma_x
       D_y = f_Ny*sigma_y

@@ -120,7 +120,7 @@ module system_parameters
    !real(dp), parameter :: frac_NT = 1.33d-2          ! Fraction L_NT/L_inj_perp, alpha=0.35, eta_B=1
    real(dp), parameter :: alpha_1 = -1.d0          ! Injection index below E_tran   used this value
    !real(dp), parameter :: alpha_1 = 2.55d0
-   real(dp), parameter :: frac_NT = 0.12_dp        ! Final value
+   real(dp), parameter :: frac_NT = 0.13_dp        ! Final value
    !real(dp), parameter :: frac_NT = 0.08_dp       ! used this value
    !real(dp), parameter :: frac_NT = 0.114_dp         ! May be this value?
    !real(dp), parameter :: frac_NT = 0.18_dp          Now this value
@@ -132,7 +132,7 @@ module system_parameters
 
    !--------------------------------------------------------------------------------------
    ! Isothermal shock width parameter
-   real(dp), parameter :: frac_H = 0.2d0
+   real(dp), parameter :: frac_H = 0.15d0
 
 
    !============================================================================

@@ -25,7 +25,8 @@ module global
    real(dp) :: delta_phi = 0.5*pi/(mphi-1.d0) ! angular separation between linear-emitters
    real(dp) :: d_phi = 0.5*pi/mphi     ! angular width of each linear-emitter or wedge
 
-   real(dp), parameter :: f_Ny = 0.7d0 ! Nyquist frequency for convolved maps
+   !real(dp), parameter :: f_Ny = 0.7d0 ! Nyquist frequency for convolved maps
+   real(dp), parameter :: f_Ny = 0.7d0
 
    !===========================================================
 
@@ -46,7 +47,7 @@ module global
    ! dist
    real(dp), parameter :: Emin_e = 2.d0*mec2   ! ~1 MeV
    real(dp), parameter :: Emin_e_inj = Emin_e  ! Emin_e_inj >= Emin_e
-   real(dp), parameter :: E_break = 1.8d9*eV    ! Divides both injection regimes
+   real(dp), parameter :: E_break = 1.9d9*eV    ! Divides both injection regimes
    !real(dp), parameter :: E_break = 2.d9*eV     ! May be this value?
    real(dp), parameter :: Emax_e = 1.d15*eV    ! 1 PeV
    real(dp) :: Eint_e,dE_e

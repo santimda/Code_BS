@@ -1,19 +1,14 @@
 set view map
 
-ang_deg = 100.
+#ang_deg = 104.
+ang_deg = 2.
 ang = ang_deg*pi/180.
-cosd = 0.82
-sind = -0.57
-
-#ang_deg = 3.3
-#ang = ang_deg*pi/180.  # rotation angle to match observed map (Ben2020)
-#cosd = 0.7195 # cos(dec) = cos(43.98*pi/180.) , for projection
-#sind = 0.6944
 
 set contour base
 set isosamples 250
 set cntrparam bspline
-set cntrparam levels discrete 1000., 3000., 5000., 7000.
+#set cntrparam levels discrete 1000., 3000., 5000., 7000.
+set cntrparam levels discrete 20., 43.
 unset surface
 set table 'cont.dat'
 splot '../S_alpha_convmap.dat' u (($1*cos(ang)+$2*sin(ang))/60.):(($1*sin(ang)-$2*cos(ang))/60.):($3)
@@ -27,15 +22,15 @@ set xlabel '{/Symbol D}RA [arcmin]'
 set ylabel '{/Symbol D}DEC [arcmin]'
 
 set cblabel 'Surface brightness [R]'
-set xrange [-2.:2.]
-set yrange [-2.:2.]
+set xrange [-3.:3.]
+set yrange [-3.:3.]
+#set cbtics 500.; set mcbtics 5 
 #set yrange [-5.:10.]
 #set xrange [-10.:10.]
 #set cbrange [0:10000]
 
 set pm3d interpolate 0,0
 set view map
-#set palette gray negative
 set palette defined (0 "white", 1 "grey40")
 unset key
 
@@ -44,8 +39,9 @@ set xtics 2; set mxtics 2; set xlabel offset 0,0.5; set xtics offset 0.0,0.5
 set ytics 2; set mytics 2; set ylabel offset 0.2,0.0; set ytics offset 0.8,0.0
 #set cbtics 10; set mcbtics 2; set cblabel offset 0.3,0.0; set cbtics offset -0.6,0.0
 
-set arrow 4 from -0.07,0. to -0.8,-0.2 head filled front linecolor rgb '#6495ED' # BD+43
-set label 2 "{/ZapfDingbats \110}" at -0.07,0.0 front textcolor rgb '#008B8B' font "Helvetica,28" # BD+43
+#set arrow 4 from -0.07,0. to -0.8,-0.2 head filled front linecolor rgb '#6495ED' # G3
+set arrow 4 from 0.09,0. to -0.05,0.8 head filled front linecolor rgb '#6495ED' # Vela X-1
+set label 2 "{/ZapfDingbats \110}" at -0.07,0.0 front textcolor rgb '#008B8B' font "Helvetica,28"
 
 set label "H_{/Symbol a}" at graph 0.05,0.9 font "Helvetica,18" front
 
