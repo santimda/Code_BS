@@ -12,7 +12,7 @@ set cntrparam bspline
 set cntrparam levels discrete 44.,54.,64.
 unset surface
 set table 'cont.dat'
-splot '../SW_conv_325Mabs.dat' u (($1*cos(ang)+$2*sin(ang))/60.):(($1*sin(ang)-$2*cos(ang))/60.):($3)
+splot '../SW_conv_325MHzabs.dat' u (($1*cos(ang)+$2*sin(ang))/60.):(($1*sin(ang)-$2*cos(ang))/60.):($3)
 unset table
 
 set contour base
@@ -21,7 +21,7 @@ set cntrparam bspline
 set cntrparam levels discrete 74., 84. #rms?
 unset surface
 set table 'cont_red.dat'
-splot '../SW_conv_325Mabs.dat' u (($1*cos(ang)+$2*sin(ang))/60.):(($1*sin(ang)-$2*cos(ang))/60.):($3)
+splot '../SW_conv_325MHzabs.dat' u (($1*cos(ang)+$2*sin(ang))/60.):(($1*sin(ang)-$2*cos(ang))/60.):($3)
 unset table
 
 set contour base
@@ -30,7 +30,7 @@ set cntrparam bspline
 set cntrparam levels discrete 8.0 # ??
 unset surface
 set table 'cont_green.dat'
-splot '../SW_conv_325Mabs.dat' u (($1*cos(ang)+$2*sin(ang))/60.):(($1*sin(ang)-$2*cos(ang))/60.):($3)
+splot '../SW_conv_325MHzabs.dat' u (($1*cos(ang)+$2*sin(ang))/60.):(($1*sin(ang)-$2*cos(ang))/60.):($3)
 unset table
 
 reset
@@ -43,7 +43,7 @@ set ylabel '{/Symbol D}DEC [arcmin]'
 set cblabel 'Flux [mJy beam^{-1}]'
 set xrange [-10.:10.]
 set yrange [-5.:10]
-#set cbrange [0.0:7]
+set cbrange [10.:]
 
 set pm3d interpolate 0,0
 set view map
@@ -77,7 +77,7 @@ set object 5 ellipse center graph 0.92,0.92 size siz_x,siz_y angle ang_deg fc rg
 
 set label "325 MHz" at graph 0.05,0.9 font "Helvetica,18" front
 
-splot '../SW_conv_325Mabs.dat' u (($1*cos(ang)+$2*sin(ang))/60.):(($1*sin(ang)-$2*cos(ang))/60.):($3) w pm3d,\
+splot '../SW_conv_325MHzabs.dat' u (($1*cos(ang)+$2*sin(ang))/60.):(($1*sin(ang)-$2*cos(ang))/60.):($3) w pm3d,\
       'cont.dat' w l lt -1 lw 1.5,\
       'cont_red.dat' w l lt -1 lc 7 lw 1.5,\
       '../R0_proj.dat' u (($1*cos(ang)-$2*sin(ang))/60.):(($1*sin(ang)+$2*cos(ang))/60.):1 ps 3 lw 2 pt 1 lc rgb "gold"

@@ -12,7 +12,7 @@ set cntrparam bspline
 set cntrparam levels discrete 0.1, 0.5, 1.
 unset surface
 set table 'cont.dat'
-splot '../SW_conv_110Mabs.dat' u (($1*cos(ang)+$2*sin(ang))/60.):(($1*sin(ang)-$2*cos(ang))/60.):($3)
+splot '../SW_conv_110MHzabs.dat' u (($1*cos(ang)+$2*sin(ang))/60.):(($1*sin(ang)-$2*cos(ang))/60.):($3)
 unset table
 
 set contour base
@@ -21,7 +21,7 @@ set cntrparam bspline
 set cntrparam levels discrete 0.1 #rms?
 unset surface
 set table 'cont_red.dat'
-splot '../SW_conv_110Mabs.dat' u (($1*cos(ang)+$2*sin(ang))/60.):(($1*sin(ang)-$2*cos(ang))/60.):($3)
+splot '../SW_conv_110MHzabs.dat' u (($1*cos(ang)+$2*sin(ang))/60.):(($1*sin(ang)-$2*cos(ang))/60.):($3)
 unset table
 
 set contour base
@@ -30,7 +30,7 @@ set cntrparam bspline
 set cntrparam levels discrete 85.0 # ??
 unset surface
 set table 'cont_green.dat'
-splot '../SW_conv_110Mabs.dat' u (($1*cos(ang)+$2*sin(ang))/60.):(($1*sin(ang)-$2*cos(ang))/60.):($3)
+splot '../SW_conv_110MHzabs.dat' u (($1*cos(ang)+$2*sin(ang))/60.):(($1*sin(ang)-$2*cos(ang))/60.):($3)
 unset table
 
 reset
@@ -73,7 +73,7 @@ set object 5 ellipse center graph 0.92,0.92 size siz_x/cosd,siz_y angle ang_deg 
 
 set label "110 MHz" at graph 0.05,0.9 font "Helvetica,18" front
 
-splot '../SW_conv_110Mabs.dat' u (($1*cos(ang)+$2*sin(ang))/60.):(($1*sin(ang)-$2*cos(ang))/60.):($3) w pm3d,\
+splot '../SW_conv_110MHzabs.dat' u (($1*cos(ang)+$2*sin(ang))/60.):(($1*sin(ang)-$2*cos(ang))/60.):($3) w pm3d,\
       '../R0_proj.dat' u (($1*cos(ang)-$2*sin(ang))/60.):(($1*sin(ang)+$2*cos(ang))/60.):1 ps 3 lw 2 pt 1 lc rgb "gold",\
       'cont.dat' w l lt -1 lw 1.5,\
 #      'cont_green.dat' w l dt 2 lc rgb "#32CD32" lw 2,\

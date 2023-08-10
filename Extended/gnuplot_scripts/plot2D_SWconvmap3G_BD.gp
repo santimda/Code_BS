@@ -11,8 +11,8 @@ set cntrparam levels discrete 1.04,1.5,2,3,4,5,6.0
 #set cntrparam levels discrete 60.6530659713#, 34.1, 0.0456, 0.0026
 unset surface
 set table 'cont.dat'
-splot '../SW_conv_3Gabs.dat' u (($1*cos(ang)+$2*sin(ang))/60.):(($1*sin(ang)-$2*cos(ang))/60.):($3)
-#splot '../SW_conv_3Gabs.dat' u (($1*cos(ang)+$2*sin(ang))):(($1*sin(ang)-$2*cos(ang))):($3)
+splot '../SW_conv_3GHzabs.dat' u (($1*cos(ang)+$2*sin(ang))/60.):(($1*sin(ang)-$2*cos(ang))/60.):($3)
+#splot '../SW_conv_3GHzabs.dat' u (($1*cos(ang)+$2*sin(ang))):(($1*sin(ang)-$2*cos(ang))):($3)
 unset table
 
 set contour base
@@ -22,8 +22,8 @@ set cntrparam levels discrete 0.3 #rms?
 #set cntrparam levels discrete 50.
 unset surface
 set table 'cont_red.dat'
-splot '../SW_conv_3Gabs.dat' u (($1*cos(ang)+$2*sin(ang))/60.):(($1*sin(ang)-$2*cos(ang))/60.):($3)
-#splot '../SW_conv_3Gabs.dat' u (($1*cos(ang)+$2*sin(ang))):(($1*sin(ang)-$2*cos(ang))):($3)
+splot '../SW_conv_3GHzabs.dat' u (($1*cos(ang)+$2*sin(ang))/60.):(($1*sin(ang)-$2*cos(ang))/60.):($3)
+#splot '../SW_conv_3GHzabs.dat' u (($1*cos(ang)+$2*sin(ang))):(($1*sin(ang)-$2*cos(ang))):($3)
 unset table
 
 set contour base
@@ -32,7 +32,7 @@ set cntrparam bspline
 set cntrparam levels discrete 8.0 # ??
 unset surface
 set table 'cont_green.dat'
-splot '../SW_conv_3Gabs.dat' u (($1*cos(ang)+$2*sin(ang))/60.):(($1*sin(ang)-$2*cos(ang))/60.):($3)
+splot '../SW_conv_3GHzabs.dat' u (($1*cos(ang)+$2*sin(ang))/60.):(($1*sin(ang)-$2*cos(ang))/60.):($3)
 unset table
 
 reset
@@ -76,11 +76,11 @@ set object 5 ellipse center graph 0.92,0.92 size siz_x/coc/cosd,siz_y/coc angle 
 
 set label "3 GHz" at graph 0.05,0.9 font "Helvetica,18" front
 
-splot '../SW_conv_3Gabs.dat' u (($1*cos(ang)+$2*sin(ang))/60.):(($1*sin(ang)-$2*cos(ang))/60.):($3) w pm3d,\
+splot '../SW_conv_3GHzabs.dat' u (($1*cos(ang)+$2*sin(ang))/60.):(($1*sin(ang)-$2*cos(ang))/60.):($3) w pm3d,\
       'cont.dat' w l lt -1 lw 1.5,\
       '../R0_proj.dat' u (($1*cos(ang)-$2*sin(ang))/60.):(($1*sin(ang)+$2*cos(ang))/60.):1 ps 3 lw 2 pt 1 lc rgb "gold"
 
-#splot '../SW_conv_3Gabs.dat' u ($1*cos(ang)+$2*sin(ang)):($1*sin(ang)-$2*cos(ang)):($3) w pm3d,\
+#splot '../SW_conv_3GHzabs.dat' u ($1*cos(ang)+$2*sin(ang)):($1*sin(ang)-$2*cos(ang)):($3) w pm3d,\
 #      'cont.dat' w l lt -1 lw 1.5,\
 #      'cont_red.dat' w l dt 2 lc 7 lw 1.5,\
 
