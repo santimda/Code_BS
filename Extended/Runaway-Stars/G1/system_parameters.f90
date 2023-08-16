@@ -29,7 +29,7 @@ module system_parameters
    ! Classified as O7V  (Peri+ 2015)
    !real(dp), parameter :: v_st = 19.d5            ! Gaia3
    real(dp), parameter :: v_st = 20.d5
-   real(dp), parameter :: T_st = 37.1d4            ! http://www.pas.rochester.edu/~emamajek/EEM_dwarf_UBVIJHK_colors_Teff.txt
+   real(dp), parameter :: T_st = 37.1d3            ! http://www.pas.rochester.edu/~emamajek/EEM_dwarf_UBVIJHK_colors_Teff.txt
    real(dp), parameter :: T_st_ad = k*T_st/mec2    ! Adimensional stellar temperature
    real(dp), parameter :: L_st = 1.5d5*L_sun       ! http://www.pas.rochester.edu/~emamajek/EEM_dwarf_UBVIJHK_colors_Teff.txt
    real(dp), parameter :: R_st = 9.42*R_sun       ! http://www.pas.rochester.edu/~emamajek/EEM_dwarf_UBVIJHK_colors_Teff.txt
@@ -92,7 +92,7 @@ module system_parameters
    real(dp), dimension(:), allocatable :: efi_ac_sh! particle accel. efficiency at the shocks  (l)
    real(dp), parameter :: frac_sh = sqrt(0.2)      ! fraction sqrt(UB_sw/UB_equipartition_sw), f_NT=1
    !real(dp), parameter :: frac_sh = sqrt(0.15)
-   real(dp), parameter :: frac_NT = 0.2_dp          ! Fraction L_NT/L_inj_perp, alpha=0.35, eta_B=0.1
+   real(dp), parameter :: frac_NT = 0.22_dp          ! Fraction L_NT/L_inj_perp, alpha=0.35, eta_B=0.1
    !real(dp), parameter :: frac_NT = 0.3_dp
    real(dp), parameter :: alpha_1 = -1.d0
    real(dp), parameter :: inj_e = frac_NT*0.4d0   ! Fraction L_NT_e/L_iny_perp 

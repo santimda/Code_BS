@@ -24,7 +24,7 @@ module radstr
 		real(dp) :: t_diff,t_adv,t_esc,t_pp,t_br,t_IC_CMB,t_sy
 		real(dp) :: n_p
 		real(dp) :: D_diff
-		real(dp), parameter :: B_str = 1.d-6
+		real(dp), parameter :: B_str = 10.d-6
 		character(len=*), parameter :: diff_regime = 'G'
 
 		90    format(A8,X,Es10.2)
