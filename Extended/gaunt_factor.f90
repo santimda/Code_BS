@@ -64,9 +64,9 @@
       dmu = ((log10(mu_ff(i))+16.d0)/0.2d0+1.d0 - float(j_mu))*0.2_dp
 
       if (j_mu < nu_mga) then
-        call interpol2(dg,dmu,gff(j_g,j_mu),gff(j_g+1,j_mu),gff(j_g,j_mu+1),gff_inter)
+        call interpol2(dg,dmu,gff(j_mu,j_g),gff(j_mu,j_g+1),gff(j_mu+1,j_g),gff_inter)
       else
-        call extrapol2(dg,dmu,gff(j_g,nu_mga-1),gff(j_g+1,nu_mga-1),gff(j_g,nu_mga),gff_inter)
+        call extrapol2(dg,dmu,gff(nu_mga-1,j_g),gff(nu_mga-1,j_g+1),gff(nu_mga,j_g),gff_inter)
       endif
       gaunt_ff(i) = gff_inter
       !gaunt_ff(i) = 9.77d0*(1.d0+0.13d0*log10(T_l**1.5d0/Zq_l/nu_ff(i))) ! Approx.
