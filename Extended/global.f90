@@ -21,7 +21,7 @@ module global
    integer, parameter :: mE_p = 300    ! energy resolution for protons < mE_f 
    integer, parameter :: mE_f = 500    ! it is the same for br, p-p and IC
    integer, parameter :: mE_ph = 600   ! energy resolution for thermal f-f emission in the shocks 
-   integer, parameter :: mphi = 60      ! amount of linear-emitters
+   integer, parameter :: mphi = 30      ! amount of linear-emitters
    real(dp) :: delta_phi = 0.5*pi/(mphi-1.d0) ! angular separation between linear-emitters
    real(dp) :: d_phi = 0.5*pi/mphi     ! angular width of each linear-emitter or wedge
 
@@ -282,7 +282,7 @@ module global
       real(dp) :: lambda_cool
       
       if (T < 1.d4) then
-            lambda_cool = 4.d-29 * T**0.8     ! GER
+            lambda_cool = 4.d-29 * T**0.8     ! Muller+ 2020
          else if ((1.d4 <= T) .AND. (T <= 1.d5)) then    ! Myasnikov+ 1998
             lambda_cool = 7.d-27 * T
          else if ((1.d5 < T) .AND. (T <= 4.d7)) then
