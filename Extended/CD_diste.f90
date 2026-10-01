@@ -1,5 +1,6 @@
 module CD_diste
    use global
+   use numerical_utils, only: vector_log
    use diffusion
    implicit none
 
@@ -102,8 +103,8 @@ module CD_diste
 
       open(113,file='T_IR.dat') 
       do l = 1, m_theta
-         !       T_IR(l) = 27.*(0.2)**(-1./6.)*(L_st/1.d38)**(1./6.)*(R_theta(l)/pc)**(-1./3.) ! Eq.10 del Valle 2012
-         T_IR(l) =  100.d0            ! K2017
+         T_IR(l) = 27.*(0.2)**(-1./6.)*(L_st/1.d38)**(1./6.)*(R_theta(l)/pc)**(-1./3.) ! Eq.10 del Valle 2012
+         !T_IR(l) =  100.d0            ! K2017
          T_IR_ad(l) = k*T_IR(l)/mec2  ! Adimensional dust temperature
          Kappa_IR(l) = L_IR/(16.*pi*sigma*T_IR(l)**4*R_theta(l)**2) ! assume the dust is in a shell outside the BS
          write(113,*) theta(l),T_IR(l),T_IR_ad(l),Kappa_IR(l) ! normalized
@@ -130,7 +131,7 @@ module CD_diste
       ! (and also the maximum energy)
 
       open(65,file='t_conv_'//shock//'.dat')
-      open(70,file='CD_tcoole_'//shock//'.dat')
+      open(70,file='CD_tcoole_'//system//'_'//shock//'.dat')
       open(78,file='Emaxe'//shock//'.dat')
       open(83,file='Gyroradius_e_'//shock//'.dat')
 
@@ -343,7 +344,7 @@ module CD_diste
 
       !----------------------------------------------------------------------
       ! Save the electron distribution at each position 
-      open(79,file='diste_'//shock//'.dat')
+      open(79,file='diste_'//system//'_'//shock//'.dat')
       do l = 1, m_theta
          do i = 1, mE_e     
             write(79,*) theta(l),E_e(i)/eV,N_etot(l,i)
@@ -474,7 +475,7 @@ module CD_diste
 
       open(113,file='T_IR.dat') 
       do l = 1, m_theta
-         !       T_IR(l) = 27.*(0.2)**(-1./6.)*(L_st/1.d38)**(1./6.)*(R_theta(l)/pc)**(-1./3.) ! Eq.10 del Valle 2012
+         !T_IR(l) = 27.*(0.2)**(-1./6.)*(L_st/1.d38)**(1./6.)*(R_theta(l)/pc)**(-1./3.) ! Eq.10 del Valle 2012
          T_IR(l) =  100.d0            ! K2017
          T_IR_ad(l) = k*T_IR(l)/mec2  ! Adimensional dust temperature
          Kappa_IR(l) = L_IR/(16.*pi*sigma*T_IR(l)**4*R_theta(l)**2) ! assume the dust is in a shell outside the BS
@@ -639,7 +640,7 @@ subroutine Ne_bin(Ee,Ne_tot,ang,shock)
 
    N_bin_i = 0.d0
    ang_step = theta_max/5.
-   open(81,file='diste_'//shock//'_total.dat')
+   open(81,file='diste_'//shock//'_'//system//'_total.dat')
    do i=1,mE_e
       N_total_i = 0.d0
       do l=1,m_theta
@@ -661,7 +662,7 @@ subroutine Ne_bin(Ee,Ne_tot,ang,shock)
    end do
    close(81)
 
-   open(82,file='diste_'//shock//'_bin.dat')
+   open(82,file='diste_'//shock//'_'//system//'_bin.dat')
    do j = 1,N_bins
       do i = 1, mE_e
          write(82,*) j,Ee(i)/eV, N_bin_i(j,i)* mphi*1.d0

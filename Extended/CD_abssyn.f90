@@ -1,6 +1,7 @@
 module CD_abssyn
    use global
-   use gaunt_factor  
+   use gaunt_factor
+   use numerical_utils, only: vector_log
    use map_freqs, only: maps, nu_index
    implicit none
    public :: CD_abssyn_run

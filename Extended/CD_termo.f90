@@ -296,7 +296,7 @@ module CD_termo
       close(44)
 
 
-      open(66,file='rad_adi_'//shock//'.dat')
+      open(66,file='rad_adi_'//system//'_'//shock//'.dat')
       do l=1,m_theta
          write(66,*) theta(l),t_th(l)/t_adv(l)
       end do

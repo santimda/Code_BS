@@ -1,5 +1,6 @@
 module CD_radbr
    use global
+   use numerical_utils, only: vector_log
    implicit none
 
    public :: CD_radbr_run
@@ -55,7 +56,7 @@ contains
       close(11)
 
       ! Number of electrons at r(l) with energy E_e(i): N_etot(l,i) 
-      open (14,file='diste_'//shock//'.dat')
+      open (14,file='diste_'//system//'_'//shock//'.dat')
       do l=1,m_theta
          do i=1,mE_e
             read(14,*) dummy, E_e(i),N_etot(l,i)

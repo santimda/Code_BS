@@ -1,6 +1,7 @@
 module CD_radsyn
   ! This module calculates the intrinsic synchrotron emission 
   use global
+  use numerical_utils, only: vector_log
   
   implicit none
   private
@@ -54,7 +55,7 @@ contains
     close(12)
 
     ! Number of electrons at r(l) with energy E_e(i): N_etot(l,i) 
-    open (14,file='diste_'//shock//'.dat')
+    open (14,file='diste_'//system//'_'//shock//'.dat')
     do l = 1, m_theta
        do i = 1, mE_e
           read(14,*) dummy, E_e(i),N_etot(l,i)
@@ -93,7 +94,7 @@ contains
       N_e = N_etot(l,:)      ! N_e = electron distribution at position "l"
       ni = rho(l)/mp/2.085d0  ! 2.085 = x + 4*y + 14*z  ?????????
       ne = 1.395d0*ni         ! 1.395 = x + 2*y + 7*z   ?????????
-      nu_RT = 20.d0*ne/B(l)   ! characteristic frequency for R-T effect 
+      nu_RT = 20.d0*ne/B(l)   ! characteristic frequency for R-T effect
       nuc_l = 4.22d6*B_par(l) ! to speed things up in the j loop
       ! Loop in the photon energy (Eps), given by nu 
       do i = 1,m_nu           ! Eps(i), nu(i)
@@ -160,7 +161,7 @@ contains
 
     ! Fluxes
 
-    open(18,file='S_syn_'//shock//'.dat')
+    open(18,file='S_syn_'//system//'_'//shock//'.dat')
     do i = 1,m_nu
       write(18,*) nu(i),Lsy_tot(i)*(mphi*4.)/(4.*pi*distance**2*nu(i))*1.d26
     enddo

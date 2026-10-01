@@ -147,7 +147,7 @@ module rad_H_alpha
 
       ci = abs(cos(incli))
 
-      open(188,file='R0_proj.dat')
+      open(188,file='R0_proj_'//system//'.dat')
          write(188,*) 0.d0,R0_proj/abs(cos(incli))
       close(188)
 
@@ -209,7 +209,7 @@ module rad_H_alpha
       ! Data storage + consistency check:
 
       sum = 0.d0
-      open (20,file='S_alpha_convmap.dat')
+      open (20,file='S_alpha_convmap_'//system//'.dat')
       do i = 1, m_x
          do j = 1, m_y
             write(20,60) x_c(i), y_c(j), F_alpha_conv(i,j)

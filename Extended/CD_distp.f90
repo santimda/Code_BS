@@ -1,5 +1,6 @@
 module CD_distp
    use global
+   use numerical_utils, only: vector_log
    use diffusion
    implicit none
 
@@ -117,7 +118,7 @@ module CD_distp
       ! First calculate the cooling time at all energies and at each position 
       ! (and also the maximum energy)
 
-      open(70,file='CD_tcoolp_'//shock//'.dat')
+      open(70,file='CD_tcoolp_'//system//'_'//shock//'.dat')
       open(78,file='Emaxp'//shock//'.dat')
       open(83,file='Gyroradius_p_'//shock//'.dat')
 
@@ -309,7 +310,7 @@ module CD_distp
       end do                     ! End loop in starting position (l_min = # linear-emitters)
 
       ! Save the proton distribution at each position 
-      open(79,file='distp_'//shock//'.dat')
+      open(79,file='distp_'//system//'_'//shock//'.dat')
       do l = 1,m_theta
          do i = 1,mE_p
             write(79,*) theta(l),E_p(i)/eV,N_ptot(l,i)
@@ -319,7 +320,7 @@ module CD_distp
       close(79)
 
       suma = 0.d0
-      open(80,file='ENTp_'//shock//'.dat')
+      open(80,file='ENTp_'//system//'_'//shock//'.dat')
       do l = 1,m_theta
          E_NT = 0.d0
          do i=1,mE_p

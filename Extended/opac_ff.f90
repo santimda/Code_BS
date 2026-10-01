@@ -2,6 +2,7 @@ module opac_ff
   !This module calculates the f-f absorption and emission of the unshocked SW
   !and the absorption and emission of the unshocked ISM
   use global
+  use numerical_utils, only: vector_log
   use gaunt_factor
   implicit none
   
@@ -22,7 +23,7 @@ module opac_ff
   
     subroutine opac_ff_run
       !$ use omp_lib
-      integer, parameter :: mE_ph = 400
+      !integer, parameter :: mE_ph = 400
       real(dp) :: T_w,T_ion,S(mE_ff),ne,ne_ISM,ni_ISM,ni
       real(dp) :: alphaff(mr_ff,mE_ff)
       real(dp) :: r_ff(mr_ff),dr,A_ff,cte_alpha_ff,cte_alpha_ff_ISM, cte_nu
@@ -277,6 +278,7 @@ module opac_ff
       call gaunt_ff_calc(nu_ISM,size(nu_ISM),T_ion,Zq_ISM,g_ff_ISM)
 
       ! Calculate the free-free emission at each frequency
+
       open (300,file='gaunt_ISM.dat')
       open (400,file='radff.dat')
       open (500, file='flux_ISM.dat')

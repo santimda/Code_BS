@@ -20,7 +20,7 @@ module global
    integer, parameter :: mE_e = 300    ! energy resolution for electrons
    integer, parameter :: mE_p = 300    ! energy resolution for protons < mE_f 
    integer, parameter :: mE_f = 500    ! it is the same for br, p-p and IC
-   integer, parameter :: mE_ph = 600   ! energy resolution for thermal f-f emission in the shocks 
+   integer, parameter :: mE_ph = 500   ! energy resolution for thermal f-f emission in the shocks 
    integer, parameter :: mphi = 30      ! amount of linear-emitters
    real(dp) :: delta_phi = 0.5*pi/(mphi-1.d0) ! angular separation between linear-emitters
    real(dp) :: d_phi = 0.5*pi/mphi     ! angular width of each linear-emitter or wedge
@@ -66,7 +66,7 @@ module global
    real(dp) :: P_Eps, dP_Eps, P_Ef, dP_Ef
 
    ! syn
-   integer, parameter :: m_nu = 600  ! frequency resolution for synchrotron photons
+   integer, parameter :: m_nu = mE_ph  ! frequency resolution for synchrotron photons
    real(dp), dimension(:,:), allocatable :: Lsy,Lsy_RS,Lsy_FS      ! L_sy(l,E_i)
    real(dp), dimension(:), allocatable :: nu,Lsy_tot,Lsy_tot_abs ! Lsy_tot(i) = sum_l L_sy(l,i)
 
@@ -111,57 +111,6 @@ module global
    !=======================================================
 
    contains
-
-   !============================================================================
-   ! vectorE
-   !============================================================================
-
-   SUBROUTINE vector_log(Emin,Emax,Eint,E_vec)
-      ! Build logarithmically-spaced vector
-      integer, parameter :: dp = kind(1.d0)
-      real(dp), intent(in) :: Emin,Emax
-      integer :: N_size, i_vec
-      real(dp), intent(out) :: Eint
-      real(dp), intent(out) :: E_vec(:)
-
-      N_size = SIZE(E_vec)
-      Eint = (Emax/Emin)**(1.d0/dfloat(N_size-1))
-      E_vec(1) = Emin
-      do i_vec = 2, N_size
-         E_vec(i_vec) = E_vec(i_vec-1)*Eint    
-      enddo
-
-   END SUBROUTINE vector_log
-
-
-   !============================================================================
-   ! integrate
-   !============================================================================
-
-   SUBROUTINE integrate(N,H,FI,S)
-      ! Subroutine for integration over f(x) with the Simpson rule.
-      ! FI: integrand f(x); H: interval; S: integral.
-      integer, intent(in) :: N
-      real*8, intent(in) :: H,FI(N)
-      real*8, intent(out) :: S
-      real*8 :: S0,S1,S2
-
-      S  = 0.d0
-      S0 = 0.d0
-      S1 = 0.d0
-      S2 = 0.d0
-      DO I = 2, N-1, 2
-         S1 = S1 + FI(I-1)
-         S0 = S0 + FI(I)
-         S2 = S2 + FI(I+1)
-      END DO
-      S = H*(S1 + 4.*S0 + S2)/3.
-      ! If N is even, add the last slice separately
-      IF(MOD(N,2).eq.0) S = S + H*(5.d0*FI(N) + 8.d0*FI(N-1) - FI(N-2))/12.d0
-
-      RETURN
-
-   End SUBROUTINE integrate
 
    !============================================================================
    !  Cooling_IC
@@ -237,27 +186,6 @@ module global
       nBB = 2.d0*pi/((h*c)**3)*(Epho**2/(exp(Epho/(k*T))-1.))
    end Function nBB
 
-   !============================================================================
-
-   SUBROUTINE versorresta(V1,V2,N,versor)
-      ! subroutine to calculate the versor: (V1-V2)/|V1-V2|
-      integer, intent(in) :: N
-      real(dp), intent(in) :: V1,V2
-      real(dp), intent(out) :: versor
-      real(dp) :: resta,suma
-      DIMENSION V1(N),V2(N),versor(N),resta(N)
-
-      suma = 0.d0
-      do i = 1, N
-         resta(i) = V1(i) - V2(i)
-         suma = suma + resta(i)**2
-      enddo
-      suma = sqrt(suma)          ! suma = || versor_resta ||
-      do j = 1,N
-         versor(j) = resta(j)/suma
-      enddo
-
-   END SUBROUTINE versorresta
 
    !============================================================================
    ! p-p cross section

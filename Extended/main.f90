@@ -5,6 +5,7 @@ PROGRAM main
    use CD, only: CD_run
    use BB, only: BB_run
    use opac_ff, only: opac_ff_run
+   use map_freqs, only: maps_init
    implicit none
    logical, parameter :: verbose=.True.
    
@@ -28,6 +29,7 @@ PROGRAM main
    ! Initialize vectors   
    if (verbose) print *, '\n Allocate vectors'    
    call initialize_allocate()
+   call maps_init()
 
    if (BBrad_calc) call BB_run
 
@@ -212,7 +214,7 @@ PROGRAM main
       if (escribir_e) then
 
          if (radic_st_calc) then       ! This has the full 3D geometry in the abs
-            open (31,file='radic_st_'//shock//'_tot.dat')
+            open (31,file='radic_st_'//system//'_'//shock//'_tot.dat')
             do i_E = 1,mE_f
                ! Multiply by a factor 2 because of the axial symmetry in the SW
                ! (this one already considers "mirroring" for y < 0 in the calculation)
@@ -223,7 +225,7 @@ PROGRAM main
 
          if (radic_ir_calc) then
             open (32,file='radic_ir_'//shock//'.dat')     ! One linear-emitter
-            open (33,file='radic_ir_'//shock//'_tot.dat') ! The total emission IC(dust) in the SW
+            open (33,file='radic_ir_'//system//'_'//shock//'_tot.dat') ! The total emission IC(dust) in the SW
             do i_E = 1,mE_f
                read(32,*) E_IC_IR(i_E),LIC_one
                LIC_IR_tot(i_E) = LIC_one*mphi *4.d0
@@ -245,7 +247,7 @@ PROGRAM main
          !       endif
 
          if (radsyn_sw_calc) then   ! NOT VERY USEFUL
-            open (51,file='radsyn_'//shock//'_tot.dat')
+            open (51,file='radsyn_'//system//'_'//shock//'_tot.dat')
             open (41,file='radsyn_'//shock//'.dat')
             do i_E = 1,m_nu
                read(41,*) E_sy(i_E),Lsy_one,L_syn_E_one
@@ -262,7 +264,7 @@ PROGRAM main
 
          if (radbr_sw_calc) then
             open (42,file='radbr_'//shock//'.dat')     ! One linear-emitter
-            open (52,file='radbr_'//shock//'_tot.dat') ! The total SW
+            open (52,file='radbr_'//system//'_'//shock//'_tot.dat') ! The total SW
             do i_E = 1,mE_f
                read(42,*) E_br(i_E),Lbr_one
                Lbr_sh_tot(i_E) = Lbr_one*mphi *4.d0
@@ -286,11 +288,11 @@ PROGRAM main
                Eph_min = 2.d3 ! 2 keV
                Eph_max = 10.d3 ! 10 keV
             else
-               Eph_min = 0.4d3 ! 0.4 keV
-               Eph_max = 4.d3 ! 4 keV
+               Eph_min = 1.d3 ! 1 keV
+               Eph_max = 10.d3 ! 10 keV
             end if               
             
-            open (31,file='radic_st_RS_tot.dat')
+            open (31,file='radic_st_'//system//'_RS_tot.dat')
             do i_E = 1, mE_f
                read(31,*) E_IC_st(i_E), LIC_st_tot(i_E)
                dE_IC_st(i_E) = (E_IC_st(2)/E_IC_st(1) - 1.d0)
@@ -300,7 +302,7 @@ PROGRAM main
             end do
             close(31)
 
-            open (33,file='radic_ir_RS_tot.dat')
+            open (33,file='radic_ir_'//system//'_RS_tot.dat')
             do i_E = 1, mE_f
                read(33,*) E_IC_IR(i_E),LIC_IR_tot(i_E)
                dE_IC_IR(i_E) = (E_IC_IR(2)/E_IC_IR(1) - 1.d0)
@@ -310,7 +312,7 @@ PROGRAM main
             end do
             close(33)
 
-            open (51,file='radsyn_RS_tot.dat')
+            open (51,file='radsyn_'//system//'_RS_tot.dat')
             do i_E = 1, m_nu
                read(51,*) E_sy(i_E), Lsy_sh_tot(i_E)
                dE_sy(i_E) = (E_sy(2)/E_sy(1) - 1.d0)
@@ -320,7 +322,7 @@ PROGRAM main
             end do
             close(51)
 
-            open (52,file='ionized_ff_RS.dat')
+            open (52,file='ionized_ff_'//system//'_RS.dat')
             do i_E = 1, mE_ph
                read(52,*) E_ff(i_E), Lff_tot(i_E)
                dE_ff(i_E) = (E_ff(2)/E_ff(1) - 1.d0)
@@ -332,12 +334,15 @@ PROGRAM main
 
             if (system == 'BD+43') then
                print *, 'Calculate the luminosity btw 0.4-4 keV'
-            write(*,80) 'L_X= ', L_X_int
+               write(*,80) 'L_X= ', L_X_int
                if (L_X_int > 10.**(30.878384)) print*, 'R-X luminosity is to high'  ! Toalá+ 2016
             else if (system == 'Lambda_Cep') then
                print *, 'Calculate the luminosity btw 2-10 keV'
-            write(*,80) 'L_X= ', L_X_int
+               write(*,80) 'L_X= ', L_X_int
                if (L_X_int > 3.37d30) print*, 'R-X luminosity is to high'
+            else
+               print *, 'Calculate the luminosity btw 1-10 keV'
+                write(*,80) 'L_X= ', L_X_int
             end if
             print *, ''
          end if
@@ -369,7 +374,7 @@ PROGRAM main
 
          if (radpp_calc) then
             open (43,file='radpp_'//shock//'.dat')     ! One linear-emitter
-            open (53,file='radpp_'//shock//'_tot.dat')
+            open (53,file='radpp_'//system//'_'//shock//'_tot.dat')
             do i_E = 1,mE_f
                read(43,*) E_pp(i_E),Lpp_one       
                Lpp_sh_tot(i_E) = Lpp_one*mphi *2.d0
@@ -440,428 +445,108 @@ Subroutine H_alpha_map(shock)
 !============================================================================
 !============================================================================
 
-Subroutine abs_maps(SHOCK)
+Subroutine abs_maps(shock)
    use global
    use controls
+   use map_freqs, only: maps
    use CD_abssyn, only: CD_abssyn_run
    use CD_rot, only: CD_rot_run
-   use SW_conv, only: SW_conv_run, SW_spex_110_190_run ,SW_spex_run, SW_spex_6_10_run
+   use SW_conv, only: SW_conv_run
 
    implicit none
 
    character(LEN=*), intent(in) :: shock
+   integer, parameter :: m_l = 2*m_theta     ! CD position, both sides
    real(dp) :: Lsy_sh_abs(m_nu), Lsy_sh_unabs(m_nu), Lsy_unabs, Lsy_abs
-   real(dp) :: S_th_RS, S_th_FS, S_th, S_hot
-   real(dp) :: S_th_avg_RS, S_th_avg_FS, S_th_avg, S_hot_avg
-   real(dp) :: emi_avg,emi_avg_abs
    real(dp) :: E_sy(m_nu)
-   real(dp) :: u_proj,v_proj,emi,emi_abs
    real(dp) :: phi
-   integer :: i_phi,i_E,i_l
+   integer :: i_phi, i_E, im, n_map
+   integer :: iu_syn_avg, iu_th_avg, iu_hot_avg
+   integer, allocatable :: iu_syn(:), iu_th(:), iu_hot(:)   ! one output file per map frequency
+   character(len=:), allocatable :: tag_cd, tag_out
+   logical :: hot
 
    Lsy_sh_unabs = 0.d0
    Lsy_sh_abs = 0.d0
 
-   if (shock /= 'BOTH') then
-      open(1111, file='sync_radiomap_'//shock//'_110MHz.dat')
-      open(1500, file='sync_radiomap_'//shock//'_150MHz.dat') 
-      open(19,file='sync_radiomap_'//shock//'_190MHz.dat')
-      open(3255,file='sync_radiomap_'//shock//'_325MHz.dat')
-      open(3333,file='sync_radiomap_'//shock//'_3GHz.dat')
-      open(50,file='sync_radiomap_'//shock//'_5GHz.dat')
-      open(60,file='sync_radiomap_'//shock//'_6GHz.dat')
-      open(100,file='sync_radiomap_'//shock//'_10GHz.dat')
-      open(91,file='sync_radiomap_avg_'//shock//'.dat')
-      open(120,file='th_ff_map_'//shock//'_110MHz.dat')
-      open(16,file='th_ff_map_'//shock//'_150MHz.dat')
-      open(20,file='th_ff_map_'//shock//'_190MHz.dat')
-      open(326,file='th_ff_map_'//shock//'_325MHz.dat')
-      open(36,file='th_ff_map_'//shock//'_3GHz.dat')
-      open(55,file='th_ff_map_'//shock//'_5GHz.dat')
-      open(61,file='th_ff_map_'//shock//'_6GHz.dat')
-      open(1001,file='th_ff_map_'//shock//'_10GHz.dat')
-      open(92,file='th_ff_map'//shock//'_avg.dat')
-   else if (shock == 'BOTH') then
-      open(1111,file='sync_radiomap_110MHz.dat')
-      open(1500,file='sync_radiomap_150MHz.dat')
-      open(19,file='sync_radiomap_190MHz.dat')
-      open(3255,file='sync_radiomap_325MHz.dat')
-      open(3333,file='sync_radiomap_3GHz.dat')
-      open(50,file='sync_radiomap_5GHz.dat')
-      open(60,file='sync_radiomap_6GHz.dat')
-      open(100,file='sync_radiomap_10GHz.dat')
-      open(91,file='sync_radiomap_avg.dat')
-      open(120,file='th_ff_map_110MHz.dat')
-      open(16,file='th_ff_map_150MHz.dat')
-      open(20,file='th_ff_map_190MHz.dat')
-      open(326,file='th_ff_map_325MHz.dat')
-      open(36,file='th_ff_map_3GHz.dat')
-      open(55,file='th_ff_map_5GHz.dat')
-      open(61,file='th_ff_map_6GHz.dat')
-      open(1001,file='th_ff_map_10GHz.dat')
-      open(92,file='th_ff_map_avg.dat')
+   n_map = size(maps)
+   allocate( iu_syn(n_map), iu_th(n_map), iu_hot(n_map) )
+   iu_hot = -1
+   iu_hot_avg = -1
+   hot = (shock == 'BOTH') .or. (shock == 'FS')   ! the hot layer only exists in the FS
+
+   ! File-name tags:
+   !   tag_cd : files written by CD_abssyn   ('CD_sync_radiomap_RS110MHz.dat')
+   !   tag_out: files written here           ('sync_radiomap_RS_110MHz.dat')
+   if (shock == 'BOTH') then
+      tag_cd  = ''
+      tag_out = ''
+   else
+      tag_cd  = shock
+      tag_out = shock//'_'
    end if
 
-   if ((shock == 'BOTH') .or. (shock == 'FS')) then
-      open(1113,file='hot_layer_110MHz.dat')
-      open(17,file='hot_layer_150MHz.dat')
-      open(21,file='hot_layer_190MHz.dat')
-      open(327,file='hot_layer_325MHz.dat')
-      open(37,file='hot_layer_3GHz.dat')
-      open(56,file='hot_layer_5GHz.dat')
-      open(62,file='hot_layer_6GHz.dat')
-      open(1002,file='hot_layer_10GHz.dat')
-      open(93,file='hot_layer_avg.dat')
-   end if
+   ! Output maps (all phi together): one file per selected frequency + the average
+   do im = 1, n_map
+      open(newunit=iu_syn(im), file='sync_radiomap_'//tag_out//trim(maps(im)%label)//'.dat')
+      open(newunit=iu_th(im),  file='th_ff_map_'//tag_out//trim(maps(im)%label)//'.dat')
+      if (hot) open(newunit=iu_hot(im), file='hot_layer_'//trim(maps(im)%label)//'.dat')
+   end do
+   open(newunit=iu_syn_avg, file='sync_radiomap_'//tag_out//'avg.dat')
+   open(newunit=iu_th_avg,  file='th_ff_map_'//tag_out//'avg.dat')
+   if (hot) open(newunit=iu_hot_avg, file='hot_layer_avg.dat')
 
    phi = 0.d0
-      if (rotate) then
-         DO i_phi = 1, mphi
-            print *, 'i(phi)=',i_phi,'/',mphi
+   if (rotate) then
+      DO i_phi = 1, mphi
+         print *, 'i(phi)=',i_phi,'/',mphi
 
-            call CD_rot_run(phi)   
+         call CD_rot_run(phi)   
 
-            if (abssyn_calc) then
-               print *, 'Calculate the free-free synchrotron absorption'
-               call CD_abssyn_run(shock, radiative = .true.) !(phi)
-               if (shock /= 'BOTH') then
-                  open (45,file='radsyn_abs_'//shock//'.dat')
-               else if (shock == 'BOTH') then
-                  open (45,file='radsyn_abs.dat')
-               end if
-               do i_E = 1,m_nu    ! SED --> sum emission from different phi
-                  read(45,*) E_sy(i_E),Lsy_unabs,Lsy_abs
-                  Lsy_sh_unabs(i_E) = Lsy_sh_unabs(i_E) + Lsy_unabs
-                  Lsy_sh_abs(i_E) = Lsy_sh_abs(i_E) + Lsy_abs
-               end do
-               close(45)
-            endif
-            ! -----------------------------------------------------------------------------
-            !------------------------------------------------------------------------------ 
-            if (maps_calc) then           
-               print *, 'Save synthetic radio emission maps'
-               open(110,file='CD_th_RS_110MHz.dat') ! 110 MHz
-               open(150,file='CD_th_RS_150MHz.dat') ! 150 MHz
-               open(190,file='CD_th_RS_190MHz.dat') ! 190 MHz
-               open(3250,file='CD_th_RS_325MHz.dat') ! 325 MHz
-               open(3000,file='CD_th_RS_3GHz.dat') ! 3.0 GHz
-               open(5000,file='CD_th_RS_5GHz.dat') ! 4.8 GHz
-               open(6000,file='CD_th_RS_6GHz.dat') ! 6.0 GHz
-               open(10000,file='CD_th_RS_10GHz.dat') ! 10. GHz
-               open(111,file='CD_th_FS_110MHz.dat') ! 110 MHz
-               open(151,file='CD_th_FS_150MHz.dat') ! 150 MHz
-               open(191,file='CD_th_FS_190MHz.dat') ! 190 MHz
-               open(3251,file='CD_th_FS_325MHz.dat') ! 325 MHz
-               open(3001,file='CD_th_FS_3GHz.dat') ! 3.0 GHz
-               open(5001,file='CD_th_FS_5GHz.dat') ! 4.8 GHz
-               open(6001,file='CD_th_FS_6GHz.dat') ! 6.0 GHz
-               open(10001,file='CD_th_FS_10GHz.dat') ! 10. GHz
-               open(990,file='CD_th_radiomap_avg_RS.dat') ! average ff RS
-               open(991,file='CD_th_radiomap_avg_FS.dat') ! averague isothermal region
-               if (shock /= 'BOTH') then
-                  open(112,file='CD_sync_radiomap_'//shock//'110MHz.dat') ! 110 MHz sync
-                  open(152,file='CD_sync_radiomap_'//shock//'150MHz.dat') ! 150 MHz sync
-                  open(192,file='CD_sync_radiomap_'//shock//'190MHz.dat') ! 190 MHz sync
-                  open(3252,file='CD_sync_radiomap_'//shock//'325MHz.dat') ! 325 MHz sync
-                  open(3002,file='CD_sync_radiomap_'//shock//'3GHz.dat') ! 3.0 GHz sync
-                  open(5002,file='CD_sync_radiomap_'//shock//'5GHz.dat') ! 4.8 GHz sync
-                  open(6002,file='CD_sync_radiomap_'//shock//'6GHz.dat') ! 6.0 GHz sync
-                  open(10002,file='CD_sync_radiomap_'//shock//'10GHz.dat') ! 10. GHz sync
-                  open(992,file='CD_sync_radiomap_avg'//shock//'.dat')
-               else if (shock == 'BOTH') then
-                  open(112,file='CD_sync_radiomap_110MHz.dat') ! 110 MHz
-                  open(152,file='CD_sync_radiomap_150MHz.dat') ! 150 MHz
-                  open(192,file='CD_sync_radiomap_190MHz.dat') ! 190 MHz
-                  open(3252,file='CD_sync_radiomap_325MHz.dat') ! 325 MHz
-                  open(3002,file='CD_sync_radiomap_3GHz.dat') ! 3.0 GHz
-                  open(5002,file='CD_sync_radiomap_5GHz.dat') ! 4.8 GHz
-                  open(6002,file='CD_sync_radiomap_6GHz.dat') ! 6.0 GHz
-                  open(10002,file='CD_sync_radiomap_10GHz.dat') ! 10. GHz
-                  open(992,file='CD_sync_radiomap_avg.dat')
-               end if
-               if ((shock == 'BOTH') .or. (shock == 'FS'))  then
-                  open(113,file='CD_hot_layer_110MHz.dat')
-                  open(153,file='CD_hot_layer_150MHz.dat')
-                  open(193,file='CD_hot_layer_190MHz.dat')
-                  open(3253,file='CD_hot_layer_325MHz.dat')
-                  open(3003,file='CD_hot_layer_3GHz.dat')
-                  open(5003,file='CD_hot_layer_5GHz.dat')
-                  open(6003,file='CD_hot_layer_6GHz.dat')
-                  open(10003,file='CD_hot_layer_10GHz.dat')
-                  open(993,file='CD_hot_radiomap_avg.dat') ! average hot layer
-               end if
+         if (abssyn_calc) then
+            print *, 'Calculate the free-free synchrotron absorption'
+            call CD_abssyn_run(shock, radiative = .true.) !(phi)
+            if (shock /= 'BOTH') then
+               open (45,file='radsyn_abs_'//shock//'.dat')
+            else if (shock == 'BOTH') then
+               open (45,file='radsyn_abs.dat')
+            end if
+            do i_E = 1,m_nu    ! SED --> sum emission from different phi
+               read(45,*) E_sy(i_E),Lsy_unabs,Lsy_abs
+               Lsy_sh_unabs(i_E) = Lsy_sh_unabs(i_E) + Lsy_unabs
+               Lsy_sh_abs(i_E) = Lsy_sh_abs(i_E) + Lsy_abs
+            end do
+            close(45)
+         endif
 
-               do i_l = 1,2*m_theta
+         if (maps_calc) then           
+            print *, 'Save synthetic radio emission maps'
+            do im = 1, n_map
+               call merge_map('CD_sync_radiomap_'//tag_cd//trim(maps(im)%label)//'.dat', &
+                              'CD_th_RS_'//trim(maps(im)%label)//'.dat',                   &
+                              'CD_th_FS_'//trim(maps(im)%label)//'.dat',                   &
+                              'CD_hot_layer_'//trim(maps(im)%label)//'.dat',               &
+                              iu_syn(im), iu_th(im), iu_hot(im))
+            end do
+            call merge_map('CD_sync_radiomap_avg'//tag_cd//'.dat',   &
+                           'CD_th_radiomap_avg_RS.dat',              &
+                           'CD_th_radiomap_avg_FS.dat',              &
+                           'CD_hot_radiomap_avg.dat',                &
+                           iu_syn_avg, iu_th_avg, iu_hot_avg)
+         endif
 
-                  ! 110 MHz
-                  read(112,*) u_proj,v_proj,emi,emi_abs
-                  read(110,*) S_th_RS
-                  read(111,*) S_th_FS
-                  if ((shock == 'BOTH') .or. (shock == 'FS')) then
-                     read(113,*) S_hot
-                  end if
-                  S_th = S_th_FS + S_th_RS
-                  write(1111,*) u_proj,v_proj,emi,emi_abs
-                  write(120,*) S_th
-                  if ((shock == 'BOTH') .or. (shock == 'FS')) then
-                     write(1113,*) S_hot
-                  end if
-                  if (i_phi.ne.1) then ! .and. i_phi.ne.mphi) then
-                     write(1111,*) u_proj,-v_proj,emi,emi_abs ! symmetry???
-                     write(120,*) S_th
-                     if ((shock == 'BOTH') .or. (shock == 'FS')) then
-                        write(1113,*) S_hot
-                     end if
-                  endif
-
-                  ! 150 MHz
-                  read(152,*) u_proj,v_proj,emi,emi_abs
-                  read(150,*) S_th_RS
-                  read(151,*) S_th_FS
-                  if ((shock == 'BOTH') .or. (shock == 'FS')) then
-                     read(153,*) S_hot
-                  end if
-                  S_th = S_th_FS + S_th_RS
-                  write(1500,*) u_proj,v_proj,emi,emi_abs
-                  write(16,*) S_th
-                  if ((shock == 'BOTH') .or. (shock == 'FS')) then
-                     write(17,*) S_hot
-                  end if
-                  if (i_phi.ne.1) then ! .and. i_phi.ne.mphi) then
-                     write(1500,*) u_proj,-v_proj,emi,emi_abs ! symmetry???
-                     write(16,*) S_th
-                     if ((shock == 'BOTH') .or. (shock == 'FS')) then
-                        write(17,*) S_hot
-                     end if
-                  endif
-
-
-                  ! 190 MHz
-                  read(192,*) u_proj,v_proj,emi,emi_abs
-                  read(190,*) S_th_RS
-                  read(191,*) S_th_FS
-                  if ((shock == 'BOTH') .or. (shock == 'FS')) then
-                     read(193,*) S_hot
-                  end if
-                  S_th = S_th_FS + S_th_RS
-                  write(19,*) u_proj,v_proj,emi,emi_abs
-                  write(20,*) S_th
-                  if ((shock == 'BOTH') .or. (shock == 'FS')) then
-                     write(21,*) S_hot
-                  end if
-                  if (i_phi.ne.1) then ! .and. i_phi.ne.mphi) then
-                     write(19,*) u_proj,-v_proj,emi,emi_abs ! symmetry???
-                     write(20,*) S_th
-                     if ((shock == 'BOTH') .or. (shock == 'FS')) then
-                        write(21,*) S_hot
-                     end if
-                  endif
-
-                  ! 325 MHz
-                  read(3252,*) u_proj,v_proj,emi,emi_abs
-                  read(3250,*) S_th_RS
-                  read(3251,*) S_th_FS
-                  if ((shock == 'BOTH') .or. (shock == 'FS')) then
-                     read(3253,*) S_hot
-                  end if
-                  S_th = S_th_FS + S_th_RS
-                  write(3255,*) u_proj,v_proj,emi,emi_abs
-                  write(326,*) S_th
-                  if ((shock == 'BOTH') .or. (shock == 'FS')) then
-                     write(327,*) S_hot
-                  end if
-                  if (i_phi.ne.1) then ! .and. i_phi.ne.mphi) then
-                     write(3255,*) u_proj,-v_proj,emi,emi_abs ! symmetry???
-                     write(326,*) S_th
-                     if ((shock == 'BOTH') .or. (shock == 'FS')) then
-                        write(327,*) S_hot
-                     end if
-                  endif
-
-                  ! 3 GHz
-                  read(3002,*) u_proj,v_proj,emi,emi_abs
-                  read(3000,*) S_th_RS
-                  read(3001,*) S_th_FS
-                  if ((shock == 'BOTH') .or. (shock == 'FS')) then
-                     read(3003,*) S_hot
-                  end if
-                  S_th = S_th_FS + S_th_RS
-                  write(3333,*) u_proj,v_proj,emi,emi_abs
-                  write(36,*) S_th
-                  if ((shock == 'BOTH') .or. (shock == 'FS')) then
-                     write((37),*) S_hot
-                  end if
-                  if (i_phi.ne.1) then !.and. i_phi.ne.mphi) then
-                     write(3333,*) u_proj,-v_proj,emi,emi_abs ! symmetry???
-                     write(36,*) S_th
-                     if ((shock == 'BOTH') .or. (shock == 'FS')) then
-                        write(37,*) S_hot
-                     end if
-                  endif
-
-                  ! 5 GHz
-                  read(5002,*) u_proj,v_proj,emi,emi_abs
-                  read(5000,*) S_th_RS
-                  read(5001,*) S_th_FS
-                  if ((shock == 'BOTH') .or. (shock == 'FS')) then
-                     read(5003,*) S_hot
-                  end if
-                  S_th = S_th_FS + S_th_RS
-                  write(50,*) u_proj,v_proj,emi,emi_abs  
-                  write(55,*) S_th
-                  if ((shock == 'BOTH') .or. (shock == 'FS')) then
-                     write(56,*) S_hot
-                  end if
-                  if (i_phi.ne.1) then !.and. i_phi.ne.mphi) then
-                     write(50,*) u_proj,-v_proj,emi,emi_abs ! symmetry???
-                     write(55,*) S_th
-                     if ((shock == 'BOTH') .or. (shock == 'FS')) then
-                        write(56,*) S_hot
-                     end if
-                  endif
-
-                  ! 6 GHz
-                  read(6002,*) u_proj,v_proj,emi,emi_abs
-                  read(6000,*) S_th_RS
-                  read(6001,*) S_th_FS
-                  if ((shock == 'BOTH') .or. (shock == 'FS')) then
-                     read(6003,*) S_hot
-                  end if
-                  S_th = S_th_FS + S_th_RS
-                  write(60,*) u_proj,v_proj,emi,emi_abs  
-                  write(61,*) S_th
-                  if ((shock == 'BOTH') .or. (shock == 'FS')) then
-                     write(62,*) S_hot
-                  end if
-                  if (i_phi.ne.1) then !.and. i_phi.ne.mphi) then
-                     write(60,*) u_proj,-v_proj,emi,emi_abs ! symmetry???
-                     write(61,*) S_th
-                     if ((shock == 'BOTH') .or. (shock == 'FS')) then
-                        write(62,*) S_hot
-                     end if
-                  endif
-
-                  ! 10 GHz
-                  read(10002,*) u_proj,v_proj,emi,emi_abs
-                  read(10000,*) S_th_RS
-                  read(10001,*) S_th_FS
-                  if ((shock == 'BOTH') .or. (shock == 'FS')) then
-                     read(10003,*) S_hot
-                  end if
-                  S_th = S_th_FS + S_th_RS
-                  write(100,*) u_proj,v_proj,emi,emi_abs  
-                  write(1001,*) S_th
-                  if ((shock == 'BOTH') .or. (shock == 'FS')) then
-                     write(1002,*) S_hot
-                  end if
-                  if (i_phi.ne.1) then !.and. i_phi.ne.mphi) then
-                     write(100,*) u_proj,-v_proj,emi,emi_abs ! symmetry???
-                     write(1001,*) S_th
-                     if ((shock == 'BOTH') .or. (shock == 'FS')) then
-                        write(1002,*) S_hot
-                     end if
-                  endif
-
-                  ! Average
-                  read(992,*) u_proj,v_proj,emi_avg,emi_avg_abs
-                  read(990,*) S_th_avg_RS
-                  read(991,*) S_th_avg_FS
-                  if ((shock == 'BOTH') .or. (shock == 'FS')) then
-                     read(993,*) S_hot_avg
-                  end if
-                  S_th_avg = S_th_avg_FS + S_th_avg_RS
-                  write(91,*) u_proj,v_proj,emi_avg,emi_avg_abs
-                  write(92,*) S_th_avg
-                  if ((shock == 'BOTH') .or. (shock == 'FS')) then
-                     write(93,*) S_hot_avg
-                  end if
-                  if (i_phi.ne.1) then !.and. i_phi.ne.mphi) then
-                     write(91,*) u_proj,-v_proj,emi_avg,emi_avg_abs
-                     write(92,*) S_th_avg ! symmetry???
-                     if ((shock == 'BOTH') .or. (shock == 'FS')) then
-                        write(93,*) S_hot_avg
-                     end if
-                  endif
-
-               end do
-               close(110)
-               close(150)
-               close(190)
-               close(3250)
-               close(3000)
-               close(5000)
-               close(6000)
-               close(10000)
-               close(111)
-               close(151)
-               close(191)
-               close(3251)
-               close(3001)
-               close(5001)  
-               close(6001)
-               close(10001)
-               close(990)
-               close(991)
-               close(112)
-               close(152)
-               close(192)
-               close(3252)
-               close(3002)
-               close(5002)
-               close(6002)
-               close(10002)
-               close(992)
-
-               if ((shock == 'BOTH') .or. (shock == 'FS'))  then
-                  close(113)
-                  close(153)
-                  close(193)
-                  close(3253)
-                  close(3003)
-                  close(5003)
-                  close(6003)
-                  close(10003)
-                  close(5003)
-                  close(993)
-               end if
-            endif
-            ! -----------------------------------------------------------------------------
-            !------------------------------------------------------------------------------
-
-            phi = phi + delta_phi           
-         end do
+         phi = phi + delta_phi           
+      end do
    end if
 
-   close(1111)
-   close(1500)
-   close(19)
-   close(3255)
-   close(3333)
-   close(50)
-   close(60)
-   close(100)
-   close(91)
-   close(120)
-   close(16)
-   close(20)
-   close(326)
-   close(36)
-   close(55)
-   close(61)
-   close(1001)
-   close(92)
-   if ((shock == 'BOTH') .or. (shock == 'FS')) then
-      close(1113)
-      close(17)
-      close(21)
-      close(327)
-      close(37)
-      close(56)
-      close(62)
-      close(1002)
-      close(93)
-   end if
-
+   do im = 1, n_map
+      close(iu_syn(im))
+      close(iu_th(im))
+      if (hot) close(iu_hot(im))
+   end do
+   close(iu_syn_avg)
+   close(iu_th_avg)
+   if (hot) close(iu_hot_avg)
 
    if (abssyn_calc) then       ! This has the full 3D geometry in the abs
             open (51,file='radsynabs_'//shock//'_tot.dat')
@@ -873,24 +558,48 @@ Subroutine abs_maps(SHOCK)
             close(51)
    endif
 
-
-
    if (convolution) then
       print *, 'Convolution of the emission map with the instrument response'
-      !call SW_conv_run(shock, '110MHz')
-      !call SW_conv_run(shock, '150MHz')
-      !call SW_conv_run(shock, '190MHz')
-      !call SW_conv_run(shock, '325MHz')
-      !call SW_conv_run(shock, '1GHz')
-      call SW_conv_run(shock, '3GHz')
-      !call SW_conv_run(shock, '5GHz')
-      !call SW_conv_run(shock, '6GHz')
-      !call SW_conv_run(shock, '10GHz')
-      call SW_conv_run(shock, 'avg')
-      !call SW_spex_110_190_run
-      !call SW_spex_run
-      !call SW_spex_6_10_run
+      do im = 1, n_map
+         call SW_conv_run(shock, maps(im))
+      end do
+      if (map_avg%on) call SW_conv_run(shock, map_avg)
    endif
 
+   deallocate( iu_syn, iu_th, iu_hot )
 
-   END subroutine abs_maps
+contains
+
+   !-------------------------------------------------------------------------
+   ! Reads the maps of one frequency for the current phi (synchrotron from
+   ! CD_abssyn, thermal RS + FS and hot layer from shock_thermal) and appends
+   ! them to the output files. For i_phi > 1 it also writes the mirror image
+   ! (v -> -v), line by line as before.
+   !-------------------------------------------------------------------------
+   subroutine merge_map(f_syn, f_th_RS, f_th_FS, f_hot, iu_s, iu_t, iu_h)
+      character(len=*), intent(in) :: f_syn, f_th_RS, f_th_FS, f_hot
+      integer, intent(in) :: iu_s, iu_t, iu_h
+      real(dp) :: uve(4,m_l)     ! u_proj, v_proj, emi, emi_abs
+      real(dp) :: S_RS(m_l), S_FS(m_l), S_th(m_l), S_hot(m_l)
+      integer :: iu, il
+
+      open(newunit=iu, file=f_syn);   read(iu,*) uve;  close(iu)
+      open(newunit=iu, file=f_th_RS); read(iu,*) S_RS; close(iu)
+      open(newunit=iu, file=f_th_FS); read(iu,*) S_FS; close(iu)
+      S_th = S_RS + S_FS
+      if (hot) then
+         open(newunit=iu, file=f_hot); read(iu,*) S_hot; close(iu)
+      end if
+
+      if (i_phi == 1) then
+         write(iu_s,'(4es16.8)') uve
+         write(iu_t,'(es16.8)') S_th
+         if (hot) write(iu_h,'(es16.8)') S_hot
+      else
+         write(iu_s,'(4es16.8)') (uve(:,il), uve(1,il), -uve(2,il), uve(3:4,il), il=1,m_l)
+         write(iu_t,'(es16.8)') (S_th(il), S_th(il), il=1,m_l)
+         if (hot) write(iu_h,'(es16.8)') (S_hot(il), S_hot(il), il=1,m_l)
+      end if
+   end subroutine merge_map
+
+END subroutine abs_maps

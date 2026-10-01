@@ -1,6 +1,7 @@
 module shock_thermal
   use global
   use gaunt_factor
+  use numerical_utils, only: vector_log
   use map_freqs, only: maps, nu_index
   implicit none
 

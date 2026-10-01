@@ -98,7 +98,7 @@ contains
       close(13)
       close(14)
 
-      write(*,110) 'Length_proj[arcmin] =', (sqrt((x(m_theta)*R0+R0)**2+y(m_theta)**2)/AU)/(distance/pc)/60./abs(cos(incli))
+      write(*,110) 'Length_proj[arcsec] =', (sqrt((x(m_theta)*R0+R0)**2+y(m_theta)**2)/AU)/(distance/pc)/abs(cos(incli))
 
       deallocate(x,y)
       

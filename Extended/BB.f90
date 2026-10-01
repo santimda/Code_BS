@@ -1,5 +1,6 @@
 module BB
   use global
+  use numerical_utils, only: vector_log
   implicit none
 
   public :: BB_run
