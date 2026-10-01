@@ -1,15 +1,16 @@
 module CD_abssyn
-  use global
-  use gaunt_factor  
-  implicit none
-  public :: CD_abssyn_run
+   use global
+   use gaunt_factor  
+   use map_freqs, only: maps, nu_index
+   implicit none
+   public :: CD_abssyn_run
 
-  contains
+   contains
     
     !========================================================================
     !        abssyn_run        
     !========================================================================
-  	 ! This module calculates the f-f absorption of radio emission from the shock.
+    ! This module calculates the f-f absorption of radio emission from the shock.
     ! This program calculates the total radio opacity for a radio photon 
     ! emitted from a position (x(l),y(l)) in the CD. The output is the file
     ! radsyn.dat which contains E(i), L_sy(E(i), L_sy_abs(E(i)).
@@ -17,49 +18,49 @@ module CD_abssyn
     ! if the wind alpha(r,nu_i), with "r" tabulated in r.dat is the distance to 
     ! the star. The f-f absorption in the shock is negligible given the large T
     !========================================================================
-  
+
     subroutine CD_abssyn_run(shock,radiative)
       !$ use omp_lib
-!      real(dp), intent(in) :: phi
       character(LEN=*), intent(in) :: shock
       logical, intent(in) :: radiative
-      real(dp) :: dtheta, alphaffw(mr_ff,mE_ff)
-!      real(dp) :: alpha_FS(mr_ff,mE_ff)
+      real(dp) :: dtheta
       Real(dp) :: r_ff(mr_ff),dr_ff
       Real(dp) :: theta1,x1,y1,z1,r1,dr0,x1_0,y1_0,z1_0
       Real(dp) :: dr_x,dr_y,tginc,sinc,cinc
-      Real(dp) :: Ef(m_nu),log_nu_int,flux,flux0,flux1,flux2,flux3,flux4,flux5,flux190,flux150,flux325
+      Real(dp) :: Ef(m_nu),log_nu_int,flux,convert
       Real(dp) :: u_proj,v_proj  ! coords in the plane of the sky 
-      Real(dp) :: emision0,emision1,emision2,emision3
-      Real(dp) :: emision0_abs,emision1_abs,emision2_abs,emision3_abs,convert
-      Real(dp) :: emision4,emision4_abs,emision5,emision5_abs,emision190,emision190_abs
-      Real(dp) :: emision150,emision150_abs,emision325,emision325_abs
+      real(dp) :: dnu_avg,h_avg
+      real(dp) :: R_str
       Integer :: ir,nl,inu_max,i_ff,i_theta
-      Integer :: i_110M,i_150M,i_190M,i_325M,i_1G,i_3G,i_5G,i_6G,i_10G 
+      ! radio maps at the frequencies of maps(:) (map_freqs.f90)
+      integer :: im, n_map, iu
+      integer,  allocatable :: i_nu(:)               ! index of each map frequency in nu(:)
+      real(dp), allocatable :: u_map(:), v_map(:)    ! coords in the plane of the sky
+      real(dp), allocatable :: emis(:,:), emis_abs(:,:)  ! (position, map frequency)
+      character(len=:), allocatable :: tag
       integer :: N_avg
       integer, parameter :: m_l = 2*m_theta  ! CD position, both sides
-      real(dp) :: dnu_avg,h_avg
-      real(dp) :: emi_tot(m_l),emi_avg(m_l),emi_tot_abs(m_l),emi_avg_abs(m_l)
-      real(dp) :: H_theta(m_l), H_IL(m_theta), rho(m_theta), n(m_l), R_str
-      real(dp) :: alpha_IL(m_l,m_nu), alpha_str(m_nu)
       Logical :: integra, inside
+
+      real(dp), allocatable :: emi_tot(:), emi_avg(:), emi_tot_abs(:), emi_avg_abs(:)
+      real(dp), allocatable :: H_theta(:), H_IL(:), rho(:), n(:)
+      real(dp), allocatable :: alpha_IL(:,:), alpha_str(:), alphaffw(:,:)
       real(dp), allocatable :: gaunt(:,:), gaunt_str(:)
- 
+
+      allocate( emi_tot(m_l),emi_avg(m_l),emi_tot_abs(m_l),emi_avg_abs(m_l) )
+      allocate( H_theta(m_l), H_IL(m_theta), rho(m_theta), n(m_l) )
+      allocate( alpha_IL(m_l,m_nu), alpha_str(m_nu), alphaffw(mr_ff,mE_ff) )
       allocate( tauff(m_l,m_nu),tau_IL(m_l,m_nu),tau_str(m_nu),tau_tot(m_l,m_nu) ) 
       allocate( x(m_l),y(m_l),z(m_l) )
       allocate( nu(m_nu),Lsy(m_l,m_nu),Lsy_tot(m_nu),Lsy_tot_abs(m_nu) )
       allocate( Lsy_RS(m_l,m_nu),Lsy_FS(m_l,m_nu) )
       allocate( gaunt(m_l,m_nu),gaunt_str(m_nu) )
-  
-!100  format(A15,X,Es10.2)
 
       tauff = 0.d0
       Lsy_tot = 0.d0
       Lsy_tot_abs = 0.d0
       convert = 206265/distance             ! image to angular size ["]
       flux = 1.d26/(4.d0*pi*(distance)**2) ! luminosity to flux in mJy
-
-!      write(*,100) 'R0_proj[arcmin] =',R0_proj/60
 
       tginc = tan(incli)
       sinc = sin(incli)
@@ -87,7 +88,7 @@ module CD_abssyn
 
       !======================================================
       !
-      !    Read the opacity table
+      ! Read the opacity table
       
       open(11,file='CDrot.dat')
       do l=1,m_l     ! "up" and "down"
@@ -131,9 +132,9 @@ module CD_abssyn
       ! point in the CD integrating at distances d > r_shock along the LOS, and 
       ! for photons with nu < 2 GHz ( ~ 4.1e-5 eV). Note that the stellar wind  
       ! absorbs only when the photons are "inside" the CD ( r_xy < r(theta) )
-  
+
       inu_max = int( log(0.5d9/nu(1))/log_nu_int ) + 1
-!      write(*,*) 'inu_max=', inu_max
+   !      write(*,*) 'inu_max=', inu_max
 
       do l=1,m_l        ! Position in the CD
 
@@ -228,7 +229,6 @@ module CD_abssyn
 
       !/////////////////////////////////////////////////////////////////////
 
-      !open (31,file='emisyn_'//shock//'.dat')
       if (shock == 'RS') then
          open (32,file='emisyn_RS.dat')
          do l=1,m_theta
@@ -251,69 +251,22 @@ module CD_abssyn
 
       else if (shock == 'BOTH') then
          open (32,file='emisyn_RS.dat')
-         !open (33,file='emisyn_FS.dat')
+         open (33,file='emisyn_FS.dat')
          do l=1,m_theta
             do i=1,m_nu
                read(32,*) nl,Ef(i),Lsy_RS(l,i)  ! Lsy is already multiplied by Ef(i)
-               !read(33,*) nl,Ef(i),Lsy_FS(l,i)
-               Lsy(l,i) = Lsy_RS(l,i)! + Lsy_FS(l,i)
+               Lsy(l,i) = Lsy_RS(l,i) + Lsy_FS(l,i)
                Lsy(l+m_theta,i) = Lsy(l,i)   ! symmetry 
          end do
          end do
          close(32)
-         !close(33)
+         close(33)
       end if
-
-      i_110M = int(log(1.1d8/nu(1))/log_nu_int) + 1       ! 110 MHz
-      i_150M = int(log(1.5d8/nu(1))/log_nu_int) + 1       ! 150 MHz
-      i_190M = int(log(1.9d8/nu(1))/log_nu_int) + 1
-      i_325M = int(log(3.25d8/nu(1))/log_nu_int) + 1       ! 325 MHz
-      i_1G = int(log(1.42d9/nu(1))/log_nu_int) + 1        ! 1.4 GHz
-      i_3G = int(log(3.00d9/nu(1))/log_nu_int) + 1         ! 3.0 GHz
-      i_5G = int(log(4.86d9/nu(1))/log_nu_int) + 1        ! 4.8 GHz
-      i_6G = int(log(6.d9/nu(1))/log_nu_int) + 1        ! 6.0 GHz
-      i_10G = int(log(10.d9/nu(1))/log_nu_int) + 1        ! 10. GHz
-      flux0 = flux/nu(i_110M)
-      flux150 = flux/nu(i_150M)
-      flux190 = flux/nu(i_190M)
-      flux325 = flux/nu(i_325M)
-      flux1 = flux/nu(i_1G)   
-      flux2 = flux/nu(i_3G) 
-      flux3 = flux/nu(i_5G)
-      flux4 = flux/nu(i_6G)
-      flux5 = flux/nu(i_10G)
 
       !-----------------------------------------------------------------------
-      ! Calculate the total and absorbed emission for each linear emitter. 
-      ! Also stores the emission projected in the plane of the sky, (u_proj,v_proj)
-
-      if (shock /= 'BOTH') then
-         open(70,file='CD_sync_radiomap_'//shock//'110MHz.dat') ! 110 MHz
-         open(150,file='CD_sync_radiomap_'//shock//'150MHz.dat') ! 150 MHz
-         open(190,file='CD_sync_radiomap_'//shock//'190MHz.dat') ! 190 MHz
-         open(325,file='CD_sync_radiomap_'//shock//'325MHz.dat') ! 325 MHz
-         open(71,file='CD_sync_radiomap_'//shock//'1GHz.dat') ! 1.4 GHz
-         open(72,file='CD_sync_radiomap_'//shock//'3GHz.dat') ! 3.0 GHz
-         open(73,file='CD_sync_radiomap_'//shock//'5GHz.dat') ! 4.8 GHz
-         open(74,file='CD_sync_radiomap_'//shock//'6GHz.dat') ! 6.0 GHz
-         open(75,file='CD_sync_radiomap_'//shock//'10GHz.dat') ! 10. GHz
-      else if (shock == 'BOTH') then
-         open(70,file='CD_sync_radiomap_110MHz.dat') ! 110 MHz
-         open(150,file='CD_sync_radiomap_150MHz.dat') ! 150 MHz
-         open(190,file='CD_sync_radiomap_190MHz.dat') ! 190 MHz
-         open(325,file='CD_sync_radiomap_325MHz.dat') ! 325 MHz
-         open(71,file='CD_sync_radiomap_1GHz.dat') ! 1.4 GHz
-         open(72,file='CD_sync_radiomap_3GHz.dat') ! 3.0 GHz
-         open(73,file='CD_sync_radiomap_5GHz.dat') ! 4.8 GHz
-         open(74,file='CD_sync_radiomap_6GHz.dat') ! 6.0 GHz
-         open(75,file='CD_sync_radiomap_10GHz.dat') ! 10. GHz
-      end if
+      ! Calculate the total and absorbed emission (sum over linear emitters)
 
       do l=1,m_l
-!         u_proj = (y(l)+x(l)/tginc)*sinc *convert ! ?
-         u_proj = (y(l)+x(l)/abs(tginc))*abs(sinc) *convert 
-         v_proj = z(l)*convert
-
          do i=1,m_nu
             Lsy_tot(i) = Lsy_tot(i) + Lsy(l,i)
             if (i < inu_max) then !  The abs was calculated at these freqs  
@@ -321,55 +274,35 @@ module CD_abssyn
             else
                Lsy_tot_abs(i) = Lsy_tot_abs(i) + Lsy(l,i)
             endif
-
          end do
-         
-         emision0 = Lsy(l,i_110M) * flux0 ! At 110 MHz
-         emision0_abs = emision0 * exp(-tau_tot(l,i_110M))
-
-         emision150 = Lsy(l,i_150M) * flux150 ! At 150 MHz
-         emision150_abs = emision150 * exp(-tau_tot(l,i_150M))
-
-         emision190 = Lsy(l,i_190M) * flux190 ! At 190 MHz
-         emision190_abs = emision190 * exp(-tau_tot(l,i_190M))
-
-         emision325 = Lsy(l,i_325M) * flux325 ! At 325 MHz
-         emision325_abs = emision325 * exp(-tau_tot(l,i_325M))
-
-         emision1 = Lsy(l,i_1G) * flux1 ! At 1.4 GHz
-         emision1_abs = emision1 * exp(-tau_tot(l,i_1G))
-
-         emision2 = Lsy(l,i_3G) * flux2 ! At 3.0 GHz
-         emision2_abs = emision2 * exp(-tau_tot(l,i_3G))
-
-         emision3 = Lsy(l,i_5G) * flux3 ! At 4.8 GHz
-         emision3_abs = emision3 * exp(-tau_tot(l,i_5G))
-
-         emision4 = Lsy(l,i_6G) * flux4 ! At 6.0 GHz
-         emision4_abs = emision4 * exp(-tau_tot(l,i_6G))
-
-         emision5 = Lsy(l,i_10G) * flux5 ! At 10. GHz
-         emision5_abs = emision5 * exp(-tau_tot(l,i_10G))
-         
-         write(70,*) u_proj,v_proj,emision0,emision0_abs
-         write(150,*) u_proj,v_proj,emision150,emision150_abs
-         write(190,*) u_proj,v_proj,emision190,emision190_abs
-         write(325,*) u_proj,v_proj,emision325,emision325_abs
-         write(71,*) u_proj,v_proj,emision1,emision1_abs
-         write(72,*) u_proj,v_proj,emision2,emision2_abs
-         write(73,*) u_proj,v_proj,emision3,emision3_abs
-         write(74,*) u_proj,v_proj,emision4,emision4_abs
-         write(75,*) u_proj,v_proj,emision5,emision5_abs
       end do
-      close(70)
-      close(150)
-      close(190)
-      close(325)
-      close(71)
-      close(72)
-      close(73)
-      close(74)
-      close(75)
+
+      !-----------------------------------------------------------------------
+      ! Emission maps at the frequencies selected in controls (maps(:)),
+      ! projected in the plane of the sky (u_map,v_map)
+
+      n_map = size(maps)
+      allocate( i_nu(n_map), u_map(m_l), v_map(m_l), emis(m_l,n_map), emis_abs(m_l,n_map) )
+
+      i_nu     = nu_index(maps%nu, nu(1), log_nu_int, m_nu)
+      u_map    = (y + x/abs(tginc))*abs(sinc)*convert
+      v_map    = z*convert
+      emis     = Lsy(:,i_nu) * spread(flux/nu(i_nu), 1, m_l)   ! Lsy is already multiplied by Ef
+      emis_abs = emis * exp(-tau_tot(:,i_nu))
+
+      if (shock == 'BOTH') then
+         tag = ''
+      else
+         tag = shock
+      end if
+
+      do im = 1, n_map
+         open(newunit=iu, file='CD_sync_radiomap_'//tag//trim(maps(im)%label)//'.dat')
+         write(iu,'(4es16.8)') (u_map(l), v_map(l), emis(l,im), emis_abs(l,im), l=1,m_l)
+         close(iu)
+      end do
+
+      deallocate( i_nu, u_map, v_map, emis, emis_abs )
 
       !------------------------------------------------------------
       ! Avg flux btw nu_av_min and nu_av_max
@@ -416,13 +349,15 @@ module CD_abssyn
       do i=1,m_nu
          write(34,*) Ef(i),Lsy_tot(i),Lsy_tot_abs(i)
       end do
-     close(34)
+      close(34)
 
+      deallocate( emi_tot,emi_avg,emi_tot_abs,emi_avg_abs )
+      deallocate( H_theta, H_IL, rho, n )
+      deallocate( alpha_IL, alpha_str, alphaffw )
       deallocate( tauff,tau_IL,tau_str,tau_tot )
       deallocate( gaunt, gaunt_str )
       deallocate( x,y,z,nu,Lsy,Lsy_tot,Lsy_tot_abs,Lsy_RS,Lsy_FS )
-   
+
     END subroutine CD_abssyn_run
     
-  END module CD_abssyn
-  
+   END module CD_abssyn

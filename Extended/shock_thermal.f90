@@ -1,6 +1,7 @@
 module shock_thermal
   use global
   use gaunt_factor
+  use map_freqs, only: maps, nu_index
   implicit none
 
   public :: shock_thermal_run_total, shock_thermal_run_spectrum
@@ -93,7 +94,7 @@ module shock_thermal
     real(dp) :: v_sh
     real(dp) :: Eph_0, Eph_min, Eph_max, Eph_int, Eph(mE_ph), dEph
     real(dp) :: nu(mE_ph)
-    real(dp) :: log_nu_int,flux,flux0,flux110,flux190,flux1,flux2,flux3,flux4,flux5,flux150,flux325
+    real(dp) :: log_nu_int,flux,flux0,flux110,flux1,flux2,flux3
     real(dp) :: integral,integ,integ_ion,integ_HL
     real(dp) :: A(m_theta), frac_ff
     real(dp) :: emi_ff_nu(m_theta,mE_ph), emi_ion_nu
@@ -117,10 +118,14 @@ module shock_thermal
     !real(dp) :: F_nu(m_l,mE_ph),F_nu_phi(m_l,mE_ph)
     real(dp) :: n_BB(m_theta,mE_ph), T_min(m_theta)
     real(dp) :: L_tot,L_th(mE_ph),L_ion(mE_ph),L_ion_tot
-    real(dp) :: S(mE_ph),S0,S190,S1,S2,S3,S4,S5,S150,S325
+    real(dp) :: S(mE_ph)
     real(dp) :: S_ion(mE_ph)
     integer :: nl, i_ph
-    Integer :: i_890M,i_1G,i_3G,i_5G,i_6G,i_10G,i_110M,i_190M,i_150M,i_325M
+    Integer :: i_890M,i_1G,i_3G,i_5G,i_110M
+    ! radio maps at the frequencies of maps(:) (map_freqs.f90)
+    integer :: im, n_map, iu
+    integer,  allocatable :: i_map(:)      ! index of each map frequency in nu(:)
+    real(dp), allocatable :: S_map(:,:)    ! (position, map frequency) [mJy]
     integer :: N_avg
     integer :: l_min
     real(dp), allocatable :: g_ff(:,:)
@@ -214,25 +219,15 @@ module shock_thermal
     flux = 1.d26/(4.d0*pi*(distance)**2) ! luminosity to flux in mJy
 
     i_110M = int(log(110.d6/nu(1))/log_nu_int) + 1        ! 110 MHz
-    i_150M = int(log(150.d6/nu(1))/log_nu_int) + 1        ! 150 MHz
-    i_190M = int(log(190.d6/nu(1))/log_nu_int) + 1        ! 190 MHz
-    i_325M = int(log(325.d6/nu(1))/log_nu_int) + 1        ! 325 MHz
     i_890M = int(log(890.d6/nu(1))/log_nu_int) + 1        ! 890 MHz
     i_1G = int(log(1.42d9/nu(1))/log_nu_int) + 1        ! 1.4 GHz
     i_3G = int(log(3.00d9/nu(1))/log_nu_int) + 1        ! 3.0 GHz
     i_5G = int(log(4.86d9/nu(1))/log_nu_int) + 1        ! 4.8 GHz
-    i_6G = int(log(6.d9/nu(1))/log_nu_int) + 1        ! 6.0 GHz
-    i_10G = int(log(10.d9/nu(1))/log_nu_int) + 1        ! 10. GHz
     flux110 =flux/nu(i_110M)
-    flux150 =flux/nu(i_150M)
-    flux190 =flux/nu(i_190M)
-    flux325 =flux/nu(i_325M)
     flux0 = flux/nu(i_890M)
     flux1 = flux/nu(i_1G)   
     flux2 = flux/nu(i_3G) 
     flux3 = flux/nu(i_5G)
-    flux4 = flux/nu(i_6G)
-    flux5 = flux/nu(i_10G)
 
     allocate(g_ff(m_theta,mE_ph))
 
@@ -243,7 +238,7 @@ module shock_thermal
     if (radiative) then 
 
     open(19,file=''//shock//'_ff.dat')
-    open(20,file='S_ff_'//shock//'.dat')
+    open(20,file='S_ff_'//system//'_'//shock//'.dat')
 
     do l=1,m_theta  
       integ = 0.d0
@@ -323,8 +318,8 @@ module shock_thermal
     ! emi_ff_nu= dW/dt/dV/dnu the specific emissivity given by Eq. 5.14b from Rybicki,
     ! and dV_ring(l) the volume of the shocked ring element
 
-    open(39,file='ionized_ff_'//shock//'.dat')
-    open(40,file='S_ionized'//shock//'.dat')
+    open(39,file='ionized_ff_'//system//'_'//shock//'.dat')
+    open(40,file='S_ionized_'//system//'_'//shock//'.dat')
 
     ! THIS IS INCORRECT FOR THE RS! T(1) should be T(l), but within the loop... rethink!
     do l = 1,m_theta
@@ -411,102 +406,32 @@ module shock_thermal
     !------------------------------------------------------------
     ! Emission maps
 
+    n_map = size(maps)
+    allocate( i_map(n_map), S_map(m_l,n_map) )
+    i_map = nu_index(maps%nu, nu(1), log_nu_int, mE_ph)
+
     ! Hot layer
     if (radiative) then
-      open(22, file='CD_hot_layer_110MHz.dat')
-      open(150, file='CD_hot_layer_150MHz.dat')
-      open(23, file='CD_hot_layer_190MHz.dat')
-      open(325, file='CD_hot_layer_325MHz.dat')
-      open(24, file='CD_hot_layer_1GHz.dat')
-      open(25, file='CD_hot_layer_3GHz.dat')
-      open(26, file='CD_hot_layer_5GHz.dat')
-      open(27, file='CD_hot_layer_6GHz.dat')
-      open(28, file='CD_hot_layer_10GHz.dat')
-
-      do l = 1,m_l
-        do i_ph = 1, mE_ph
-          F_nu_phi(l,i_ph) = F_nu(l,i_ph)/mphi/4.d0   ! 4 quadrants, but already mirrored
-          !if (l==2 .and. (nu(i_ph) >= nu_av_min)) print*, 'F_HOT =', F_nu(l,i_ph), nu(i_ph)/1.d9
-        end do
-        S0 = F_nu_phi(l,i_110M)*flux110
-        S150 = F_nu_phi(l,i_150M)*flux150
-        S190 = F_nu_phi(l,i_190M)*flux190
-        S325 = F_nu_phi(l,i_325M)*flux325
-        S1 = F_nu_phi(l,i_1G)*flux1
-        S2 = F_nu_phi(l,i_3G)*flux2
-        S3 = F_nu_phi(l,i_5G)*flux3
-        S4 = F_nu_phi(l,i_6G)*flux5
-        S5 = F_nu_phi(l,i_10G)*flux5
-        write(22,*) S0
-        write(150,*) S150
-        write(23,*) S190
-        write(325,*) S325
-        write(24,*) S1
-        write(25,*) S2
-        write(26,*) S3
-        write(27,*) S4
-        write(28,*) S5
+      F_nu_phi = F_nu/mphi/4.d0     ! 4 quadrants, but already mirrored
+      S_map = F_nu_phi(:,i_map) * spread(flux/nu(i_map), 1, m_l)
+      do im = 1, n_map
+        open(newunit=iu, file='CD_hot_layer_'//trim(maps(im)%label)//'.dat')
+        write(iu,'(es16.8)') S_map(:,im)
+        close(iu)
       end do
-
-      close(22)
-      close(150)
-      close(23)
-      close(325)
-      close(24)
-      close(25)
-      close(26)
-      close(27)
-      close(28)
     end if
 
     !------------------------------------------------------------
     ! Emission from the RS and the isothermal region in the FS
-    if (shock /= 'BOTH') then
-      open(29,file='CD_th_'//shock//'_110MHz.dat') ! 110 MHz
-      open(151,file='CD_th_'//shock//'_150MHz.dat') ! 150 MHz
-      open(30,file='CD_th_'//shock//'_190MHz.dat') ! 190 MHz
-      open(326,file='CD_th_'//shock//'_325MHz.dat') ! 325 MHz
-      open(31,file='CD_th_'//shock//'_1GHz.dat') ! 1.4 GHz
-      open(32,file='CD_th_'//shock//'_3GHz.dat') ! 3.0 GHz
-      open(33,file='CD_th_'//shock//'_5GHz.dat') ! 4.8 GHz
-      open(34,file='CD_th_'//shock//'_6GHz.dat') ! 6.0 GHz
-      open(35,file='CD_th_'//shock//'_10GHz.dat') ! 10. GHz
-    end if
-
-    do l = 1,m_l
-      do i_ph=1,mE_ph
-        F_nu_phi_ion(l,i_ph) = F_nu_ion(l,i_ph)/mphi/4.d0   ! 4 quadrants
-        !if (l==2 .and. (nu(i_ph) >= nu_av_min)) print*, 'F_ion =', F_nu_ion(l,i_ph), nu(i_ph)/1.d9
-      end do
-      S0 = F_nu_phi_ion(l,i_110M)*flux110
-      S150 = F_nu_phi_ion(l,i_150M)*flux150
-      S190 = F_nu_phi(l,i_190M)*flux190
-      S325 = F_nu_phi_ion(l,i_325M)*flux325
-      S1 = F_nu_phi_ion(l,i_1G)*flux1
-      S2 = F_nu_phi_ion(l,i_3G)*flux2
-      S3 = F_nu_phi_ion(l,i_5G)*flux3
-      S4 = F_nu_phi_ion(l,i_6G)*flux4
-      S5 = F_nu_phi_ion(l,i_10G)*flux5
-      write(29,*) S0
-      write(151,*) S150
-      write(30,*) S190
-      write(326,*) S325
-      write(31,*) S1
-      write(32,*) S2
-      write(33,*) S3
-      write(34,*) S4
-      write(35,*) S5
+    F_nu_phi_ion = F_nu_ion/mphi/4.d0   ! 4 quadrants
+    S_map = F_nu_phi_ion(:,i_map) * spread(flux/nu(i_map), 1, m_l)
+    do im = 1, n_map
+      open(newunit=iu, file='CD_th_'//shock//'_'//trim(maps(im)%label)//'.dat')
+      write(iu,'(es16.8)') S_map(:,im)
+      close(iu)
     end do
 
-    close(29)
-    Close(151)
-    close(30)
-    close(326)
-    close(31)
-    close(32)
-    close(33)
-    close(34)
-    close(35)
+    deallocate( i_map, S_map )
 
     !------------------------------------------------------------
     ! Avg flux btw nu_av_min and nu_av_max

@@ -1,5 +1,6 @@
 module controls
 
+use map_freq_type, only: map_freq_t
 implicit none
 public
 
@@ -35,6 +36,26 @@ logical, parameter :: radic_IR_calc = no
 logical, parameter :: abssyn_calc = no !needs maps = yes
 logical, parameter :: maps_calc = no
 logical, parameter :: convolution = yes! no
+! Radio-map frequencies
+! nu: freq in Hz
+! label: str
+! sigma: instrument resolution (x,y)
+type(map_freq_t), parameter :: map_catalogue(*) = [ &
+   !           nu [Hz]   label      sigma (x,y)      make maps?
+   map_freq_t( 1.10d8,  '110MHz', [ 4.0d0,  4.0d0], yes ), &
+   map_freq_t( 1.50d8,  '150MHz', [25.0d0, 25.0d0], yes ), &
+   map_freq_t( 1.90d8,  '190MHz', [ 4.0d0,  4.0d0], yes ), &
+   map_freq_t( 3.25d8,  '325MHz', [54.0d0, 77.0d0], yes ), &
+   map_freq_t( 1.42d9,  '1GHz',   [20.2d0, 12.5d0], no  ), &
+   map_freq_t( 3.00d9,  '3GHz',   [20.2d0, 12.5d0], yes ), &
+   map_freq_t( 4.86d9,  '5GHz',   [20.2d0, 12.5d0], yes ), &
+   map_freq_t( 6.00d9,  '6GHz',   [16.0d0, 10.0d0], yes ), &
+   map_freq_t( 1.00d10, '10GHz',  [16.0d0, 10.0d0], yes ) ]
+
+type(map_freq_t), parameter :: map_avg = &
+   map_freq_t( 0.d0, 'avg', [19.7d0, 8.25d0], yes )
+
+!----------
 
 logical, parameter :: escribir_e = yes
 

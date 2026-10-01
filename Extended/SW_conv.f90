@@ -2,86 +2,25 @@ module SW_conv
    ! This program makes the convolution of the emission in the plane of the sky 
    ! with the instrument response 
    use global
+   use map_freq_type, only: map_freq_t
    implicit none
 
-   private :: freq_resolution
    public :: SW_conv_run, SW_spex_110_190_run, SW_spex_run, SW_spex_6_10_run
 
    contains
-
-   !===================================================================================
-   ! resolution
-   !===================================================================================
-   ! This contains the instrumental resolution at the different frequencies considered
-   !-----------------------------------------------------------------------------------
-   subroutine freq_resolution(freq, sigma_x, sigma_y)
-      character(LEN=*), intent(in) :: freq
-      real(dp), intent(out) :: sigma_x, sigma_y
-      real(dp) :: theta_x, theta_y, coc
-      !real(dp), parameter :: coc = sqrt(8.d0*log(2.d0))  ! Conversion factor between FWHM and sigma
-      coc = 1.d0
-      if (freq == '110MHz' .or. freq == '190MHz') then
-         !sigma_x = 16.d0, sigma_y = 4.d0  ! LOFAR https://science.astron.nl/telescopes/lofar/lofar-system-overview/observing-modes/lofar-imaging-capabilities-and-sensitivity/ 
-         !sigma_x = 77.d0, sigma_y = 77.d0
-         sigma_x = 4.d0
-         sigma_y = 4.d0
-      elseif (freq == '150MHz') then
-         !real(dp), parameter :: sigma_x = 25.d0, sigma_y = 25.d0
-         theta_x = 25.d0           ! The FWHM
-         theta_y = 25.d0           ! The FWHM
-         sigma_x = theta_x/coc     ! The sigma
-         sigma_y = theta_y/coc     ! The sigma
-      elseif (freq == '325MHz') then
-         !real(dp), parameter :: sigma_x = 77.d0, sigma_y = 77.d0 ! Brookes
-         theta_x = 54.d0           ! The FWHM (full axis, not semi-axis)
-         theta_y = 77.d0 !54.d0/sin(dec)  ! The FWHM (full axis, not semi-axis)
-         sigma_x = theta_x/coc     ! The sigma
-         sigma_y = theta_y/coc     ! The sigma
-      elseif (freq == '1GHz') then
-         !real(dp), parameter :: sigma_x = 12.d0, sigma_y = 12.d0  ! Benaglia2010
-         !real(dp), parameter :: sigma_x = 18.3d0, sigma_y = 9.8d0    ! Moutzouri2022
-         !real(dp), parameter :: sigma_x = 9.2d0, sigma_y = 7.8d0    ! Moutzouri2022
-         !real(dp), parameter :: sigma_x = 10.d0, sigma_y = 10.d0
-         !real(dp), parameter :: theta_x = sigma_x*coc, theta_y = sigma_y*coc ! HPBW = Resolution (Ben2010)  
-         sigma_x = 20.2d0          ! Benaglia2021
-         sigma_y = 12.5d0          ! Benaglia2021
-      elseif (freq == '3GHz' .or. freq == '5GHz') then ! The 5GHz is 4.86GHz
-         theta_x = 20.2d0          ! HPBW = Resolution, Benaglia+21
-         theta_y = 12.5d0          ! HPBW = Resolution, Benaglia+21
-         sigma_x = theta_x/coc     ! The sigma
-         sigma_y = theta_y/coc     ! The sigma
-      elseif (freq == '6GHz' .or. freq == '10GHz') then
-         theta_x = 16.d0           ! HPBW = Resolution, BD+60  (Moutzouri2022)
-         theta_y = 10.d0           ! HPBW = Resolution, BD+60  (Moutzouri2022)
-         sigma_x = theta_x/coc     ! The sigma
-         sigma_y = theta_y/coc     ! The sigma
-         !real(dp), parameter :: sigma_x = 10.d0, sigma_y = 10.d0  ! Moutzouri2022
-      elseif (freq == 'avg') then  ! This is 4--12 GHz 
-         theta_x = 19.7d0          ! HPBW = Resolution, BD+43 (Moutzouri2022)
-         theta_y = 8.25d0          ! HPBW = Resolution, BD+43 (Moutzouri2022)
-         sigma_x = theta_x/coc     ! The sigma
-         sigma_y = theta_y/coc     ! The sigma
-         !real(dp), parameter :: sigma_x = 18.3d0, sigma_y = 9.8d0    ! Moutzouri2022
-         !real(dp), parameter :: sigma_x = 9.2d0, sigma_y = 7.8d0     ! Moutzouri2022
-         !real(dp), parameter :: theta_x = 16.d0, theta_y = 10.d0     ! BD+ 60?
-      else
-         print *, 'Unrecognized frequency ', freq
-         stop
-      endif
-   end subroutine freq_resolution
-   !============================================================================
-   ! freq_resolution (END)
-   !============================================================================
 
    !======================================================================================
    ! SW_conv_run
    !======================================================================================
    ! This routine makes a convolved map taking into account the reverse shock(s) emission,
    ! and the FS (HL and IL) emission. 
-   ! Important: "freq" should be "110MHz", "1GHz", etc.
+   ! mf = one entry of maps(:) (map_freqs.f90) or map_avg (controls.f90). It
+   ! gives the file-name label (mf%label) and the resolution (mf%sigma).
    !--------------------------------------------------------------------------------------
-   subroutine SW_conv_run(shock, freq)
-      character(LEN=*), intent(in) :: shock, freq
+   subroutine SW_conv_run(shock, mf)
+      character(LEN=*), intent(in) :: shock
+      type(map_freq_t), intent(in) :: mf
+      character(len=:), allocatable :: freq
       integer, parameter :: m_tot = (2*(mphi-1))*(m_theta*2)   ! Total number of data
       real(dp) :: x_map(m_tot),y_map(m_tot)
       real(dp) :: F_abs(m_tot),F_un(m_tot)
@@ -97,21 +36,23 @@ module SW_conv
       !----------------------------------------------------------------
       ! Obtain the resolution at the given frequency
 
-      call freq_resolution(freq, sigma_x, sigma_y)
+      freq    = trim(mf%label)
+      sigma_x = mf%sigma(1)
+      sigma_y = mf%sigma(2)
       A_beam = 2*pi*sigma_x*sigma_y     ! = Gaussian normalization factor 
       A_cell = f_Ny**2*sigma_x*sigma_y ! cell sample size
 
       ci = abs(cos(incli))
-      open(188,file='R0_proj.dat')
+      open(188,file='R0_proj_'//system//'.dat')
          write(188,*) 0.d0,R0_proj/ci
       close(188)
 
       !---------------------------------------------------------------
       ! Initialize the data for the convolution region
 
-      ancho_x = 4.d0*R0_proj/ci * 1.3d0 ! [mas](extra margin)
+      ancho_x = 8.d0*R0_proj/ci * 1.3d0 ! [mas](extra margin)
       if (freq == '110MHz') ancho_x = ancho_x * 4.08d0 ! [mas](extra margin)
-      ancho_y = 2.d0*(1.+ci)*R0_proj/ci * 5.3d0 ! [mas](extra margin)
+      ancho_y = 4.d0*(1.+ci)*R0_proj/ci * 5.3d0 ! [mas](extra margin)
 
       D_x = f_Ny*sigma_x
       D_y = f_Ny*sigma_y
@@ -201,7 +142,7 @@ module SW_conv
       mJy_beam = A_cell/A_beam ! Transform mJy/beam --> mJy (for consistency checks)
 
       sum = 0.d0
-      open (17,file='SW_conv_'//freq//'abs.dat')
+      open (17,file='SW_conv_'//freq//'abs_'//system//'.dat')
       do i = 1, m_x
          do j = 1, m_y
             write(17,60) x_c(i), y_c(j), F_map_abs(i,j)
@@ -263,9 +204,9 @@ module SW_conv
       !------------------------------------------------------
       ! Data read
 
-      open (17,file='SW_conv_110Mabs.dat')
-      open (18,file='SW_conv_190Mabs.dat')
-      open (19,file='SW_spex_110_190.dat')
+      open (17,file='SW_conv_110Mabs_'//system//'.dat')
+      open (18,file='SW_conv_190Mabs_'//system//'.dat')
+      open (19,file='SW_spex_110_190_'//system//'.dat')
 
       lognu2nu1 = log(190./110.)
 
@@ -335,9 +276,9 @@ module SW_conv
       !------------------------------------------------------
       ! Data read
 
-      open (17,file='SW_conv_1Gabs.dat')
-      open (18,file='SW_conv_5Gabs.dat')
-      open (19,file='SW_spex.dat')
+      open (17,file='SW_conv_1Gabs_'//system//'.dat')
+      open (18,file='SW_conv_5Gabs_'//system//'.dat')
+      open (19,file='SW_spex_'//system//'.dat')
 
       lognu2nu1 = log(4.86/1.42)
 
@@ -409,9 +350,9 @@ module SW_conv
       !------------------------------------------------------
       ! Data read
 
-      open (17,file='SW_conv_6Gabs.dat')
-      open (18,file='SW_conv_10Gabs.dat')
-      open (19,file='SW_spex_6_10.dat')
+      open (17,file='SW_conv_6Gabs_'//system//'.dat')
+      open (18,file='SW_conv_10Gabs_'//system//'.dat')
+      open (19,file='SW_spex_6_10_'//system//'.dat')
 
       lognu2nu1 = log(10./6.)
 
