@@ -46,7 +46,8 @@ module CD_abssyn
       real(dp), allocatable :: emi_tot(:), emi_avg(:), emi_tot_abs(:), emi_avg_abs(:)
       real(dp), allocatable :: H_theta(:), H_IL(:), rho(:), n(:)
       real(dp), allocatable :: alpha_IL(:,:), alpha_str(:), alphaffw(:,:)
-      real(dp), allocatable :: gaunt(:,:), gaunt_str(:)
+      real(dp), allocatable :: gaunt(:)
+      !real(dp), allocatable :: gaunt(:,:), gaunt_str(:)
 
       allocate( emi_tot(m_l),emi_avg(m_l),emi_tot_abs(m_l),emi_avg_abs(m_l) )
       allocate( H_theta(m_l), H_IL(m_theta), rho(m_theta), n(m_l) )
@@ -55,7 +56,8 @@ module CD_abssyn
       allocate( x(m_l),y(m_l),z(m_l) )
       allocate( nu(m_nu),Lsy(m_l,m_nu),Lsy_tot(m_nu),Lsy_tot_abs(m_nu) )
       allocate( Lsy_RS(m_l,m_nu),Lsy_FS(m_l,m_nu) )
-      allocate( gaunt(m_l,m_nu),gaunt_str(m_nu) )
+      allocate( gaunt(m_nu) )
+      !allocate( gaunt(m_l,m_nu),gaunt_str(m_nu) )
 
       tauff = 0.d0
       Lsy_tot = 0.d0
@@ -121,11 +123,7 @@ module CD_abssyn
       close(18)
 
       !======================================================
-      do l=1,m_l
-         do i=1,m_nu
-            call gaunt_ff_calc(nu,m_nu,T_ISM,Zq_ISM,gaunt(l,i))
-         end do
-      end do
+      call gaunt_ff_calc(nu,m_nu,T_ISM,Zq_ISM,gaunt)
 
       !/////////////////////////////////////////////////////////////////////
       !
@@ -187,7 +185,7 @@ module CD_abssyn
                i_theta = min( int((theta1 - theta(1))/dtheta) + 1 , m_theta)
                
                if ( r1 < r_norm(i_theta)*R0 .or. i_theta == m_theta) then ! "inside" the BS
-                  alpha_IL(l,i) = 3.7d8 * (Zq_ISM**2*n(i_theta)**2/sqrt(T_ISM)) * (1.d0-exp(-h*nu(i)/(k*T_ISM)) )/nu(i)**3 * gaunt(i_theta,i)
+                  alpha_IL(l,i) = 3.7d8 * (Zq_ISM**2*n(i_theta)**2/sqrt(T_ISM)) * (1.d0-exp(-h*nu(i)/(k*T_ISM)) )/nu(i)**3 * gaunt(i)
                   tau_IL(l,i) = alpha_IL(l,i)*H_theta(i_theta)
                else
                   inside = .false.
@@ -207,11 +205,7 @@ module CD_abssyn
       close(30)
 
       do i=1,m_nu
-         call gaunt_ff_calc(nu,m_nu,T_ISM,Zq_ISM,gaunt_str(i))
-      end do
-
-      do i=1,m_nu
-         alpha_str(i) = 3.7d8 * (Zq_ISM**2*n_ISM**2/sqrt(T_ISM)) * (1.d0-exp(-h*nu(i)/(k*T_ISM)) )/nu(i)**3 * gaunt_str(i)
+         alpha_str(i) = 3.7d8 * (Zq_ISM**2*n_ISM**2/sqrt(T_ISM)) * (1.d0-exp(-h*nu(i)/(k*T_ISM)) )/nu(i)**3 * gaunt(i)
          tau_str(i) = alpha_str(i)*R_str
       end do
 
@@ -356,7 +350,7 @@ module CD_abssyn
       deallocate( H_theta, H_IL, rho, n )
       deallocate( alpha_IL, alpha_str, alphaffw )
       deallocate( tauff,tau_IL,tau_str,tau_tot )
-      deallocate( gaunt, gaunt_str )
+      deallocate( gaunt )
       deallocate( x,y,z,nu,Lsy,Lsy_tot,Lsy_tot_abs,Lsy_RS,Lsy_FS )
 
     END subroutine CD_abssyn_run
