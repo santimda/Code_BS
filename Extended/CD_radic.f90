@@ -1,6 +1,6 @@
 module CD_radic
   use global
-  use numerical_utils, only: vector_log, versorresta
+  use numerical_utils, only: vector_log, unit_vector_diff, safe_acos_dot
   implicit none
 
   public :: CD_radic_st_run,CD_radic_IR_run
@@ -87,8 +87,8 @@ module CD_radic
       Kappa_st = ( R_st/(2.d0*R_theta(l)) )**2
 
       ! Calculate the versor: XEe/|XEe|
-      call versorresta(X_emi,X_st,3,X_Ee)  ! from the 2nd to the 1st 
-      ang = acos(DOT_PRODUCT(X_obs,X_Ee)) ! angle between Xobs and XEe
+      call unit_vector_diff(X_emi,X_st,3,X_Ee)  ! (X_emi - X_st)/|X_emi - X_st|
+      ang = safe_acos_dot(X_obs,X_Ee)           ! angle between X_obs and X_Ee
 
       ! Obtain the SED, L_IC(Ef), and the integrated luminosity, L_unabs, at "l":
       N_e = N_etot(l,:)      ! N_e = electron distribution at position "l"
