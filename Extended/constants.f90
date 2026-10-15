@@ -6,6 +6,7 @@ public
 integer, parameter :: dp = kind(1.d0)
 real(dp), parameter :: pi = acos(-1.d0)
 real(dp), parameter :: par = sqrt(2.d0/3.d0)
+real(dp), parameter :: deg2rad = pi/180.d0
 
 !===================================================
 !Physical constants in CGS units

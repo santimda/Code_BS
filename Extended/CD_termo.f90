@@ -36,14 +36,14 @@ module CD_termo
       integer :: l_crit, l_transition, l_min
       logical :: transition
       
-      allocate( H_norm(m_theta),H_theta(m_theta),H_1(m_theta) )
+      allocate( H_theta(m_theta),H_1(m_theta) )
       allocate( x(m_theta), y(m_theta) )
       allocate( Mach(m_theta),C_s_med(m_theta),C_s_sh(m_theta),C_s_sh_new(m_theta),r(m_theta) )
       allocate( rho_med(m_theta),rho_IL(m_theta) )
       allocate( P(m_theta),rho(m_theta),T(m_theta),B(m_theta),v_t(m_theta),v_perp(m_theta) )
       allocate( P_new(m_theta),rho_new(m_theta),B_new(m_theta),v_t_new(m_theta) )
       allocate( v_t_RH(m_theta), P_RH(m_theta), rho_RH(m_theta), B_RH(m_theta), rho_min(m_theta) )
-      allocate( H_new(m_theta), y_eff(m_theta) )
+      allocate( y_eff(m_theta) )
 
       80    format(A13,X,Es10.2)
       81    format(A18,X,Es10.2)
@@ -232,7 +232,7 @@ module CD_termo
 
          r(l) = (g_ad+1.)*Mach(l)**2/((g_ad-1.)*Mach(l)**2+2.) ! Compression factor (Caprioli 2014, Eq. 1)
 
-         T_RH(l) = ((g_ad-1.d0)*Mach(l)**2+2.d0)*(2.d0*g_ad*Mach(l)**2-(g_ad-1.d0))*mp*C_s_med(l)**2/g_ad/k/((g_ad+1.d0)**2 * Mach(l)**2)
+         T_RH(l) = ((g_ad-1.d0)*Mach(l)**2+2.d0)*(2.d0*g_ad*Mach(l)**2-(g_ad-1.d0))*mp*C_s_med(l)**2*frac_mu/g_ad/k/((g_ad+1.d0)**2 * Mach(l)**2)
          P_RH(l) = cte_P * rho_med(l) * v_perp(l)**2 - (g_ad-1.)*P_th_med/(g_ad+1.)
          rho_RH(l) = r(l) * rho_med(l)
          Beq0_RH = sqrt( 8.d0 * pi * P_RH(l) )
@@ -490,7 +490,7 @@ module CD_termo
       41  format (A12,ES9.2)
 
       deallocate( P,rho,T,B,v_t,v_perp,Mach,r,rho_med,C_s_med,C_s_sh,C_s_sh_new,rho_min,rho_IL )
-      deallocate( H_1,H_theta,H_norm,H_new )
+      deallocate( H_1,H_theta )
       deallocate( x, y, y_eff )
       deallocate( v_t_new, P_new, rho_new, B_new)
       deallocate( v_t_RH, P_RH, rho_RH, B_RH )

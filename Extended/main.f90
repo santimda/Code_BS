@@ -7,7 +7,6 @@ PROGRAM main
    use opac_ff, only: opac_ff_run
    use map_freqs, only: maps_init
    implicit none
-   logical, parameter :: verbose=.True.
    
    interface
       subroutine calculate(shock, radiative) 
@@ -78,7 +77,9 @@ PROGRAM main
 
    if (rad_alpha .and. FS) call H_alpha_map('FS')
       
-   if (verbose) print *, '\n Deallocate vectors'    
+   if (verbose) print *, '\n Deallocate vectors'
+
+   call create_output_dir()  
    call initialize_deallocate()
 
    print *, '\n ======================================'
@@ -457,8 +458,9 @@ Subroutine abs_maps(shock)
 
    character(LEN=*), intent(in) :: shock
    integer, parameter :: m_l = 2*m_theta     ! CD position, both sides
-   real(dp) :: Lsy_sh_abs(m_nu), Lsy_sh_unabs(m_nu), Lsy_unabs, Lsy_abs
-   real(dp) :: E_sy(m_nu)
+   real(dp) :: Lsy_sh_abs(m_nu), Lsy_sh_unabs(m_nu)   ! SED summed over phi
+   real(dp) :: Lsy_phi(m_nu), Lsy_phi_abs(m_nu)       ! SED at one phi (CD_abssyn_run)
+   real(dp) :: E_sy(m_nu), nu_E
    real(dp) :: phi
    integer :: i_phi, i_E, im, n_map
    integer :: iu_syn_avg, iu_th_avg, iu_hot_avg
@@ -505,18 +507,9 @@ Subroutine abs_maps(shock)
 
          if (abssyn_calc) then
             print *, 'Calculate the free-free synchrotron absorption'
-            call CD_abssyn_run(shock, radiative = .true.) !(phi)
-            if (shock /= 'BOTH') then
-               open (45,file='radsyn_abs_'//shock//'.dat')
-            else if (shock == 'BOTH') then
-               open (45,file='radsyn_abs.dat')
-            end if
-            do i_E = 1,m_nu    ! SED --> sum emission from different phi
-               read(45,*) E_sy(i_E),Lsy_unabs,Lsy_abs
-               Lsy_sh_unabs(i_E) = Lsy_sh_unabs(i_E) + Lsy_unabs
-               Lsy_sh_abs(i_E) = Lsy_sh_abs(i_E) + Lsy_abs
-            end do
-            close(45)
+            call CD_abssyn_run(shock, radiative=.true., E_sy=E_sy, Lsy_sum=Lsy_phi, Lsy_sum_abs=Lsy_phi_abs)
+            Lsy_sh_unabs = Lsy_sh_unabs + Lsy_phi        ! SED --> sum emission from different phi
+            Lsy_sh_abs   = Lsy_sh_abs   + Lsy_phi_abs
          endif
 
          if (maps_calc) then           
@@ -549,13 +542,18 @@ Subroutine abs_maps(shock)
    if (hot) close(iu_hot_avg)
 
    if (abssyn_calc) then       ! This has the full 3D geometry in the abs
-            open (51,file='radsynabs_'//shock//'_tot.dat')
-            do i_E = 1,m_nu
-               ! Multiply by a factor 2 because of the axial symmetry in the SW
-               ! (this one already considers "mirroring" for y < 0 in the calculation)
-               write(51,*) E_sy(i_E),2.d0*Lsy_sh_unabs(i_E),2.d0*Lsy_sh_abs(i_E)
-            end do
-            close(51)
+      open (51,file='radsynabs_'//shock//'_tot.dat')
+      open (52,file='S_syn_abs_'//system//'_'//shock//'.dat')   ! nu [Hz], S_unabs [mJy], S_abs [mJy]
+      do i_E = 1,m_nu
+         ! Multiply by a factor 2 because of the axial symmetry in the SW
+         ! (this one already considers "mirroring" for y < 0 in the calculation)
+         write(51,*) E_sy(i_E),2.d0*Lsy_sh_unabs(i_E),2.d0*Lsy_sh_abs(i_E)
+         nu_E = E_sy(i_E)*eV/h
+         write(52,*) nu_E, 2.d0*Lsy_sh_unabs(i_E)/(4.d0*pi*distance**2*nu_E)*1.d26, &
+                           2.d0*Lsy_sh_abs(i_E)  /(4.d0*pi*distance**2*nu_E)*1.d26
+      end do
+      close(51)
+      close(52)
    endif
 
    if (convolution) then
@@ -570,13 +568,13 @@ Subroutine abs_maps(shock)
 
 contains
 
-   !-------------------------------------------------------------------------
-   ! Reads the maps of one frequency for the current phi (synchrotron from
-   ! CD_abssyn, thermal RS + FS and hot layer from shock_thermal) and appends
-   ! them to the output files. For i_phi > 1 it also writes the mirror image
-   ! (v -> -v), line by line as before.
-   !-------------------------------------------------------------------------
-   subroutine merge_map(f_syn, f_th_RS, f_th_FS, f_hot, iu_s, iu_t, iu_h)
+!-------------------------------------------------------------------------
+! Reads the maps of one frequency for the current phi (synchrotron from
+! CD_abssyn, thermal RS + FS and hot layer from shock_thermal) and appends
+! them to the output files. For i_phi > 1 it also writes the mirror image
+! (v -> -v), line by line as before.
+!-------------------------------------------------------------------------
+subroutine merge_map(f_syn, f_th_RS, f_th_FS, f_hot, iu_s, iu_t, iu_h)
       character(len=*), intent(in) :: f_syn, f_th_RS, f_th_FS, f_hot
       integer, intent(in) :: iu_s, iu_t, iu_h
       real(dp) :: uve(4,m_l)     ! u_proj, v_proj, emi, emi_abs
@@ -592,13 +590,13 @@ contains
       end if
 
       if (i_phi == 1) then
-         write(iu_s,'(4es16.8)') uve
-         write(iu_t,'(es16.8)') S_th
-         if (hot) write(iu_h,'(es16.8)') S_hot
+         write(iu_s,'(4es17.8e3)') uve
+         write(iu_t,'(es17.8e3)') S_th
+         if (hot) write(iu_h,'(es17.8e3)') S_hot
       else
-         write(iu_s,'(4es16.8)') (uve(:,il), uve(1,il), -uve(2,il), uve(3:4,il), il=1,m_l)
-         write(iu_t,'(es16.8)') (S_th(il), S_th(il), il=1,m_l)
-         if (hot) write(iu_h,'(es16.8)') (S_hot(il), S_hot(il), il=1,m_l)
+         write(iu_s,'(4es17.8e3)') (uve(:,il), uve(1,il), -uve(2,il), uve(3:4,il), il=1,m_l)
+         write(iu_t,'(es17.8e3)') (S_th(il), S_th(il), il=1,m_l)
+         if (hot) write(iu_h,'(es17.8e3)') (S_hot(il), S_hot(il), il=1,m_l)
       end if
    end subroutine merge_map
 

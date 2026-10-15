@@ -33,6 +33,7 @@ test:
 clean:
 	rm -f *.x *.o *.mod *.dat *.bin *.log *~
 	rm -rf ./test
+	rm -rf ./output
 	cp ./recompile/gauntff.dat ./gauntff.dat
 
 include Makefile.depend

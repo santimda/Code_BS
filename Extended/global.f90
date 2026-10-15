@@ -12,6 +12,7 @@ module global
    !====================================================================
 
    integer, parameter :: nth = 4   ! number of threads (parallelization)
+   character(len=*), parameter :: output_dir = 'output/'   ! directory for output files
 
    !===========================================================
    ! Simulation grid/vectors size
@@ -22,8 +23,8 @@ module global
    integer, parameter :: mE_f = 500    ! it is the same for br, p-p and IC
    integer, parameter :: mE_ph = 500   ! energy resolution for thermal f-f emission in the shocks 
    integer, parameter :: mphi = 30      ! amount of linear-emitters
-   real(dp) :: delta_phi = 0.5*pi/(mphi-1.d0) ! angular separation between linear-emitters
-   real(dp) :: d_phi = 0.5*pi/mphi     ! angular width of each linear-emitter or wedge
+   real(dp), parameter :: delta_phi = 0.5d0*pi/(mphi-1.d0) ! angular separation between linear-emitters
+   real(dp), parameter :: d_phi = 0.5d0*pi/mphi            ! angular width of each linear-emitter or wedge
 
    !real(dp), parameter :: f_Ny = 0.7d0 ! Nyquist frequency for convolved maps
    real(dp), parameter :: f_Ny = 0.7d0
@@ -35,14 +36,14 @@ module global
 
    ! CD
    real(dp), dimension(:), allocatable :: x,y,z
-   real(dp), dimension(:), allocatable :: theta,r_norm,R_theta,H_norm
+   real(dp), dimension(:), allocatable :: theta,r_norm,R_theta
 
    ! termo
-   real(dp), dimension(:), allocatable :: P,rho,T,v_t,v_perp,B,B_par,alpha_sh,P_th_w
-   real(dp), dimension(:), allocatable :: P_med, rho_med, C_s_med,Mach,C_s_sh,C_s_sh_new,r
+   real(dp), dimension(:), allocatable :: P,rho,T,v_t,v_perp,B,B_par,alpha_sh
+   real(dp), dimension(:), allocatable :: rho_med, C_s_med,Mach,C_s_sh,C_s_sh_new,r
    real(dp), dimension(:), allocatable :: v_t_RH, P_RH, rho_RH, B_RH, rho_min, rho_IL
    real(dp), dimension(:), allocatable :: v_t_new, P_new, rho_new, B_new
-   real(dp), dimension(:), allocatable :: H_theta, H_new, y_eff, H_1
+   real(dp), dimension(:), allocatable :: H_theta, y_eff, H_1
 
    ! dist
    real(dp), parameter :: Emin_e = 2.d0*mec2   ! ~1 MeV
@@ -67,50 +68,80 @@ module global
 
    ! syn
    integer, parameter :: m_nu = mE_ph  ! frequency resolution for synchrotron photons
-   real(dp), dimension(:,:), allocatable :: Lsy,Lsy_RS,Lsy_FS      ! L_sy(l,E_i)
-   real(dp), dimension(:), allocatable :: nu,Lsy_tot,Lsy_tot_abs ! Lsy_tot(i) = sum_l L_sy(l,i)
+   real(dp), dimension(:), allocatable :: nu
 
    ! IC
-   real(dp), dimension(:), allocatable :: LIC,LIC_tot,LIC_tot_abs
+   real(dp), dimension(:), allocatable :: LIC,LIC_tot
    real(dp) :: Kappa_st, Kappa_IR(m_theta) ! = (R/2D)**2 
    real(dp) :: X_st(3),X_emi(3),X_eE(3),X_obs(3) ! Position vectors for absorption integrals
    real(dp), parameter :: cte_Ndot = 2.*re**2*mec2**3/(pi*h_bar**3*c**2)
    logical, parameter :: ani = .True., iso = .False. 
 
    ! br
-   real(dp), dimension(:), allocatable :: Lbr,Lbr_tot,Lbr_tot_abs
+   real(dp), dimension(:), allocatable :: Lbr,Lbr_tot
    logical, parameter :: scr = .True., unscr = .False.
 
    ! pp
-   real(dp), dimension(:), allocatable :: Lpp,Lpp_tot,Lpp_tot_abs
+   real(dp), dimension(:), allocatable :: Lpp,Lpp_tot
 
    ! average flux maps
    real(dp), parameter :: nu_av_min = 4.d9
    real(dp), parameter :: nu_av_max = 12.d9
 
-   !=======================================================
+   ! frequency grid nu(m_nu) for synchrotron and f-f absorption (written to nu.dat in initialize.f90)
+   real(dp), parameter :: nu_min_syn = 10.d6
+   real(dp), parameter :: nu_max_syn = 1.d24
 
-   ! g-g
-   integer, parameter :: mE_gg = 600, m_ang_gg = 400
-   real(dp), dimension(:,:), allocatable :: tau
-   real(dp), parameter :: Ef_min_gg = 5.d7*eV  ! 50 MeV 
-   real(dp), parameter :: Ef_max_gg = 5.d13*eV ! 50 TeV 
-   real(dp) :: Ef_gg(mE_gg),Ef_int_gg
+   !=======================================================
 
    ! f-f
    integer, parameter :: mE_ff = m_nu, mr_ff = 1640, mr_map = 1000
-   real(dp), dimension(:,:), allocatable :: tauff, tau_IL, tau_tot
-   real(dp), dimension(:), allocatable :: tau_str
    real(dp), parameter :: nu_min_ff = 10.d6    ! 10 MHz 
    real(dp), parameter :: nu_max_ff = 1.d12   ! 1 THz
-   real(dp) :: alphaff_w(mr_ff,m_nu), r_w(mr_ff)
    real(dp), dimension(:), allocatable :: nu_ISM
    real(dp), dimension(:,:), allocatable :: F_nu,F_nu_phi,F_nu_ion,F_nu_phi_ion
-   !real(dp) :: Lsy_sw(m_theta,m_nu),Lsy_sism(m_theta,m_nu),Lsy_tot_abs(m_nu) 
 
    !=======================================================
 
    contains
+
+   !============================================================================
+   ! Output files and input checks
+
+   ! Path of an output file: output_dir//name
+   function output_file(name) result(path)
+      character(len=*), intent(in) :: name
+      character(len=:), allocatable :: path
+      path = output_dir // name
+   end function output_file
+
+   ! Creates output_dir if it does not exist (call once, at the start of main)
+   subroutine create_output_dir()
+      call execute_command_line('mkdir -p '//output_dir)
+   end subroutine create_output_dir
+
+   ! Stops the program if shock is not 'RS' or 'FS' ('BOTH' is also
+   ! accepted when allow_both = .true.)
+   subroutine validate_shock(shock, routine, allow_both)
+      character(len=*), intent(in) :: shock, routine
+      logical, intent(in), optional :: allow_both
+      logical :: both_ok
+
+      both_ok = .false.
+      if (present(allow_both)) both_ok = allow_both
+
+      if (shock == 'RS' .or. shock == 'FS') return
+      if (both_ok .and. shock == 'BOTH') return
+
+      if (both_ok) then
+         write(*,*) 'ERROR: invalid shock in ', trim(routine), &
+            ': expected RS, FS or BOTH, received ', trim(shock)
+      else
+         write(*,*) 'ERROR: invalid shock in ', trim(routine), &
+            ': expected RS or FS, received ', trim(shock)
+      end if
+      error stop
+   end subroutine validate_shock
 
    !============================================================================
    !  Cooling_IC
@@ -175,15 +206,12 @@ module global
    end Function F_4
 
    !============================================================================
+   !  Black-Body spectrum
 
    Function nBB(Epho,T)
-      integer, parameter :: dp = kind(1.d0)
-      real(dp) :: nBB,Epho,T,pi,k,c,h
-      pi = acos(-1.d0)
-      k = 1.380658d-16
-      c = 2.99792458d10
-      h = 6.6260755d-27
-      nBB = 2.d0*pi/((h*c)**3)*(Epho**2/(exp(Epho/(k*T))-1.))
+      real(dp) :: nBB
+      real(dp), intent(in) :: Epho,T
+      nBB = 2.d0*pi/((h*c)**3) * (Epho**2/(exp(Epho/(k*T))-1.d0))
    end Function nBB
 
 
