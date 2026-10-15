@@ -4,9 +4,9 @@ system_parameters.o: system_parameters.f90 constants.o
 
 global.o: global.f90 constants.o system_parameters.o
 
-numerical_utils.o: numerical_utils.f90 global.o constants.o
+numerical_utils.o: numerical_utils.f90 constants.o
 
-initialize.o: initialize.f90 global.o
+initialize.o: initialize.f90 global.o numerical_utils.o
 
 map_freq_type.o: map_freq_type.f90 constants.o
 
@@ -26,13 +26,13 @@ CD_termo.o: CD_termo.f90 global.o
 
 shock_thermal.o: shock_thermal.f90 global.o gaunt_factor.o map_freqs.o numerical_utils.o
 
-diffusion.o: diffusion.f90 global.o
+diffusion.o: diffusion.f90 constants.o system_parameters.o
 
-CD_diste.o: CD_diste.f90 global.o diffusion.o numerical_utils.o
+CD_diste.o: CD_diste.f90 global.o controles.o numerical_utils.o diffusion.o
 
-CD_distp.o: CD_distp.f90 global.o diffusion.o numerical_utils.o
+CD_distp.o: CD_distp.f90 global.o controles.o numerical_utils.o diffusion.o
 
-CD_radsyn.o: CD_radsyn.f90 global.o numerical_utils.o
+CD_radsyn.o: CD_radsyn.f90 global.o controles.o map_freqs.o numerical_utils.o
 
 CD_radbr.o: CD_radbr.f90 global.o numerical_utils.o
 
@@ -42,7 +42,7 @@ CD_radpp.o: CD_radpp.f90 global.o numerical_utils.o
 
 CD_rot.o: CD_rot.f90 global.o numerical_utils.o
 
-CD_abssyn.o: CD_abssyn.f90 CD_radsyn.o opac_ff.o global.o map_freqs.o
+CD_abssyn.o: CD_abssyn.f90 global.o controles.o gaunt_factor.o map_freqs.o
 
 SW_conv.o: SW_conv.f90 global.o map_freq_type.o
 
