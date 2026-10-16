@@ -24,7 +24,7 @@ contains
    elemental integer function nu_index(f, nu1, dlnu, n)
       real(dp), intent(in) :: f, nu1, dlnu
       integer,  intent(in) :: n
-      nu_index = min(max(int(log(f/nu1)/dlnu) + 1, 1), n)
+      nu_index = min(max(nint(log(f/nu1)/dlnu) + 1, 1), n)
    end function nu_index
 
 end module map_freqs
