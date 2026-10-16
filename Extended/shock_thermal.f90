@@ -156,7 +156,7 @@ module shock_thermal
     !------------------------------------------------------------     
     ! Read shock position and thermodynamical quantities  
 
-    open(10,file='CD.dat')
+    open(10,file=output_file('CD.dat'))
     open(13,file='Hnorm_'//shock//'.dat') 
     open(14,file='Linj_'//shock//'.dat')
     if (radiative) open(15,file='T_IL_'//shock//'.dat')
@@ -417,7 +417,7 @@ module shock_thermal
       S_map = F_nu_phi(:,i_map) * spread(flux/nu(i_map), 1, m_l)
       do im = 1, n_map
         open(newunit=iu, file='CD_hot_layer_'//trim(maps(im)%label)//'.dat')
-        write(iu,'(es16.8)') S_map(:,im)
+        write(iu,'(es17.8e3)') S_map(:,im)
         close(iu)
       end do
     end if
@@ -428,7 +428,7 @@ module shock_thermal
     S_map = F_nu_phi_ion(:,i_map) * spread(flux/nu(i_map), 1, m_l)
     do im = 1, n_map
       open(newunit=iu, file='CD_th_'//shock//'_'//trim(maps(im)%label)//'.dat')
-      write(iu,'(es16.8)') S_map(:,im)
+      write(iu,'(es17.8e3)') S_map(:,im)
       close(iu)
     end do
 

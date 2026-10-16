@@ -68,7 +68,7 @@ module CD_termo
       !-----------------------------------------------------------------
       ! Read the shock position and cell size: theta,r_norm(theta),dR(theta)
 
-      open(11,file='CD.dat')
+      open(11,file=output_file('CD.dat'))
       do l = 1, m_theta
          read(11,*) theta(l), r_norm(l), dR(l), dummy, R_acel(l)
       end do
@@ -78,7 +78,7 @@ module CD_termo
       !-----------------------------------------------------------------
       ! Read y coordinate (normalized)
 
-      open(12, file='CD_xy.dat')
+      open(12, file=output_file('CD_xy.dat'))
       do l = 1, m_theta
          read(12,*) x(l), y(l)
       end do

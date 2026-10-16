@@ -53,7 +53,7 @@ contains
       r_norm(1) = 1.d0
 
       ! Step:
-      dtheta = (theta_max-theta(1))/float(m_theta)
+      dtheta = (theta_max-theta(1))/real(m_theta-1,dp)
       dR(1) = R0*r_norm(1)*theta(1)  ! theta(1) =/ 0
       Length(1) = 0.d0
       do i = 2, m_theta
@@ -72,10 +72,10 @@ contains
       write(*,90) 'R0[pc] =', R0/pc
       write(*,80) 'Length[R0] =', Length(m_theta)/R0
 
-      open(11,file='CD.dat')
-      open(12,file='CD_aprox.dat')
-      open(13,file='CD_xy.dat')
-      open(14,file='CD_xy_aprox.dat')
+      open(11,file=output_file('CD.dat'))
+      open(12,file=output_file('CD_aprox.dat'))
+      open(13,file=output_file('CD_xy.dat'))
+      open(14,file=output_file('CD_xy_aprox.dat'))
       do l = 1, m_theta
          x(l) = -r_norm(l)*cos(theta(l))
          y(l) = r_norm(l)*sin(theta(l))
@@ -130,7 +130,7 @@ Subroutine RK(xi,yi,dx,yf)
    end interface
 
    y(1) = yi
-   h = dx/float(n)
+   h = dx/real(n-1,dp)
    do i = 1, n-1
       k1 = h*g(xi+(i-1)*h,y(i))
       k2 = h*g(xi+(i-1)*h+h/2.d0,y(i)+k1/2.d0)

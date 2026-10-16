@@ -61,7 +61,7 @@ module opac_ff
 
       !-----------------------------------------------------------------
       ! Read the shock position and cell size: theta,r_norm(theta),dR(theta)
-      open(11,file='CD.dat')
+      open(11,file=output_file('CD.dat'))
       do l = 1, m_theta
          read(11,*) theta(l), r_norm(l), dif_R(l), dummy, dummy
       end do

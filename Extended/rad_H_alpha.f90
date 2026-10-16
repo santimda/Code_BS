@@ -29,7 +29,7 @@ module rad_H_alpha
 
       !-----------------------------------------
 
-      open(10,file='CD.dat')
+      open(10,file=output_file('CD.dat'))
       do l=1,m_theta
          read(10,*) theta(l), r_norm(l), dR(l), dummy, dummy
       end do

@@ -32,7 +32,7 @@ contains
               
      write(*,*) 'Rotate the coords'
 
-    open(12,file='CD_xy.dat')
+    open(12,file=output_file('CD_xy.dat'))
     open(13,file='CDrot.dat')
     do l = 1,m_theta
        read(12,*) x(l),y(l)
