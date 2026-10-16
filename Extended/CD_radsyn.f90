@@ -1,193 +1,156 @@
 module CD_radsyn
-  ! This module calculates the intrinsic synchrotron emission 
+  ! This module calculates the intrinsic synchrotron emission
   use global
-  use numerical_utils, only: vector_log
-  
+  use controls, only: verbose
+  use map_freqs, only: maps, nu_index
+
   implicit none
   private
   public :: CD_radsyn_run
-  
-  ! We save the total emission (i.e., integrated in theta) in radsyn.dat. 
+
+  ! We save the total emission (i.e., integrated in theta) in radsyn.dat.
   ! The position dependent emission, Eps x L_sy(l,Eps_i), is stored in emisyn.dat.
   ! The latter is useful for correcting for absorption and producing emission maps.
 
 contains
-  
+
   !============================================================================
   ! CD_radsyn_run
   !============================================================================
-  
-  subroutine CD_radsyn_run(shock)  
-    use global
+  ! Intrinsic (unabsorbed) synchrotron emission of one linear emitter, using
+  ! the electron distribution diste_<system>_<shock>.dat and the frequency
+  ! grid in nu.dat (vec_nu). Includes the Razin-Tsytovich (R-T) suppression.
+  ! Lsy(l,i) is the luminosity per unit Eps = h*nu/mec2 at position l [erg/s].
+  ! Output: radsyn_<shock>.dat, S_syn_<system>_<shock>.dat, radsyn_tot_<shock>.dat
+  ! and emisyn_<shock>.dat, which has Eps*Lsy(l,i) = nu*L_nu [erg/s] and is
+  ! used by CD_abssyn for the absorption and the maps.
+  !============================================================================
+
+  subroutine CD_radsyn_run(shock)
     !$ use omp_lib
-    implicit none
-    ! m_theta - CD, mE_e - electrons, m_nu - emitted photons
     character(LEN=*), intent(in) :: shock
-    integer :: il, i_890M,i_1G, i_3G, i_150M, i_110M, i_325M
-    real(dp) :: Eps(m_nu),dEps,Eps_int, gamma_e(mE_e)
-    real(dp) :: factor,nuc,nuc_max,nuc_min,sum,sum_sy,x_sy, log_nu_int
-    real(dp) :: ni,ne,nu_RT,nuc_l
-    allocate( x(m_theta),y(m_theta),B(m_theta),rho(m_theta),P(m_theta),v_t(m_theta),T(m_theta) )
-    allocate( N_e(mE_e),E_e(mE_e),B_par(m_theta),N_etot(m_theta,mE_e) )
-    allocate( Lsy_tot(m_nu),nu(m_nu),Lsy(m_theta,m_nu) )
-    Lsy_tot = 0.d0
-  
-80  format(A19,X,Es10.3)
+    integer  :: l, i, il, im, iu, j_max
+    real(dp) :: Eps_int, Eint, sum_sy, nuc_max, ne, nu_RT
+    real(dp) :: x_sy(mE_e)
+    integer,  allocatable :: i_map(:)
+    real(dp), allocatable :: nu(:), Eps(:), dEps(:), Lsy(:,:), Lsy_tot(:), S_nu(:)
+    real(dp), allocatable :: rho(:), B(:), B_par(:)
+    real(dp), allocatable :: E_e(:), gamma_e(:), dE_e(:), N_etot(:,:)
+
+    allocate( nu(m_nu), Eps(m_nu), dEps(m_nu), Lsy(m_theta,m_nu), Lsy_tot(m_nu), S_nu(m_nu) )
+    allocate( rho(m_theta), B(m_theta), B_par(m_theta) )
+    allocate( E_e(mE_e), gamma_e(mE_e), dE_e(mE_e), N_etot(m_theta,mE_e) )
+
+    if (verbose) print *, 'Calculate the (unabsorbed) synchrotron emission in the '//shock
 
     ! set omp threads number
-    !$ call omp_set_num_threads(nth) 
+    !$ call omp_set_num_threads(nth)
 
     !////////////////////////////////////////////////////////////////////////
     !
-    ! Read shock position (x,y) and thermodynamical quantites at each position
-    
+    ! Read thermodynamical quantites at each position
+
     open(11,file='termo_'//shock//'.dat')
     do l = 1, m_theta
-       read(11,*) il,rho(l),P(l),v_t(l),T(l),B(l) ! todo en CGS
+       read(11,*) il,rho(l),dummy,dummy,dummy,B(l) ! CGS
     enddo
     close(11)
     B_par = B*par
 
-    open(12,file='CD_xy.dat')
-    do l = 1, m_theta
-       read(12,*) x(l),y(l) ! la trayectoria en cm
-    enddo
-    close(12)
-
-    ! Number of electrons at r(l) with energy E_e(i): N_etot(l,i) 
+    ! Number of electrons at r(l) with energy E_e(i): N_etot(l,i)
     open (14,file='diste_'//system//'_'//shock//'.dat')
     do l = 1, m_theta
        do i = 1, mE_e
           read(14,*) dummy, E_e(i),N_etot(l,i)
-          E_e(i) = E_e(i)*eV    !   energy from eV to erg
        enddo
        read(14,*)
     enddo
-    close(14) 
-    Eint_e = E_e(2)/E_e(1)
+    close(14)
+    E_e     = E_e*eV          ! energy from eV to erg
+    Eint    = E_e(2)/E_e(1)
     gamma_e = E_e/mec2
-    
+    dE_e    = E_e*(Eint - 1.d0)
+
+    ! Frequency grid (vec_nu)
+    open(12,file=output_file('nu.dat'))
+      read(12,*) nu
+    close(12)
+    Eps     = nu*h/mec2       ! dimensionless photon energy
+    Eps_int = Eps(2)/Eps(1)
+    dEps    = Eps*(Eps_int - 1.d0)
+
+    ! Check that the grid reaches 10*nu_c of the most energetic electrons
+    j_max = findloc(any(N_etot > 0.d0, dim=1), .true., dim=1, back=.true.)
+    if (j_max > 0) then
+       nuc_max = 4.22d6*maxval(B_par)*gamma_e(j_max)**2
+       if (10.d0*nuc_max > nu(m_nu)) print *, 'WARNING (CD_radsyn): nu_max_syn < 10*nu_c,max =', 10.d0*nuc_max
+    end if
+
     !-----------------------------------------------------------------------!
     !                                                                       !
     !              Calculate Sycnhrotron emission                           !
     !                                                                       !
     !-----------------------------------------------------------------------!
 
-    factor = h/mec2
-    ! Use the same frequency range for all position
-    nuc_max = 4.22d6*B_par(1)*gamma_e(mE_e)**2 *2.d0  ! A bit arbitrary
-    nuc_min = 10.d6  !4.22d6*B_par(m_theta)*gamma_e(1)**2 / 1.d2  ! 10 MHz
-    
-    ! Build logarithmic-spaced energy vector for emitted photons, Eps(i):
-    call vector_log(factor*nuc_min,10.d0*factor*nuc_max,Eps_int,Eps)
-    nu = Eps/factor ! [nu] = Hz
+    ! Lsy(Eps) = int_Emin^Emax N(E_e) P(E_e,Eps) dE, with
+    ! P = 4.39d-22*B_par*x**(1/3)*exp(-x)/h [erg/s/erg], x = nu/nu_c, nu_c = 4.22d6*B_par*gamma**2,
+    ! neglected for x > 10. At each position we calculate the synchrotron emission.
 
-    open(66,file='nu.dat')
-    do i=1,m_nu
-       write(66,*) nu(i)
-    enddo
-    close(66)
-
-    ! At each position we calculate the synchrotron emission; then we sum all.
-    sum_sy = 0.d0
+    !$omp parallel do default(shared) schedule(dynamic) private(l, i, ne, nu_RT, x_sy)
     DO l = 1, m_theta
-      N_e = N_etot(l,:)      ! N_e = electron distribution at position "l"
-      ni = rho(l)/mp/2.085d0  ! 2.085 = x + 4*y + 14*z  ?????????
-      ne = 1.395d0*ni         ! 1.395 = x + 2*y + 7*z   ?????????
-      nu_RT = 20.d0*ne/B(l)   ! characteristic frequency for R-T effect
-      nuc_l = 4.22d6*B_par(l) ! to speed things up in the j loop
-      ! Loop in the photon energy (Eps), given by nu 
-      do i = 1,m_nu           ! Eps(i), nu(i)
-        dEps = Eps(i)*(Eps_int-1.d0)
-        sum = 0.d0
-        ! Lsy(Eps) = int_Emin^Emax N(E_e) P(E_e,eps) dE [erg/s/eps]
+      ne    = 1.395d0*rho(l)/mp/2.085d0     ! 2.085 = x + 4*y + 14*z, 1.395 = x + 2*y + 7*z  ?????????
+      nu_RT = 20.d0*ne/B(l)                 ! characteristic frequency for R-T effect
+      do i = 1,m_nu                         ! Eps(i), nu(i)
+        x_sy = nu(i)/(4.22d6*B_par(l)*gamma_e**2)
+        Lsy(l,i) = mec2*4.39d-22*B_par(l)/h &
+                   * sum( N_etot(l,:)*dE_e*merge(x_sy**(1.d0/3.d0)*exp(-x_sy), 0.d0, x_sy <= 10.d0) ) &
+                   * exp(-nu_RT/nu(i))
+      enddo
+    ENDDO
+    !$omp end parallel do
 
-        ! $omp parallel do private(nuc,dP_Eps,P_Eps,dE_e) &
-        ! $omp reduction(+ : sum)
-        do j = 1,mE_e         ! Ne(j), nuc(j), gamma_e(j)
-          nuc = nuc_l*gamma_e(j)**2
-          x_sy = nu(i)/nuc
-          if (x_sy > 10.d0) then
-            dP_Eps = 0.d0
-          else
-            ! P_eps [erg/s/Hz]; divide by h to transform units
-            P_Eps = ( 4.39d-22*B_par(l)*x_sy**(1.d0/3.d0)*exp(-x_sy) )/h
-            dE_e = E_e(j)*(Eint_e - 1.d0)
-            dP_Eps = N_e(j)*P_eps*dE_e
-          endif
-          sum = dP_Eps + sum
-        enddo    
-        ! $omp end parallel do 
+    Lsy_tot = Eps*sum(Lsy, dim=1)                                  ! [erg/s]
+    sum_sy  = sum(matmul(Lsy, dEps))
+    S_nu    = Lsy_tot*(mphi*4.)/(4.*pi*distance**2*nu)*1.d26      ! mphi emitters, 4 quadrants [mJy]
 
-        Lsy(l,i) = sum*mec2*exp(-nu_RT/nu(i))     !
-        Lsy_tot(i) = Lsy_tot(i) + Eps(i)*Lsy(l,i) ! [erg/s]
+    write(*,'(A19,X,Es10.3)') 'L_syn(unabsorbed)=',sum_sy*(mphi*4.) ! mphi emitters, 4 quadrants
 
-        sum_sy = sum_sy + Lsy(l,i)*dEps
-
-      enddo  ! Eps(i),nu(i)
-
-    ENDDO     ! l
-    
-    write(*,80) 'L_syn(unabsorbed)=',sum_sy*(mphi*4.) ! mphi emitters, 4 quadrants
-
-    open(100, file='radsyn_tot_'//shock//'.dat')
-      write(100,*) sum_sy*(mphi*4.)
-    close(100)
-    
-    log_nu_int = log(nu(2)/nu(1))
-    i_110M = int(log(1.1d8/nu(1))/log_nu_int) + 1
-    i_150M = int(log(1.5d8/nu(1))/log_nu_int) + 1
-    i_325M = int(log(3.25d8/nu(1))/log_nu_int) + 1
-    i_890M = int(log(890.d6/nu(1))/log_nu_int) + 1  
-    i_1G = int(log(1.4d9/nu(1))/log_nu_int) + 1  
-    i_3G = int(log(3.0d9/nu(1))/log_nu_int) + 1     
-    write(*,80) 'S_110M[mJy]=', Lsy_tot(i_110M)*(mphi*4.)/(4.*pi*distance**2*nu(i_110M))*1.d26 ! mphi emitters, 4 quadrants
-    write(*,80) 'S_150M[mJy]=', Lsy_tot(i_150M)*(mphi*4.)/(4.*pi*distance**2*nu(i_150M))*1.d26 ! mphi emitters, 4 quadrants
-    write(*,80) 'S_325M[mJy]=', Lsy_tot(i_325M)*(mphi*4.)/(4.*pi*distance**2*nu(i_325M))*1.d26
-    write(*,80) 'S_890MHz[mJy]=', Lsy_tot(i_890M)*(mphi*4.)/(4.*pi*distance**2*nu(i_890M))*1.d26
-    write(*,80) 'S_1.4GHz[mJy]=', Lsy_tot(i_1G)*(mphi*4.)/(4.*pi*distance**2*nu(i_1G))*1.d26 ! mphi emitters, 4 quadrants
-    write(*,80) 'S_3GHz[mJy]=', Lsy_tot(i_3G)*(mphi*4.)/(4.*pi*distance**2*nu(i_3G))*1.d26 ! mphi emitters, 4 quadrants
+    ! Fluxes at the radio-map frequencies (controls.f90)
+    i_map = nu_index(maps%nu, nu(1), log(nu(2)/nu(1)), m_nu)
+    do im = 1, size(maps)
+       write(*,'(A,A,A,X,Es10.3)') ' S_', trim(maps(im)%label), '[mJy]=', S_nu(i_map(im))
+    end do
 
     !---------------------------------------
     !
     !   Save data
 
+    open(100, file='radsyn_tot_'//shock//'.dat')
+      write(100,*) sum_sy*(mphi*4.)
+    close(100)
+
     ! Total SED
     open(17,file='radsyn_'//shock//'.dat')
-    do i = 1,m_nu
-      write(17,*) Eps(i)*mec2/eV,Lsy_tot(i),Lsy_tot(i)/(Eps(i)*mec2)
-    enddo
+    write(17,'(3es25.16e3)') (Eps(i)*mec2/eV, Lsy_tot(i), Lsy_tot(i)/(Eps(i)*mec2), i=1,m_nu)
     close(17)
 
     ! Fluxes
-
     open(18,file='S_syn_'//system//'_'//shock//'.dat')
-    do i = 1,m_nu
-      write(18,*) nu(i),Lsy_tot(i)*(mphi*4.)/(4.*pi*distance**2*nu(i))*1.d26
-    enddo
+    write(18,'(2es25.16e3)') (nu(i), S_nu(i), i=1,m_nu)
     close(18)
 
     ! 3-D emission map
-    open(79,file='emisyn_'//shock//'.dat')
+    open(newunit=iu,file='emisyn_'//shock//'.dat')
     do l = 1, m_theta
-       do i = 1, m_nu
-          write(79,*) l,Eps(i)*mec2/eV,Eps(i)*Lsy(l,i)
-       enddo
-       write(79,*) 
+       write(iu,'(i6,2es25.16e3)') (l, Eps(i)*mec2/eV, Eps(i)*Lsy(l,i), i=1,m_nu)
+       write(iu,*)
     enddo
-    close(79)
-    
-    deallocate( Lsy_tot,nu,Lsy )
-    deallocate( x,y,B_par,B,rho,P,v_t,T )
-    deallocate( N_e,E_e,N_etot )
+    close(iu)
+
+    deallocate( nu, Eps, dEps, Lsy, Lsy_tot, S_nu )
+    deallocate( rho, B, B_par )
+    deallocate( E_e, gamma_e, dE_e, N_etot )
 
   END subroutine CD_radsyn_run
-  
-  
-!==============================
 
-  
-END module CD_radsyn
-
-
-
+End module CD_radsyn

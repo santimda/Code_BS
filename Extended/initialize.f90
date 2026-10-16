@@ -1,67 +1,34 @@
 MODULE initialize
     use global
-    !use constants
-    !use controles
+    use numerical_utils, only: vector_log
     implicit none
-    
-    contains 
+
+    contains
 
     !============================================================================
-    ! initialize_allocate (START)
+    ! initialize_allocate: allocates the CD vectors and writes the frequency
+    ! grid nu.dat, shared by CD_radsyn, opac_ff and CD_abssyn
     !============================================================================
-    subroutine initialize_allocate() !eta_B_value, frac_NT_value)
-    !============================================================================
-    ! allocate and initialize vectors 
-    !============================================================================
-        !real(dp), intent(in) :: eta_B_value, frac_NT_value
-        !logical :: fexist
-      
+    subroutine initialize_allocate()
+        real(dp) :: nu_grid(m_nu), nu_int
+        integer  :: iu
+
         allocate( theta(m_theta), r_norm(m_theta), R_theta(m_theta) )
-        !allocate( x(ml), y(ml), z(ml) )
-        !allocate( P(ml), rho(ml), v(ml), T(ml), B(ml), B_par(ml), n_a(ml), H_sh(ml) ) 
-        !allocate( efi_ac(ml_2) )
-        !allocate( E_e(mE_e), E_p(mE_p) )
-        !allocate( nu(mnu), E_sy(mnu) )
 
-        ! Initialize values given by free parameters:
-        !eta_B1 = eta_B_value    !Update the value of eta_B (default value defined in system_parameters.f90)
-        !eta_B2 = eta_B_value    !Update the value of eta_B2 (default value defined in system_parameters.f90)
-        !frac_NT = frac_NT_value !Update the value of Lj (default value defined in system_parameters.f90)
-
-        ! Global variables that are tied to the free parameters
-        !frac_B1 = sqrt(eta_B1)          ! B = frac*B_equipartition
-        !frac_B2 = sqrt(eta_B2)          ! B = frac*B_equipartition
-        !inj_e = frac_NT * K_ep          ! Fraction L_NT_e/L_inj
-        !inj_p = frac_NT * (1.d0-K_ep)   ! Fraction L_NT_p/L_inj
-
-        !write(*,'(A,Es9.2)') 'eta_B1 = ', eta_B1
-        !write(*,'(A,Es9.2)') 'frac_NT = ', frac_NT
+        call vector_log(nu_min_syn, nu_max_syn, nu_int, nu_grid)
+        open(newunit=iu, file=output_file('nu.dat'))
+            write(iu,'(es25.16e3)') nu_grid
+        close(iu)
 
     end subroutine initialize_allocate
-    !============================================================================
-    ! initialize_allocate (END)
-    !============================================================================
-    
 
     !============================================================================
-    ! initialize_deallocate (START)
+    ! initialize_deallocate: deallocates the CD vectors
     !============================================================================
-    subroutine initialize_deallocate
-    !============================================================================
-    ! deallocate vectors 
-    !============================================================================
- 
+    subroutine initialize_deallocate()
+
         deallocate( theta, r_norm, R_theta )
-        !deallocate( x, y, z )
-        !deallocate( P, rho, T, B, B_par, n_a, H_sh ) 
-        !deallocate( efi_ac )
-        !deallocate( E_e, E_p )
-        !deallocate( nu, E_sy )
 
     end subroutine initialize_deallocate
-    !============================================================================
-    ! initialize_deallocate (END)
-    !============================================================================
-
 
 END MODULE initialize

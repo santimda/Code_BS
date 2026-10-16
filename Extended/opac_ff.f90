@@ -88,7 +88,7 @@ module opac_ff
       !------------------------------------------------------------------
 
       T_w = 0.3d0*T_st      ! assume constant T in the wind (valid far from the star)
-      open(14,file='nu.dat')
+      open(14,file=output_file('nu.dat'))
       do i = 1,mE_ff
          read(14,*) nu(i)
       enddo
