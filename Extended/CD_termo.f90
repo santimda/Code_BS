@@ -34,6 +34,7 @@ module CD_termo
       real(dp) :: lambda_tot(m_theta) 
       real(dp) :: t_th(m_theta), t_adv(m_theta), T_IL(m_theta), T_RH(m_theta), T_new(m_theta)
       integer :: l_crit, l_transition, l_min, n_adi
+      integer :: iu, iu_n, iu_termo, iu_norm, iu_cmp, iu_H
       logical :: transition
       
       allocate( H_theta(m_theta),H_1(m_theta) )
@@ -68,26 +69,26 @@ module CD_termo
       !-----------------------------------------------------------------
       ! Read the shock position and cell size: theta,r_norm(theta),dR(theta)
 
-      open(11,file=output_file('CD.dat'))
+      open(newunit=iu,file=output_file('CD.dat'))
       do l = 1, m_theta
-         read(11,*) theta(l), r_norm(l), dR(l), dummy, R_acel(l)
+         read(iu,*) theta(l), r_norm(l), dR(l), dummy, R_acel(l)
       end do
-      close(11)
+      close(iu)
       dtheta = theta(2)-theta(1)    ! Constant step in theta
 
       !-----------------------------------------------------------------
       ! Read y coordinate (normalized)
 
-      open(12, file=output_file('CD_xy.dat'))
+      open(newunit=iu, file=output_file('CD_xy.dat'))
       do l = 1, m_theta
-         read(12,*) x(l), y(l)
+         read(iu,*) x(l), y(l)
       end do
-      close(12)
+      close(iu)
 
       !-----------------------------------------------------------------
       ! Calculate the normal and tangential vectors at each position
       ! using Eqs.12-16 from Christie+16
-      if (shock == 'FS') open(15,file='n.dat')
+      if (shock == 'FS') open(newunit=iu_n, file=output_file('n.dat'))
       
       do l = 1, m_theta
          st = sin(theta(l))
@@ -104,13 +105,13 @@ module CD_termo
             n_t = (/ -A_z, A_omega /)    ! Tangential vector to the BS surface
             v_vec = v_sh * (/1.d0, 0.d0/)
             v_t_RH(l) = v_sh*max(-A_z,0.)
-            write(15,*) n_t, n_perp
+            write(iu_n,*) n_t, n_perp
          end if
          v_perp(l) = max( DOT_PRODUCT(v_vec,n_perp), 0.d0 )
          !v_t(l) = max( DOT_PRODUCT(v_vec,n_t), 1.d-10 ) ! Just so we don't get a zero value in l=1
       end do
 
-      if (shock == 'FS') close(15) 
+      if (shock == 'FS') close(iu_n) 
 
       v_t_RH(1) = max(v_t_RH(1), 1.d-30*v_sh)   ! formally 0 at the apex
 
@@ -118,12 +119,12 @@ module CD_termo
       ! particle accel. efficiency at the shock, depending on theta
 
       allocate( efi_ac_sh(m_theta) )
-      open (18,file='efi_ac_'//shock//'.dat')
+      open (newunit=iu,file=output_file('efi_ac_'//shock//'.dat'))
       do l = 1,m_theta
          efi_ac_sh(l) = 2.d0*pi*(c/v_perp(l))**2
-         write(18,*) theta(l), efi_ac_sh(l)
+         write(iu,*) theta(l), efi_ac_sh(l)
       end do
-      close(18)
+      close(iu)
       deallocate( efi_ac_sh )
 
       !-----------------------------------------------------------------
@@ -289,7 +290,7 @@ module CD_termo
 
       !-----------------------------------------------------------------
       ! Thermal Bremsstrahlung losses
-      open(43,file='t_th_'//shock//'.dat')
+      open(newunit=iu, file=output_file('t_th_'//shock//'.dat'))
 
       do l=1,m_theta
          lambda_tot(l) = lambda_cool(T(l))
@@ -299,28 +300,28 @@ module CD_termo
          else if (shock == 'FS') then
             t_th(l) = k*T(l)/( r(l) * n_ISM * lambda_tot(l) )/(g_ad-1.d0)
          end if
-         write(43,*) theta(l), t_th(l)
+         write(iu,*) theta(l), t_th(l)
       end do
 
-      close(43)
+      close(iu)
 
       !-----------------------------------------------------------------
       ! Advection timescale
-      open(44,file='t_conv_'//shock//'.dat')
+      open(newunit=iu,file=output_file('t_conv_'//shock//'.dat'))
 
       do l=1,m_theta
          t_adv(l) = R_theta(l)/v_t(l)
-         write(44,*) theta(l), t_adv(l)
+         write(iu,*) theta(l), t_adv(l)
       end do
 
-      close(44)
+      close(iu)
 
 
-      open(66,file='rad_adi_'//system//'_'//shock//'.dat')
+      open(newunit=iu,file=output_file('rad_adi_'//system//'_'//shock//'.dat'))
       do l=1,m_theta
-         write(66,*) theta(l),t_th(l)/t_adv(l)
+         write(iu,*) theta(l),t_th(l)/t_adv(l)
       end do
-      close(66)
+      close(iu)
 
       ! In a radiative shock the hot layer must cool before being advected (t_th < t_adv)
       ! otherwise H_IL can become negative (see Martinez et al. 2023, Eq. 12)
@@ -336,7 +337,7 @@ module CD_termo
       !-----------------------------------------------------------------
       ! Minimum gas temperature
       if (radiative) then
-         open(45,file='T_IL_'//shock//'.dat')
+         open(newunit=iu,file=output_file('T_IL_'//shock//'.dat'))
 
          T_IL(1) = (t_th(1)/t_adv(2))*T(1)
          if (T_IL(1) < T_ISM) then
@@ -355,10 +356,10 @@ module CD_termo
             n_IL(l) = rho_IL(l)/mp/mu
          end do
          do l=1,m_theta
-            write(45,*) theta(l), T_IL(l)
+            write(iu,*) theta(l), T_IL(l)
          end do
 
-         close(45)
+         close(iu)
       end if
 
    !-----------------------------------------------------------------
@@ -404,23 +405,23 @@ module CD_termo
       !end do
       !end if
 
-      open(21,file='Hnorm_'//shock//'.dat') ! normalized
+      open(newunit=iu,file=output_file('Hnorm_'//shock//'.dat')) ! normalized
       do l = 1, m_theta
          st = sin(theta(l))
          dV_ring(l) = (2.d0*pi*R_theta(l)*st) * dR(l) * H_theta(l) ! Volume of the ring
          if ( .not. radiative ) then
-            write(21,*) theta(l), H_theta(l), R_acel(l)*R0, H_theta(l)/R_theta(l), dV_ring(l)
+            write(iu,*) theta(l), H_theta(l), R_acel(l)*R0, H_theta(l)/R_theta(l), dV_ring(l)
          else if (radiative) then
-            write(21,*) theta(l), H_theta(l), R_acel(l)*R0, H_theta(l)/R_theta(l), dV_ring(l), H_1(l)
+            write(iu,*) theta(l), H_theta(l), R_acel(l)*R0, H_theta(l)/R_theta(l), dV_ring(l), H_1(l)
          end if
       end do
-      close(21)
+      close(iu)
 
       !-----------------------------------------------------------------
       ! Injected power available for the acceleration of NT particles 
       ! The injected power is the energy flux * area_perpendicular
 
-      open(42,file='Linj_'//shock//'.dat')            ! stores L_inj in one quadrant
+      open(newunit=iu,file=output_file('Linj_'//shock//'.dat'))            ! stores L_inj in one quadrant
 
       L_inj_tot = 0.d0
       do l = 1, m_theta
@@ -441,9 +442,9 @@ module CD_termo
 
          L_inj(l) = e_flux * dA_perp
          L_inj_tot = L_inj_tot + L_inj(l)         
-         write(42,*) theta(l), r_norm(l), L_inj(l), dR(l)/R0, L_inj_tot*(mphi*4.)/L_sh
+         write(iu,*) theta(l), r_norm(l), L_inj(l), dR(l)/R0, L_inj_tot*(mphi*4.)/L_sh
       end do
-      close(42)
+      close(iu)
 
       if (shock == 'RS') then
          write(*,80) 'L_inj_w =', L_sh
@@ -461,7 +462,7 @@ module CD_termo
       !Calculate injection spectral index at the shocks
 
       allocate( alpha_sh(m_theta) )
-      open(20,file='alpha_'//shock//'.dat')
+      open(newunit=iu,file=output_file('alpha_'//shock//'.dat'))
       do l = 1, m_theta
          !alpha_sh(l) = 2.55_dp
          alpha_sh(l) = 3._dp
@@ -469,39 +470,39 @@ module CD_termo
          !dummy = r(l)/(1.d0 + r(l)*v_A(l)/v_sh)         
          !print *, r(l), r(l)/(1.d0 + r(l)*v_ARH(l)/v_sh)
          !print *, alpha_sh(l), (dummy+2.d0)/(dummy-1.d0)
-         write(20,*) theta(l),alpha_sh(l)
+         write(iu,*) theta(l),alpha_sh(l)
       end do
-      close(20)
+      close(iu)
       deallocate( alpha_sh )
 
       !------------------------------
       ! Write the results
 
-      open(16,file='termo_'//shock//'.dat')
-      open(17,file='termonorm_'//shock//'.dat') ! normalized
-      open(18, file='new_vs_RH_'//shock//'.dat') ! comparison btw P, rho and v_t new vs old
-      open(19, file='H_'//shock//'.dat')
+      open(newunit=iu_termo, file=output_file('termo_'//shock//'.dat'))
+      open(newunit=iu_norm, file=output_file('termonorm_'//shock//'.dat'))  ! normalized
+      open(newunit=iu_cmp, file=output_file('new_vs_RH_'//shock//'.dat'))  ! P, rho and v_t: new vs RH
+      open(newunit=iu_H, file=output_file('H_'//shock//'.dat'))
       do l = 1, m_theta
-         write(16,*) l,rho(l),P(l),v_t(l),T(l),B(l),v_perp(l),theta(l),Mach(l),r(l),rho_med(l),rho_IL(l)
-         write(17,*) theta(l),rho(l)/rho(1),P(l)/P(1),v_t(l)/v_sh,T(l)/T(1),B(l)/B(1),v_perp(l)/v_sh,C_s_sh(l)/v_sh,rho_IL(l)/rho_IL(1)
-         write(18,*) theta(l),v_t(l)/v_t_RH(l), P(l)/P_RH(l), rho(l)/rho_RH(l)
+         write(iu_termo,*) l,rho(l),P(l),v_t(l),T(l),B(l),v_perp(l),theta(l),Mach(l),r(l),rho_med(l),rho_IL(l)
+         write(iu_norm,*) theta(l),rho(l)/rho(1),P(l)/P(1),v_t(l)/v_sh,T(l)/T(1),B(l)/B(1),v_perp(l)/v_sh,C_s_sh(l)/v_sh,rho_IL(l)/rho_IL(1)
+         write(iu_cmp,*) theta(l),v_t(l)/v_t_RH(l), P(l)/P_RH(l), rho(l)/rho_RH(l)
          if (.not. radiative) then
-            write(19,*) theta(l), H_theta(l), H_theta(l)/R_theta(l)
+            write(iu_H,*) theta(l), H_theta(l), H_theta(l)/R_theta(l)
          else if (radiative) then
-            write(19,*) theta(l), H_theta(l), H_theta(l)/R_theta(l), H_1(l)/R_theta(l)
+            write(iu_H,*) theta(l), H_theta(l), H_theta(l)/R_theta(l), H_1(l)/R_theta(l)
          end if
       end do
-      close(16)
-      close(17)
-      close(18)
-      close(19)
+      close(iu_termo)
+      close(iu_norm)
+      close(iu_cmp)
+      close(iu_H)
 
       if (radiative) then
-         open(22, file='termo_radiative_norm.dat')
+         open(newunit=iu, file=output_file('termo_radiative_norm.dat'))
          do l = 1, m_theta
-            write(22,*) theta(l), rho(l)/rho_med(l), rho_IL(l)/rho_med(l), T(l)/T_ISM
+            write(iu,*) theta(l), rho(l)/rho_med(l), rho_IL(l)/rho_med(l), T(l)/T_ISM
          end do
-         close(22)
+         close(iu)
       end if
 
       print *, 'At the stagnation point (sw):'
