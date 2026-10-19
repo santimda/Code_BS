@@ -247,8 +247,8 @@ module CD_abssyn
    ! Ionized layer: density and width (CD_termo.f90)
 
    if (IL) then
-      open(20,file='termo_FS.dat')
-      open(21,file='H_FS.dat')
+      open(20,file=output_file('termo_FS.dat'))
+      open(21,file=output_file('H_FS.dat'))
       do l=1, m_theta
          read(20,*) dummy,dummy,dummy,dummy,dummy,dummy,dummy,dummy,dummy,dummy,dummy,rho_l
          read(21,*) dummy, H_IL(l), dummy, dummy

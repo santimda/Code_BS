@@ -33,7 +33,7 @@ module shock_thermal
     !------------------------------------------------------------
     !    Read shock position and thermodynamical quantities   
 
-    open(13,file='Hnorm_'//shock//'.dat') 
+    open(13,file=output_file('Hnorm_'//shock//'.dat'))
     do l=1,m_theta
       if ( .not. radiative ) then
         read(13,*) dummy, H_theta(l), dummy, dummy, dV_ring(l)
@@ -45,7 +45,7 @@ module shock_thermal
 
     dtheta = theta(2) - theta(1) ! This is equally spaced
 
-    open(11,file='termo_'//shock//'.dat')
+    open(11,file=output_file('termo_'//shock//'.dat'))
     do l=1,m_theta
       read(11,*) nl,rho(l),dummy,dummy,T(l),dummy,dummy,dummy,dummy,dummy,dummy,dummy! CGS
       if (shock == 'RS') then
@@ -156,11 +156,11 @@ module shock_thermal
     !------------------------------------------------------------     
     ! Read shock position and thermodynamical quantities  
 
-    open(10,file=output_file('CD.dat'))
-    open(13,file='Hnorm_'//shock//'.dat') 
-    open(14,file='Linj_'//shock//'.dat')
-    if (radiative) open(15,file='T_IL_'//shock//'.dat')
-    open(16,file='t_th_'//shock//'.dat')
+    open(10,file='CD.dat')
+    open(13,file=output_file('Hnorm_'//shock//'.dat'))
+    open(14,file=output_file('Linj_'//shock//'.dat'))
+    if (radiative) open(15,file=output_file('T_IL_'//shock//'.dat'))
+    open(16,file=output_file('t_th_'//shock//'.dat'))
     do l=1,m_theta
       read(10,*) theta(l), r_norm(l), dR(l), dummy, dummy
       read(14,*) dummy, dummy, L_inj(l), dummy, dummy
@@ -179,7 +179,7 @@ module shock_thermal
     close(16)
     dtheta = theta(2) - theta(1) ! This is equally spaced
 
-    open(11,file='termo_'//shock//'.dat')
+    open(11,file=output_file('termo_'//shock//'.dat'))
     do l=1,m_theta
       read(11,*) nl,rho(l),dummy,dummy,T(l),dummy,v_perp(l),dummy,dummy,r(l),dummy,rho_IL(l) ! CGS
       if (shock == 'FS') then

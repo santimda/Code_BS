@@ -44,7 +44,7 @@ contains
       !------------------------------------------------------------------------
       !  Read information (thermodynamical quantities and relativist electrons)
 
-      open(11,file='termo_'//shock//'.dat')
+      open(11,file=output_file('termo_'//shock//'.dat'))
       do l=1,m_theta
          read(11,*) nl,rho(l),P(l),v_t(l),T(l),B(l)
          if (shock == 'RS') then

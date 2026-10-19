@@ -50,7 +50,7 @@ contains
     !
     ! Read thermodynamical quantites at each position
 
-    open(11,file='termo_'//shock//'.dat')
+    open(11,file=output_file('termo_'//shock//'.dat'))
     do l = 1, m_theta
        read(11,*) il,rho(l),dummy,dummy,dummy,B(l) ! CGS
     enddo

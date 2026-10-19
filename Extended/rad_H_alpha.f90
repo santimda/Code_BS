@@ -37,7 +37,7 @@ module rad_H_alpha
 
       !-----------------------------------------
 
-      open(11,file='termo_'//shock//'.dat')
+      open(11,file=output_file('termo_'//shock//'.dat'))
       do l=1,m_theta
          read(11,*) dummy,dummy,dummy,dummy,dummy,dummy,dummy,dummy,dummy,dummy,dummy,rho_IL(l)
          n_a_e(l) = rho_IL(l)/mp/mu_e
@@ -47,7 +47,7 @@ module rad_H_alpha
 
       !-----------------------------------------
 
-      open(13,file='Hnorm_'//shock//'.dat')
+      open(13,file=output_file('Hnorm_'//shock//'.dat'))
       do l = 1,m_theta
          read(13,*) dummy, H_theta(l), dummy, dummy, dV_cell(l), dummy
       end do
@@ -62,7 +62,7 @@ module rad_H_alpha
       end do
 
       n_LOS = (/sin(incli), cos(incli), 0.d0/)
-      open(75,file='n.dat')
+      open(75,file=output_file('n.dat'))
       do l=1,m_theta
         read(75,*) n_t_1, n_t_2, n_perp_1, n_perp_2
         n_perp = (/n_perp_1, n_perp_2*cos(angle), n_perp_2*sin(angle)/)/&

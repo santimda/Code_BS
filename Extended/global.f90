@@ -233,7 +233,7 @@ module global
    !============================================================================
    ! lambda_cool
 
-   Function lambda_cool(T)
+   elemental function lambda_cool(T)
       real(dp), intent(in) :: T
       real(dp) :: lambda_cool
       

@@ -65,7 +65,7 @@ module CD_distp
       !  Read the position of the shock and cell size: theta, r_norm(theta), dR(theta); 
       !  the thermodynamical quantities and injected luminosity at each cell
       
-      open(12,file='Linj_'//shock//'.dat')
+      open(12,file=output_file('Linj_'//shock//'.dat'))
       do l=1,m_theta
          read(12,*) dummy,dummy,L_inj(l),dR(l),dummy
       end do
@@ -81,7 +81,7 @@ module CD_distp
          write(21,*) L_inj_p_tot
       close(21)
       
-      open(11,file='termo_'//shock//'.dat') 
+      open(11,file=output_file('termo_'//shock//'.dat'))
       do l=1,m_theta
          read(11,*) l2,rho(l),P(l),v_t(l),T(l),B(l) ! all in CGS units
       end do
@@ -92,14 +92,14 @@ module CD_distp
          n_a = rho/mp/mu_SISM
       end if
       
-      open(103,file='Hnorm_'//shock//'.dat') 
+      open(103,file=output_file('Hnorm_'//shock//'.dat'))
       do l = 1, m_theta
          read(103,*) dummy, H_theta(l), R_acel(l), dummy, dV_ring(l)       
       end do
       close(103)
       
-      open(114,file='efi_ac_'//shock//'.dat')
-      open(20,file='alpha_'//shock//'.dat')
+      open(114,file=output_file('efi_ac_'//shock//'.dat'))
+      open(20,file=output_file('alpha_'//shock//'.dat'))
       do l = 1,m_theta
          read(114,*) dummy,efi_ac_sh(l)
          read(20,*) dummy,alpha_sh(l)
@@ -403,7 +403,7 @@ module CD_distp
       !  Read the position of the shock and cell size: theta, r_norm(theta), dR(theta); 
       !  the thermodynamical quantities and injected luminosity at each cell
       
-      open(12,file='Linj_'//shock//'.dat')
+      open(12,file=output_file('Linj_'//shock//'.dat'))
       do l=1,m_theta
          read(12,*) theta(l),R_theta(l),L_inj(l),dR(l)
       end do
@@ -412,7 +412,7 @@ module CD_distp
       dR = R0*dR               ! The file contained dR/R0, not dR [cm]
       L_inj_p = inj_p*L_inj    ! The cell size is already taken into account in L_inj
       
-      open(11,file='termo_'//shock//'.dat') 
+      open(11,file=output_file('termo_'//shock//'.dat'))
       do l=1,m_theta
          read(11,*) l2,rho(l),P(l),v_t(l),T(l),B(l) ! all in CGS units
       end do
@@ -423,14 +423,14 @@ module CD_distp
          n_a = rho/mp/mu_SISM
       end if
       
-      open(103,file='Hnorm_'//shock//'.dat') 
+      open(103,file=output_file('Hnorm_'//shock//'.dat')) 
       do l = 1, m_theta
          read(103,*) dummy, H_theta(l), R_acel(l), dummy, dV_ring(l) 
       end do
       close(103)
       
-      open(114,file='efi_ac_'//shock//'.dat')
-      open(20,file='alpha_'//shock//'.dat')
+      open(114,file=output_file('efi_ac_'//shock//'.dat'))
+      open(20,file=output_file('alpha_'//shock//'.dat'))
       do l = 1,m_theta
          read(114,*) dummy,efi_ac_sh(l)
          read(20,*) dummy,alpha_sh(l)
