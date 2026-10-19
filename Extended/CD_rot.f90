@@ -1,8 +1,12 @@
 module CD_rot
-  !Este módulo rota los vectores posición de la CD en torno al eje que 
-  !une las 2 estrellas (eje x) calcula la emisión IC ya corregida por absorción
+  !============================================================================
+  ! Rotates the CD by an angle phi around the x-axis (the symmetry axis of
+  ! the BS). Input: CD_xy.dat (upper half, z = 0, in units of R0, from CD.f90).
+  ! Output: CDrot.dat with both halves, upper (y >= 0) and mirror (y <= 0),
+  ! in units of R0. It is read by CD_radic, CD_abssyn and rad_H_alpha.
+  !============================================================================
   use global
-  
+  use controls, only: verbose
   implicit none
   private
   public :: CD_rot_run
@@ -12,62 +16,47 @@ contains
   !============================================================================
   ! CD_rot_run
   !============================================================================
-  
-  subroutine CD_rot_run(phi)  
-    use global
-    implicit none
+
+  subroutine CD_rot_run(phi)
     real(dp), intent(in) :: phi
-    real(dp) :: xrot,yrot,zrot
-    
-    interface
-       subroutine rotacion(x1,x2,x3,ang,x1_rot,x2_rot,x3_rot)
-         use iso_fortran_env, only: dp => real64
-         implicit none
-         real(dp), intent(in) :: x1,x2,x3,ang
-         real(dp), intent(out) :: x1_rot,x2_rot,x3_rot
-       end subroutine rotacion
-    end interface
-    
-    allocate( x(m_theta),y(m_theta),z(m_theta) )
-              
-     write(*,*) 'Rotate the coords'
+    real(dp) :: x_cd(m_theta), y_cd(m_theta)
+    real(dp) :: xrot, yrot, zrot
+    integer  :: iu
 
-    open(12,file=output_file('CD_xy.dat'))
-    open(13,file='CDrot.dat')
-    do l = 1,m_theta
-       read(12,*) x(l),y(l)
-       z(l)=0.d0
-       call rotacion(x(l),y(l),z(l),phi,xrot,yrot,zrot)
-       write(13,*) xrot,yrot,zrot
-    enddo
-    do l = m_theta+1, 2*m_theta
-       call rotacion(x(l-m_theta),-y(l-m_theta),0.d0,phi,xrot,yrot,zrot)
-       write(13,*) xrot,yrot,zrot
-    enddo
-    close(12)
-    close(13)
-    
-    deallocate( x,y,z )
-    
+    if (verbose) print *, 'Rotate the coords'
+
+    open(newunit=iu, file=output_file('CD_xy.dat'))
+    do l = 1, m_theta
+       read(iu,*) x_cd(l), y_cd(l)
+    end do
+    close(iu)
+
+    open(newunit=iu, file=output_file('CDrot.dat'))
+    do l = 1, m_theta                ! upper half
+       call rotate_vector(x_cd(l), y_cd(l), phi, xrot, yrot, zrot)
+       write(iu,*) xrot, yrot, zrot
+    end do
+    do l = 1, m_theta                ! lower half (mirror, y -> -y)
+       call rotate_vector(x_cd(l), -y_cd(l), phi, xrot, yrot, zrot)
+       write(iu,*) xrot, yrot, zrot
+    end do
+    close(iu)
+
   END subroutine CD_rot_run
-  
+
+  !============================================================================
+  ! rotate_vector: rotates the vector (Vx, Vy, 0) by an angle ang around the
+  ! x-axis
+  !============================================================================
+
+  subroutine rotate_vector(Vx, Vy, ang, VRx, VRy, VRz)
+    real(dp), intent(in)  :: Vx, Vy, ang
+    real(dp), intent(out) :: VRx, VRy, VRz
+
+    VRx = Vx                ! unaltered
+    VRy = cos(ang)*Vy       ! Vz = 0
+    VRz = sin(ang)*Vy       ! Vz = 0
+
+  END subroutine rotate_vector
+
 END module CD_rot
-
-!____________________________________
-!____________________________________
-
-
-Subroutine rotacion(Vx,Vy,Vz,ang,VRx,VRy,VRz)
-  use global
-  implicit none 
-  ! Rotates a vector V in an angle "ang" around the x-axis
-  real(dp), intent(in) :: Vx,Vy,Vz,ang
-  real(dp), intent(out) :: VRx,VRy,VRz
-      
-  VRx = Vx
-  VRy = cos(ang)*Vy ! Vz=0
-  VRz = sin(ang)*Vy ! Vz=0
-  
-  RETURN
-END Subroutine rotacion
-

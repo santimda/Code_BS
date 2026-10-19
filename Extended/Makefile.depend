@@ -40,7 +40,7 @@ CD_radic.o: CD_radic.f90 global.o numerical_utils.o
 
 CD_radpp.o: CD_radpp.f90 global.o numerical_utils.o
 
-CD_rot.o: CD_rot.f90 global.o numerical_utils.o
+CD_rot.o: CD_rot.f90 global.o controles.o
 
 CD_abssyn.o: CD_abssyn.f90 global.o controles.o gaunt_factor.o map_freqs.o
 

@@ -61,7 +61,7 @@ module CD_abssyn
    !======================================================
    ! Geometry and frequency grid
 
-   open(11,file='CDrot.dat')
+   open(11,file=output_file('CDrot.dat'))
    do l=1,m_l     ! "up" and "down"
       read(11,*) x(l),y(l),z(l)
    end do

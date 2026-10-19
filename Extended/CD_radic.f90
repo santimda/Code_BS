@@ -40,7 +40,7 @@ module CD_radic
     !------------------------------------------------------------------------
     !  Reading information here  
   
-    open(11,file='CDrot.dat')
+    open(11,file=output_file('CDrot.dat'))
     do l=1,m_l     ! "up" and "down"
       read(11,*) x(l),y(l),z(l)
     enddo

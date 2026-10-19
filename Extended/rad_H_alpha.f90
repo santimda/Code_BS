@@ -83,7 +83,7 @@ module rad_H_alpha
       close(75)
       Omega_cell = Area_cell * convert**2
 
-      open(70,file='CDrot.dat')
+      open(70,file=output_file('CDrot.dat'))
       !open(71,file='kappa_alpha_'//shock//'.dat')
       do l=1,m_l 
          read(70,*) x(l),y(l),z(l)
