@@ -1,7 +1,7 @@
 module CD
    use global
    implicit none
-   
+
    public :: CD_run
 
 contains
@@ -9,13 +9,15 @@ contains
    !============================================================================
    ! CD_run
    !============================================================================
-   ! This module calulates the 2D curve that represents the position of the shock  
-   ! according to Christie+2016. Only the "upper" half is calculated, as there is 
-   ! azimuthal symmetry. The "rotated" positions are later calculated by CDrot.f90
+   ! This module calulates the 2D curve that represents the position of the shock
+   ! according to Christie+2016. Only the "upper" half is calculated, as there is
+   ! azimuthal symmetry. The "rotated" positions are later calculated by CD_rot.f90
    !============================================================================
 
    subroutine CD_run
-      real(dp) :: dtheta, dR(m_theta), Length(m_theta), R_acel(m_theta), r_aprox
+      real(dp), parameter :: theta_0 = 1.d-4   ! theta(1) = 0 yields numerical errors
+      real(dp) :: dtheta, dR(m_theta), Length(m_theta), R_acel(m_theta), r_aprox(m_theta)
+      integer  :: iu
 
       interface
          Subroutine RK(x1,y1,dx,y2)
@@ -30,13 +32,12 @@ contains
 
       print*, 'Calculate the CD position'
 
-      !write(*,80) 'alpha = ', k*T_ISM/(mp*mu_ISM*v_ISM**2) ! P_thermal_ISM /P_kin_ISM kT_ISM/(mu*m_p*v_ISM**2)
       !-----------------------------------------------------------------------------
-      !  Scheme: We calculate the (theta,r(theta)) positions of the CD. We build  
-      !  arrays theta(n),r(theta(n)), such that the star is located at r=0 
+      !  Scheme: We calculate the (theta,r(theta)) positions of the CD. We build
+      !  arrays theta(n),r(theta(n)), such that the star is located at r=0
       !  and r(0)=R0/R0=1 (theta(0)=0) is the stagnation point obtained from pressure balance.
       !  We assume that the stellar wind has reached its terminal velocity.
-      !  The outputs are: a table with theta, r_norm, dR (CD.dat for the Christie+ solution, 
+      !  The outputs are: a table with theta, r_norm, dR (CD.dat for the Christie+ solution,
       !  CD_aprox.dat for the W96 sol), and a table with cartesian coords x, y (CD_xy.dat)
       !-----------------------------------------------------------------------------
 
@@ -45,63 +46,54 @@ contains
       100 format(A17,X,F5.2,X,A12)
       110 format(A21,X,F5.2)
 
-      ! ----------------------------------------------------------------------------
-      ! Set the initial conditions:
+      ! Angular grid, from theta_0 to theta_max
+      dtheta = (theta_max-theta_0)/real(m_theta-1,dp)
+      theta = theta_0 + dtheta*[( real(i,dp), i=0,m_theta-1 )]
 
-      ! theta(1)=0.d0 yields numerical errors -->
-      theta(1) = 1.d-4
+      ! CD shape: dr/dtheta from Eq. 11 of Christie+16 (function g), integrated
+      ! with RK; each step depends on the previous one
       r_norm(1) = 1.d0
-
-      ! Step:
-      dtheta = (theta_max-theta(1))/real(m_theta-1,dp)
-      dR(1) = R0*r_norm(1)*theta(1)  ! theta(1) =/ 0
-      Length(1) = 0.d0
       do i = 2, m_theta
-         theta(i) = theta(i-1) + dtheta
-         ! The subroutine RK obtains r(i) using theta(i-1),r(i-1), and dtheta. 
-         ! The function dr/dtheta given by Eq. 11 of Christie+16 is defined as 
-         ! the external function "g" 
          call RK(theta(i-1),r_norm(i-1),dtheta,r_norm(i))
-
-         dR(i) = R0*sqrt( r_norm(i-1)**2 + r_norm(i)**2 - 2.*r_norm(i)*r_norm(i-1)*cos(dtheta) ) ! cosine theorem
-         Length(i) = Length(i-1) + dR(i)   
       end do
       R_theta = r_norm*R0
+
+      ! Cell length (cosine theorem) and length along the CD from the apex
+      dR(1) = R0*r_norm(1)*theta(1)
+      dR(2:) = R0*sqrt( r_norm(1:m_theta-1)**2 + r_norm(2:)**2 - 2.d0*r_norm(2:)*r_norm(1:m_theta-1)*cos(dtheta) )
+      Length = [( sum(dR(2:i)), i=1,m_theta )]
 
       write(*,100) 'R0_proj[arcmin] =', R0_proj/60./abs(cos(incli)), ' (no cos(i))'
       write(*,90) 'R0[pc] =', R0/pc
       write(*,80) 'Length[R0] =', Length(m_theta)/R0
 
-      open(11,file=output_file('CD.dat'))
-      open(12,file=output_file('CD_aprox.dat'))
-      open(13,file=output_file('CD_xy.dat'))
-      open(14,file=output_file('CD_xy_aprox.dat'))
-      do l = 1, m_theta
-         x(l) = -r_norm(l)*cos(theta(l))
-         y(l) = r_norm(l)*sin(theta(l))
-         r_aprox = sqrt(3.*(1.-theta(l)/tan(theta(l))))/sin(theta(l))  ! solution for alpha = 0 (Wilkin 1996)
-         ! Prescription for the accelerator characteristic size (for diffusive escape)
-         !if (Length(l) < r_norm(l)*R0) then
-         !   R_acel(l) = r_norm(l)
-         if (y(l) < 1.d0) then
-            R_acel(l) = 1.d0 ! = R0
-         else
-            R_acel(l) = y(l)
-         endif
-         write(11,*) theta(l), r_norm(l), dR(l), Length(l)/R0, R_acel(l)
-         write(12,*) theta(l), r_aprox ! For consistency checks
-         write(13,*) x(l),y(l) ! The z-coordinate is = zero, I rotate later 
-         write(14,*) -r_aprox*cos(theta(l)), r_aprox*sin(theta(l)) ! For consistency chechs
-      end do
-      close(11)
-      close(12)
-      close(13)
-      close(14)
+      ! Cartesian coordinates (z = 0, rotated later), Wilkin (1996) solution for
+      ! alpha = 0 (consistency check) and accelerator size for diffusive escape
+      x = -r_norm*cos(theta)
+      y =  r_norm*sin(theta)
+      r_aprox = sqrt(3.d0*(1.d0-theta/tan(theta)))/sin(theta)
+      R_acel = max(y, 1.d0)          ! = R0 near the apex, y further away
+
+      open(newunit=iu, file=output_file('CD.dat'))
+      write(iu,'(5es25.16e3)') (theta(l), r_norm(l), dR(l), Length(l)/R0, R_acel(l), l=1,m_theta)
+      close(iu)
+
+      open(newunit=iu, file=output_file('CD_aprox.dat'))
+      write(iu,'(2es25.16e3)') (theta(l), r_aprox(l), l=1,m_theta)
+      close(iu)
+
+      open(newunit=iu, file=output_file('CD_xy.dat'))
+      write(iu,'(2es25.16e3)') (x(l), y(l), l=1,m_theta)
+      close(iu)
+
+      open(newunit=iu, file=output_file('CD_xy_aprox.dat'))
+      write(iu,'(2es25.16e3)') (-r_aprox(l)*cos(theta(l)), r_aprox(l)*sin(theta(l)), l=1,m_theta)
+      close(iu)
 
       write(*,110) 'Length_proj[arcsec] =', (sqrt((x(m_theta)*R0+R0)**2+y(m_theta)**2)/AU)/(distance/pc)/abs(cos(incli))
 
       deallocate(x,y)
-      
+
    End subroutine CD_run
 
 
@@ -130,7 +122,7 @@ Subroutine RK(xi,yi,dx,yf)
    end interface
 
    y(1) = yi
-   h = dx/real(n-1,dp)
+   h = dx/real(n-1,dp)   ! n points span dx in n-1 substeps
    do i = 1, n-1
       k1 = h*g(xi+(i-1)*h,y(i))
       k2 = h*g(xi+(i-1)*h+h/2.d0,y(i)+k1/2.d0)
@@ -162,4 +154,3 @@ Function g(theta_i,r_i)
 End function g
 
 !============================================================================
-
