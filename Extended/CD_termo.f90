@@ -21,7 +21,7 @@ module CD_termo
       character(LEN=*), intent(in) :: shock
       logical, intent(in) :: radiative
       real(dp) :: A_z,A_omega,st,ct
-      real(dp) :: cte_P,cte_T,cte_ad, frac_mu
+      real(dp) :: cte_P,cte_T,cte_ad
       real(dp) :: Beq0,Beq0_new,Beq0_RH,v_sh
       real(dp) :: dtheta,dR(m_theta),dV_ring(m_theta),dA_perp
       real(dp) :: L_inj(m_theta), L_inj_tot, L_sh, R_acel(m_theta)
@@ -32,8 +32,8 @@ module CD_termo
       real(dp) :: dot_M, dM, drho, P_th_med, Omega_in, theta_min, T_med
       real(dp) :: H_ion(m_theta)
       real(dp) :: lambda_tot(m_theta) 
-      real(dp) :: t_th(m_theta), t_adv(m_theta), T_IL(l), T_RH(m_theta), T_new(m_theta)
-      integer :: l_crit, l_transition, l_min
+      real(dp) :: t_th(m_theta), t_adv(m_theta), T_IL(m_theta), T_RH(m_theta), T_new(m_theta)
+      integer :: l_crit, l_transition, l_min, n_adi
       logical :: transition
       
       allocate( H_theta(m_theta),H_1(m_theta) )
@@ -50,6 +50,8 @@ module CD_termo
       82    format(A16,X,Es10.2)
       83    format(A18,X,Es10.2)
 
+
+      call validate_shock(shock, 'CD_termo_run')
       print *, '\n Calculate thermodynamic variables in the shocks'
 
       !-----------------------------------------------------------------
@@ -58,11 +60,9 @@ module CD_termo
       if (shock == 'RS') then
          v_sh = v_w
          L_sh = L_wind
-         frac_mu = 1.d0! mu/mu_w
       else if (shock == 'FS') then
          v_sh = v_ISM
          L_sh = L_ISM
-         frac_mu = 1.d0 !mu_SISM/mu
       end if
          
       !-----------------------------------------------------------------
@@ -112,6 +112,8 @@ module CD_termo
 
       if (shock == 'FS') close(15) 
 
+      v_t_RH(1) = max(v_t_RH(1), 1.d-30*v_sh)   ! formally 0 at the apex
+
       !-----------------------------------------------------------------
       ! particle accel. efficiency at the shock, depending on theta
 
@@ -155,11 +157,22 @@ module CD_termo
       B_new(1) = frac_sh * Beq0_new
       v_A_new(1) = B_new(1) / sqrt(4.d0*pi*rho_new(1)) ! Alfven speed
       C_s_sh_new(1) = sqrt( g_ad * P_new(1)/rho_new(1) )
-      v_t(1) = 0.d0
+      v_t_new(1) = 1.d-30*v_sh   ! formally 0; avoids divisions by zero (t_adv = R/v_t)
 
-      T_RH(1) = ((g_ad-1.d0)*Mach(1)**2+2.d0)*(2.d0*g_ad*Mach(1)**2-(g_ad-1.d0))*mp*C_s_med(1)**2*frac_mu/g_ad/k/((g_ad+1.d0)**2 * Mach(1)**2)
+      T_RH(1) = ((g_ad-1.d0)*Mach(1)**2+2.d0)*(2.d0*g_ad*Mach(1)**2-(g_ad-1.d0))/((g_ad+1.d0)**2*Mach(1)**2) * T_med
       r(1) = ( (g_ad+1.) * Mach(1)**2 )/ ((g_ad-1.)*Mach(1)**2 + 2.)
       P_RH(1) = cte_P*rho_med(1)*v_perp(1)**2 - (g_ad-1.)*P_th_med/(g_ad+1.)
+
+      if (Mach(1) > 1.d0) then
+         r(1) = (g_ad+1.)*Mach(1)**2/((g_ad-1.)*Mach(1)**2+2.)
+         T_RH(1) = ((g_ad-1.d0)*Mach(1)**2+2.d0)*(2.d0*g_ad*Mach(1)**2-(g_ad-1.d0))/((g_ad+1.d0)**2*Mach(1)**2) * T_med
+         P_RH(1) = cte_P * rho_med(1) * v_perp(1)**2 - (g_ad-1.)*P_th_med/(g_ad+1.)
+      else       ! no shock: upstream values
+         r(1) = 1.d0
+         T_RH(1) = T_med
+         P_RH(1) = P_th_med
+      end if
+
       rho_RH(1) = r(1)*rho_med(1)
       Beq0_RH = sqrt( 8.d0 * pi * P_RH(1) )
       B_RH(1) = frac_sh * Beq0_RH
@@ -193,7 +206,7 @@ module CD_termo
 
          if (shock == 'RS') then
             Omega_in = 2.d0*( 1.d0-cos(pi-theta(l)) ) ! Solid angle of the inner region (divided by pi)
-            rho_min(l) = (4.d0-Omega_in)/Omega_in * rho_med(l)
+            rho_min(l) = (4.d0-Omega_in)/Omega_in * rho_med(l) ! Eq. 9 from Martinez et al. 2023
          else if (shock == 'FS') then
             rho_min(l) = rho_med(l)
          end if
@@ -230,10 +243,17 @@ module CD_termo
          end if
          v_A_new(l) = B_new(l) / sqrt(4.d0*pi*rho_new(l)) ! Alfven speed
 
-         r(l) = (g_ad+1.)*Mach(l)**2/((g_ad-1.)*Mach(l)**2+2.) ! Compression factor (Caprioli 2014, Eq. 1)
+         if (Mach(l) > 1.d0) then
+            r(l) = (g_ad+1.)*Mach(l)**2/((g_ad-1.)*Mach(l)**2+2.)
+            T_RH(l) = ((g_ad-1.d0)*Mach(l)**2+2.d0)*(2.d0*g_ad*Mach(l)**2-(g_ad-1.d0))/((g_ad+1.d0)**2*Mach(l)**2) * T_med
+            P_RH(l) = cte_P * rho_med(l) * v_perp(l)**2 - (g_ad-1.)*P_th_med/(g_ad+1.)
+         else       ! no shock: upstream values
+            r(l) = 1.d0
+            T_RH(l) = T_med
+            P_RH(l) = P_th_med
+         end if
 
-         T_RH(l) = ((g_ad-1.d0)*Mach(l)**2+2.d0)*(2.d0*g_ad*Mach(l)**2-(g_ad-1.d0))*mp*C_s_med(l)**2*frac_mu/g_ad/k/((g_ad+1.d0)**2 * Mach(l)**2)
-         P_RH(l) = cte_P * rho_med(l) * v_perp(l)**2 - (g_ad-1.)*P_th_med/(g_ad+1.)
+         rho_RH(l) = r(l) * rho_med(l)
          rho_RH(l) = r(l) * rho_med(l)
          Beq0_RH = sqrt( 8.d0 * pi * P_RH(l) )
          B_RH(l) = frac_sh * Beq0_RH
@@ -300,13 +320,25 @@ module CD_termo
       do l=1,m_theta
          write(66,*) theta(l),t_th(l)/t_adv(l)
       end do
+      close(66)
+
+      ! In a radiative shock the hot layer must cool before being advected (t_th < t_adv)
+      ! otherwise H_IL can become negative (see Martinez et al. 2023, Eq. 12)
+      if (radiative) then
+         n_adi = count(t_th(2:m_theta) > t_adv(2:m_theta))
+         if (n_adi > 0) then
+            l = findloc(t_th(2:m_theta) > t_adv(2:m_theta), .true., dim=1) + 1
+            write(*,'(A,I4,A,F6.1,A)') ' WARNING (CD_termo): t_th > t_adv in ', n_adi, &
+               ' cells of the '//shock//' (first at theta =', theta(l)*180./pi' deg): the shock is adiabatic there'
+         end if
+      end if
 
       !-----------------------------------------------------------------
       ! Minimum gas temperature
       if (radiative) then
          open(45,file='T_IL_'//shock//'.dat')
 
-         T_IL(1) = (t_th(1)/t_adv(2))*T(l)
+         T_IL(1) = (t_th(1)/t_adv(2))*T(1)
          if (T_IL(1) < T_ISM) then
             T_IL(1) = T_ISM
          end if
@@ -469,6 +501,7 @@ module CD_termo
          do l = 1, m_theta
             write(22,*) theta(l), rho(l)/rho_med(l), rho_IL(l)/rho_med(l), T(l)/T_ISM
          end do
+         close(22)
       end if
 
       print *, 'At the stagnation point (sw):'
