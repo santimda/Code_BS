@@ -44,6 +44,7 @@ module global
    real(dp), dimension(:), allocatable :: v_t_RH, P_RH, rho_RH, B_RH, rho_min, rho_IL
    real(dp), dimension(:), allocatable :: v_t_new, P_new, rho_new, B_new
    real(dp), dimension(:), allocatable :: H_theta, y_eff, H_1
+   real(dp), parameter :: T_ion = 8.d3   ! photoionization equilibrium T of the shocked ISM (minimum T of the IL)
 
    ! dist
    real(dp), parameter :: Emin_e = 2.d0*mec2   ! ~1 MeV
@@ -99,7 +100,6 @@ module global
    real(dp), parameter :: nu_min_ff = 10.d6    ! 10 MHz 
    real(dp), parameter :: nu_max_ff = 1.d12   ! 1 THz
    real(dp), dimension(:), allocatable :: nu_ISM
-   real(dp), dimension(:,:), allocatable :: F_nu,F_nu_phi,F_nu_ion,F_nu_phi_ion
 
    !=======================================================
 
@@ -209,6 +209,9 @@ module global
    !  Black-Body spectrum
 
    Function nBB(Epho,T)
+      ! Black-body photon number density per unit energy divided by 4 [1/cm3/erg]:
+      ! c*nBB is the photon flux per unit energy at the surface, and
+      ! L_N = 4*pi*R**2*c*nBB the photon luminosity [photons/s/erg]
       real(dp) :: nBB
       real(dp), intent(in) :: Epho,T
       nBB = 2.d0*pi/((h*c)**3) * (Epho**2/(exp(Epho/(k*T))-1.d0))
@@ -253,7 +256,7 @@ module global
    !============================================================================
    ! lambda_ff
 
-   Function lambda_ff(T)
+   elemental function lambda_ff(T)
       real(dp), intent(in) :: T
       real(dp) :: lambda_ff
 

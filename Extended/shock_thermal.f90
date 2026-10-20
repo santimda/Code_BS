@@ -1,503 +1,244 @@
 module shock_thermal
+  !==========================================================================
+  ! Thermal (free-free) emission of the shocks (Martinez et al. 2023, Sect. 3.2.2)
+  !  - RS (adiabatic, radiative = .false.): shocked wind, volume dV_ring
+  !  - FS (radiative = .true.):
+  !      hot layer (HL): spectral shape at T_HL, normalized at each cell to the
+  !                      radiated f-f power (Eq. 14)
+  !      isothermal layer (IL): at T_ISM, volume eta_H*dV_ring (Eq. 15)
+  ! Emissivity (Rybicki & Lightman, Eq. 5.14b):
+  !   j_nu = 6.8e-38 Z**2 n_e n_i T**(-1/2) exp(-h nu/kT) g_ff  [erg/s/cm3/Hz]
+  ! with n_e = rho/(mu_e*mp), n_i = rho/(mu_i*mp).
+  ! Frequency grid: nu.dat (common to the synchrotron and the f-f absorption).
+  !==========================================================================
   use global
-  use gaunt_factor
-  use numerical_utils, only: vector_log
+  use gaunt_factor, only: gaunt_ff_calc
   use map_freqs, only: maps, nu_index
   implicit none
+  private
+  public :: shock_thermal_run
 
-  public :: shock_thermal_run_total, shock_thermal_run_spectrum
+contains
 
-  contains
-
-  !============================================================================
-  ! shock_thermal_run_total (START)
-  !============================================================================
-  ! This module calculates the shock's total thermal bremsstrahlung luminosity
-  !============================================================================
-
-  subroutine shock_thermal_run_total(shock,radiative)
+  subroutine shock_thermal_run(shock, radiative)
     character(LEN=*), intent(in) :: shock
     logical, intent(in) :: radiative
-    real(dp) :: ne,ni,n_a(m_theta),emi_ff
-    real(dp) :: f_int(m_theta),dtheta,integral, L_tot
-    real(dp) :: dV_ring(m_theta)
-    integer :: nl
-    real(dp), parameter :: g_average = 1.2 ! Rybicki, Eq. 5.15 b
+    integer, parameter :: m_l = 2*m_theta        ! CD positions, both halves
+    real(dp) :: nu_th(m_nu), dnu(m_nu), nu_int, log_nu_int, flux, zq
+    real(dp) :: dV_ring(m_theta), L_inj(m_theta), T_min(m_theta)
+    real(dp) :: rho_sh(m_theta), T_sh(m_theta), rho_IL_s(m_theta)
+    ! RS (shocked wind) or FS isothermal layer: "volume" component
+    real(dp) :: ne_v(m_theta), ni_v(m_theta), T_v(m_theta), V_v(m_theta)
+    real(dp) :: g_v(m_theta,m_nu), nuL_v(m_theta,m_nu), nuL_v_tot(m_nu), L_v_tot
+    ! FS hot layer
+    real(dp) :: g_HL(m_theta,m_nu), nuL_HL(m_theta,m_nu), nuL_HL_tot(m_nu), L_HL_tot
+    real(dp) :: integ(m_theta), P_rad(m_theta)
+    ! maps and diagnostics
+    real(dp) :: w_avg(m_nu), S_avg(m_theta), S_cum(m_theta), alpha_HL(m_theta), alpha_v(m_theta)
+    real(dp), allocatable :: S_map(:,:)
+    integer,  allocatable :: i_map(:)
+    integer  :: im, n_map, iu, i_1G, i_3G
 
-    allocate( H_theta(m_theta), rho(m_theta),T(m_theta), H_1(m_theta) )
-
-    80  format(A12,X,Es10.2)
-
-    print*, 'Calculate the total thermal luminosity from each shock'
-
-    !------------------------------------------------------------
-    !    Read shock position and thermodynamical quantities   
-
-    open(13,file=output_file('Hnorm_'//shock//'.dat'))
-    do l=1,m_theta
-      if ( .not. radiative ) then
-        read(13,*) dummy, H_theta(l), dummy, dummy, dV_ring(l)
-      else if ( radiative ) then
-        read(13,*) dummy, H_theta(l), dummy, dummy, dV_ring(l), H_1(l)
-      end if
-    enddo
-    close(13)
-
-    dtheta = theta(2) - theta(1) ! This is equally spaced
-
-    open(11,file=output_file('termo_'//shock//'.dat'))
-    do l=1,m_theta
-      read(11,*) nl,rho(l),dummy,dummy,T(l),dummy,dummy,dummy,dummy,dummy,dummy,dummy! CGS
-      if (shock == 'RS') then
-        n_a(l) = rho(l)/mp/mu_i_sw
-      else if (shock == 'FS') then
-        n_a(l) = rho(l)/mp/mu_ISM
-      end if
-    enddo
-    close(11)
-
-    !------------------------------------------------------------
-    ! Calculate the total f-f luminosity using an adaptation of Eq. 24 from Christie+2016:
-    ! L = integral(f_int(theta), with f_int(theta) = emi_ff * dV_ring(theta),
-    ! emi_ff = dW/dt/dV the total emissivity given by Eq. 5.15b from Rybicki,
-    ! and dV_ring(l) the volume of the emitting region
-
-    do l=1,m_theta
-      ni = n_a(l) 
-      ne = gamma_sw*n_a(l)   
-      emi_ff = 1.4d-27*Zq_sw**2*ne*ni*sqrt(T(l))*g_average  
-      f_int(l) = emi_ff * dV_ring(l)
-    enddo
-    L_tot = SUM(f_int)
-    write(*,80) 'L_ff_tot =',L_tot
-
-    deallocate ( H_theta, rho, T, H_1 )
-
-  END subroutine shock_thermal_run_total
-
-  !============================================================================
-  ! shock_thermal_run_total (END)
-  !============================================================================
-
-
-  !============================================================================
-  ! shock_thermal_run_spectrum (START)
-  !============================================================================
-  ! This module calculates the shock's thermal bremsstrahlung SED
-  !============================================================================
-
-  subroutine shock_thermal_run_spectrum(shock, radiative)
-    character(LEN=*), intent(in) :: shock
-    logical, intent(in) :: radiative
-    integer, parameter :: m_l = 2*m_theta  ! CD position, both sides
-    real(dp) :: zq
-    real(dp) :: n_a_e(m_theta),n_a_i(m_theta), n_1_e(m_theta),n_1_i(m_theta), cte_l(m_theta), cte_l_1(m_theta), dV_ring(m_theta)
-    real(dp) :: v_sh
-    real(dp) :: Eph_0, Eph_min, Eph_max, Eph_int, Eph(mE_ph), dEph
-    real(dp) :: nu(mE_ph)
-    real(dp) :: log_nu_int,flux,flux0,flux110,flux1,flux2,flux3
-    real(dp) :: integral,integ,integ_ion,integ_HL
-    real(dp) :: A(m_theta), frac_ff
-    real(dp) :: emi_ff_nu(m_theta,mE_ph), emi_ion_nu
-    real(dp) :: alpha_ff_nu1(m_theta,mE_ph), alpha_ff_nu2(m_theta,mE_ph)
-    real(dp) :: Tau_1(m_theta,mE_ph), Tau_2(m_theta,mE_ph)
-    real(dp) :: L_inj(m_theta), L_inj_rad(m_theta), T_HL(m_theta)
-    real(dp) :: f_int(m_theta),f_vol_ion(m_theta),dtheta
-    real(dp) :: dV_ring_ff, H_ff, H_RH, dR(m_theta)
-    real(dp) :: r(m_theta), v_perp(m_theta), t_th(m_theta)
-    real(dp) :: F_nu_iph(m_l,mE_ph), F_nu_tot(m_theta), F_nu_ion_tot(m_theta)
-    real(dp) :: F_nu_avg(m_theta), F_nu_ion_avg(m_theta)
-    real(dp) :: theta_min 
-    real(dp) :: dnu_avg, h_avg
-    real(dp) :: emi_ff_0, vol_slab
-    real(dp) :: kappa_alpha(m_l), S_alpha(m_theta), Area_cell(l), Omega_cell(l)
-    real(dp) :: S_alpha_map(m_l)
-    real(dp) :: u_proj, v_proj
-    real(dp) :: convert
-    real(dp) :: n_perp(2), n_t_1, n_t_2, n_perp_1, n_perp_2, n_LOS(2)
-    real(dp), parameter :: T_f = T_ISM
-    !real(dp) :: F_nu(m_l,mE_ph),F_nu_phi(m_l,mE_ph)
-    real(dp) :: n_BB(m_theta,mE_ph), T_min(m_theta)
-    real(dp) :: L_tot,L_th(mE_ph),L_ion(mE_ph),L_ion_tot
-    real(dp) :: S(mE_ph)
-    real(dp) :: S_ion(mE_ph)
-    integer :: nl, i_ph
-    Integer :: i_890M,i_1G,i_3G,i_5G,i_110M
-    ! radio maps at the frequencies of maps(:) (map_freqs.f90)
-    integer :: im, n_map, iu
-    integer,  allocatable :: i_map(:)      ! index of each map frequency in nu(:)
-    real(dp), allocatable :: S_map(:,:)    ! (position, map frequency) [mJy]
-    integer :: N_avg
-    integer :: l_min
-    real(dp), allocatable :: g_ff(:,:)
-
-    allocate( H_theta(m_theta), H_1(m_theta), rho(m_theta), T(m_theta), rho_IL(m_theta) )
-    allocate( F_nu(m_l,mE_ph),F_nu_phi(m_l,mE_ph),F_nu_ion(m_l,mE_ph),F_nu_phi_ion(m_l,mE_ph))
-
-  90  format(A19,X,Es10.3)
-  95  format(A18,X,Es10.3)
-  96  format(A36,X,F4.0,X,A13,X,F4.0,X,A3)
-
-    print*, 'Calculate the spectrum of the thermal emission from each shock'
-
-    L_ion_tot = 0.d0
-    L_tot = 0.d0
-
-    80  format(A12,X,Es10.2)
+    call validate_shock(shock, 'shock_thermal_run')
+    print*, 'Calculate the thermal emission from the '//shock
 
     if (shock == 'RS') then
-      v_sh = v_w
-      zq = zq_sw
-    else if (shock == 'FS') then
-      v_sh = v_ISM
+      zq = Zq_sw
+    else
       zq = Zq_ISM
     end if
 
-    !------------------------------------------------------------     
-    ! Read shock position and thermodynamical quantities  
+    !------------------------------------------------------------
+    ! Frequency grid
 
-    open(10,file='CD.dat')
-    open(13,file=output_file('Hnorm_'//shock//'.dat'))
-    open(14,file=output_file('Linj_'//shock//'.dat'))
-    if (radiative) open(15,file=output_file('T_IL_'//shock//'.dat'))
-    open(16,file=output_file('t_th_'//shock//'.dat'))
-    do l=1,m_theta
-      read(10,*) theta(l), r_norm(l), dR(l), dummy, dummy
-      read(14,*) dummy, dummy, L_inj(l), dummy, dummy
-      if (radiative) read(15,*) dummy, T_min(l)
-      read(16,*) dummy, t_th(l)
-      if ( .not. radiative ) then
-        read(13,*) dummy, H_theta(l), dummy, dummy, dV_ring(l)
-      else if (radiative) then
-        read(13,*) dummy, H_theta(l), dummy, dummy, dV_ring(l), H_1(l)
-      end if
-    end do
-    close(10) 
-    close(13)
-    close(14)
-    close(15)
-    close(16)
-    dtheta = theta(2) - theta(1) ! This is equally spaced
-
-    open(11,file=output_file('termo_'//shock//'.dat'))
-    do l=1,m_theta
-      read(11,*) nl,rho(l),dummy,dummy,T(l),dummy,v_perp(l),dummy,dummy,r(l),dummy,rho_IL(l) ! CGS
-      if (shock == 'FS') then
-        T_HL(l) = T(l)
-        T(l) = T_f    ! T(l) -> isothermal region and RS
-      end if
-     
-      if (shock == 'FS') then
-        n_1_e(l) = rho(l)/mp/mu_e
-        n_1_i(l) = rho(l)/mp/mu_i
-        n_a_e(l) = rho_IL(l)/mp/mu_e
-        n_a_i(l) = rho_IL(l)/mp/mu_i
-        cte_l_1(l) = 6.8d-38*Zq**2*gamma_sw*n_1_e(l)*n_1_i(l)/sqrt(T_HL(l)) 
-      else if (shock == 'RS') then
-        n_a_e(l) = rho(l)/mp/mu_e
-        n_a_i(l) = rho(l)/mp/mu_i
-      end if
-      cte_l(l) = 6.8d-38*Zq**2*gamma_ISM*n_a_e(l)*n_a_i(l)/sqrt(T(l))
-    enddo
-    close(11)
-
+    open(newunit=iu, file=output_file('nu.dat'))
+    read(iu,*) nu_th
+    close(iu)
+    nu_int = nu_th(2)/nu_th(1)
+    log_nu_int = log(nu_int)
+    dnu = nu_th*(nu_int-1.d0)
+    flux = 1.d26/(4.d0*pi*distance**2)          ! luminosity to flux in mJy
 
     !------------------------------------------------------------
-    !    
-    !    Calculate bremsstrahlung spectrum
-    !
-    !------------------------------------------------------------
+    ! Shock position, volume, injected power and thermodynamics
+    ! (each read takes all the columns of the file)
 
-    Eph_0 = mp*v_sh**2/32.d0   ! Use the k*T_sw(apex) as a reference
-    Eph_min = 10.d6*h          ! 10 MHz
-    Eph_max = Eph_0*1.d2
-    call vector_log(Eph_min,Eph_max,Eph_int,Eph)
+    open(newunit=iu, file=output_file('CD.dat'))
+    read(iu,*) (theta(l), dummy, dummy, dummy, dummy, l=1,m_theta)
+    close(iu)
 
-    !------------------------------------------------------------
-   
-    nu = Eph/h
-    log_nu_int = log(nu(2)/nu(1))
-    flux = 1.d26/(4.d0*pi*(distance)**2) ! luminosity to flux in mJy
+    open(newunit=iu, file=output_file('Hnorm_'//shock//'.dat'))
+    if (radiative) then
+      read(iu,*) (dummy, dummy, dummy, dummy, dV_ring(l), dummy, l=1,m_theta)
+    else
+      read(iu,*) (dummy, dummy, dummy, dummy, dV_ring(l), l=1,m_theta)
+    end if
+    close(iu)
 
-    i_110M = int(log(110.d6/nu(1))/log_nu_int) + 1        ! 110 MHz
-    i_890M = int(log(890.d6/nu(1))/log_nu_int) + 1        ! 890 MHz
-    i_1G = int(log(1.42d9/nu(1))/log_nu_int) + 1        ! 1.4 GHz
-    i_3G = int(log(3.00d9/nu(1))/log_nu_int) + 1        ! 3.0 GHz
-    i_5G = int(log(4.86d9/nu(1))/log_nu_int) + 1        ! 4.8 GHz
-    flux110 =flux/nu(i_110M)
-    flux0 = flux/nu(i_890M)
-    flux1 = flux/nu(i_1G)   
-    flux2 = flux/nu(i_3G) 
-    flux3 = flux/nu(i_5G)
+    open(newunit=iu, file=output_file('Linj_'//shock//'.dat'))
+    read(iu,*) (dummy, dummy, L_inj(l), dummy, dummy, l=1,m_theta)    ! one linear emitter
+    close(iu)
 
-    allocate(g_ff(m_theta,mE_ph))
+    open(newunit=iu, file=output_file('termo_'//shock//'.dat'))
+    read(iu,*) (dummy, rho_sh(l), dummy, dummy, T_sh(l), dummy, dummy, dummy, dummy, dummy, dummy, &
+                rho_IL_s(l), l=1,m_theta)
+    close(iu)
 
-    !------------------------------------------------------------
-    ! Calculate the luminosity from the hot layer in the FS
-    ! L_ff = (1 - T_2/T_1) * Linj_perp
-
-    if (radiative) then 
-
-    open(19,file=''//shock//'_ff.dat')
-    open(20,file='S_ff_'//system//'_'//shock//'.dat')
-
-    do l=1,m_theta  
-      integ = 0.d0
-      call gaunt_ff_calc(nu,size(nu),T_HL(l),Zq,g_ff(l,:)) ! g_ff is a vector with gaunt_factor(nu(i))
-      do i_ph = 1,mE_ph   
-        !print*, l, i_ph, g_ff(l,i_ph), 9.77d0*(1.d0+0.13d0*log10(T(l)**1.5d0/Zq_sw/nu(i_ph))) ! aprox 
-  
-        ! Eq. 5.14b from Rybicki gives the spectrum in erg/s/cm3/Hz, so I divide by h
-        ! emi_ff_nu = (6.8d-38*Zq_sw**2*ne*ni*T_HL(l)**(-0.5d0)*exp(-Eph(i_ph)/(k*T(l)))*g_ff(Eph(i_ph),T(l)) )/h ! erg/s/cm3/erg
-
-        ! Thermal emission from the post shock layer in a radiative shock
-        ! L_ff = ( 1-(8000K/T(l)) ) * L_inj_perp
-        emi_ff_nu(l,i_ph) = ( cte_l_1(l) * exp(-Eph(i_ph)/(k*T_HL(l))) * g_ff(l,i_ph) )/h  ! erg/s/cm3/erg
-        alpha_ff_nu1(l,i_ph) = 3.7d8 * (Zq**2*n_1_e(l)*n_1_i(l)/sqrt(T_HL(l)) ) * (1.d0-exp(-h*nu(i_ph)/(k*T_HL(l))) )/nu(i_ph)**3 * g_ff(l,i_ph)
-        Tau_1(l,i_ph) = alpha_ff_nu1(l,i_ph)*H_1(l)
-        !if ( Tau_1(l,i_ph)>= 1.d0 ) then
-        !  write(*,96) 'Region 1 is optically thick at angle', theta(l)*180./pi, 'and frequency', nu(i_ph)/1.d6, 'MHz'
-        !end if 
-      
-        dEph = Eph(i_ph)*(Eph_int - 1.d0)
-        integ = integ + emi_ff_nu(l,i_ph)*dEph
-      end do
-
-      if (T_HL(l) > T_ISM) then
-        frac_ff = lambda_ff(T_HL(l))/lambda_cool(T_HL(l))
-        A(l) = frac_ff * L_inj(l)*(1-T_min(l)/T_HL(l))/integ   ! cm3
-      else if (T_HL(l) <= T_ISM) then
-        A(l) = 0.d0
-      end if
-    end do
-
-    do i_ph=1,mE_ph
-      L_th(i_ph) = 0.d0
-      dEph = Eph(i_ph)*(Eph_int - 1.d0)
-      do l=1,m_theta
-        f_int(l) = A(l)*emi_ff_nu(l,i_ph)*4.d0*mphi    ! 1/s
-        L_th(i_ph) = L_th(i_ph) + f_int(l)
-        F_nu(l,i_ph) = f_int(l)*Eph(i_ph)              ! erg/s
-        F_nu(l+m_theta,i_ph) = F_nu(l,i_ph)
-      end do
-
-      !call integrate(m_theta,dtheta,f_int(l),integ_HL)
-      !L_th(i_ph) = integ_HL
-      S(i_ph) = L_th(i_ph)*Eph(i_ph)*flux/nu(i_ph)  ! Total flux at a certain freq. in mJy
-      L_tot = L_tot + L_th(i_ph)*dEph
-
-      write(19,*) Eph(i_ph)/eV, L_th(i_ph)*Eph(i_ph)
-      write(20,*) nu(i_ph), S(i_ph)
-    end do
-
-    close(19)
-    close(20)
-
-    print*, '\n f-f emission from post shock layer:'
-
-    write(*,90) 'S_110MHz[mJy]=',L_th(i_110M)*Eph(i_110M)*flux110
-    write(*,90) 'S_890MHz[mJy]=',L_th(i_890M)*Eph(i_890M)*flux0
-    write(*,90) 'S_1.4GHz[mJy]=',L_th(i_1G)*Eph(i_1G)*flux1
-    write(*,90) 'S_3.0GHz[mJy]=',L_th(i_3G)*Eph(i_3G)*flux2
-    write(*,90) 'S_4.86GHz[mJy]=',L_th(i_5G)*Eph(i_5G)*flux3
-
-    write(*,80) 'L_tot =',L_tot
-
-    ! Consistency check
-    do l=1,m_theta
-      L_inj_rad(l) = L_inj(l)*(1-T_f/T_HL(l))
-    end do  
-    if (shock == 'FS') print*, 'L_inj/L_tot =', sum(L_inj_rad)*4.*mphi/L_tot
-    ! ------------
-
+    if (radiative) then
+      open(newunit=iu, file=output_file('T_IL_'//shock//'.dat'))
+      read(iu,*) (dummy, T_min(l), l=1,m_theta)
+      close(iu)
     end if
 
     !------------------------------------------------------------
-    !------------------------------------------------------------
-    ! Calculate the luminosity using an adaptation of Eq. 24 from Christie+2016:
-    ! L = integral(f_int(theta), with f_int(theta) = emi_ff_nu * dV_ring(theta),
-    ! emi_ff_nu= dW/dt/dV/dnu the specific emissivity given by Eq. 5.14b from Rybicki,
-    ! and dV_ring(l) the volume of the shocked ring element
+    ! Emission of the shocked wind (RS) or of the isothermal layer (FS)
 
-    open(39,file='ionized_ff_'//system//'_'//shock//'.dat')
-    open(40,file='S_ionized_'//system//'_'//shock//'.dat')
-
-    ! THIS IS INCORRECT FOR THE RS! T(1) should be T(l), but within the loop... rethink!
-    do l = 1,m_theta
-      if (shock == 'FS') then
-        call gaunt_ff_calc(nu,size(nu),T(l),Zq_ISM,g_ff(l,:)) ! g_ff is a vector with gaunt_factor(nu(i))
-      else if (shock == 'RS') then
-        call gaunt_ff_calc(nu,size(nu),T(l),Zq_sw,g_ff(l,:)) ! g_ff is a vector with gaunt_factor(nu(i))
-      end if
-    enddo
-
-    if (shock == 'FS') open(60,file='L_3GHz.dat')
-
-    do i_ph=1,mE_ph
-      L_ion(i_ph) = 0.d0
-
-      do l = 1,m_theta
-        ! Eq. 5.14b from Rybicki gives the spectrum in erg/s/cm3/Hz, so I divide by h
-        !cte_l(l) = 6.8d-38*Zq_sw**2*gamma_sw*n_a(l)**2/sqrt(T(l))
-        !emi_ion_nu = (6.8d-38*Zq_sw**2*n_a(l)**2*T(l)**(-0.5d0)*exp(-Eph(i_ph)/(k*T(l)))*g_ff(i_ph) )/h ! erg/s/cm3/erg
-
-        ! write(*,*) i_ph, l, gffinter, 9.77d0*(1.d0+0.13d0*log10(T(l)**1.5d0/Zq_sw/(Eph(i_ph)/h))) ! aprox 
-        ! Emission from the ionized layer by the star's radiation field. T = 8.000 K (FS)
-        ! Thermal emission
-        if (shock == 'RS') then
-          emi_ion_nu = ( cte_l(l) * exp(-Eph(i_ph)/(k*T(l))) * g_ff(l,i_ph) )/h ! erg/s/cm3/Hz
-        else if (shock == 'FS') then
-          emi_ion_nu = frac_H*( cte_l(l) * exp(-Eph(i_ph)/(k*T(l))) * g_ff(l,i_ph) )/h
-        end if
-        alpha_ff_nu2(l,i_ph) = 3.7d8 * (Zq**2*n_a_e(l)*n_a_i(l)/sqrt(T(l))) * (1.d0-exp(-h*nu(i_ph)/(k*T(l))) )/nu(i_ph)**3 * g_ff(l,i_ph)
-        Tau_2(l,i_ph) = alpha_ff_nu2(l,i_ph)*H_theta(l)
-        !if ( Tau_2(l,i_ph)>= 1.d0 ) then
-        !  write(*,96) 'Region 2 is optically thick at angle', theta(l)*180./pi, 'and frequency', nu(i_ph)/1.d6, 'MHz'
-        !end if
-
-        f_vol_ion(l) = emi_ion_nu*dV_ring(l)
-        F_nu_ion(l,i_ph) = f_vol_ion(l)*Eph(i_ph)    ! erg/s
-        F_nu_ion(l+m_theta,i_ph) = F_nu_ion(l,i_ph)
-        L_ion(i_ph) = L_ion(i_ph) + f_vol_ion(l)
-        if (shock == 'FS') then
-            if ( (nu(i_ph)>2.99d9) .and. (nu(i_ph)<3.07d9) ) write(60,*) theta(l), L_ion(i_ph)*Eph(i_ph)*flux/nu(i_ph)
-        end if
-      end do
-
-      S_ion(i_ph) = L_ion(i_ph)*Eph(i_ph)*flux/nu(i_ph)  ! Total flux at a certain freq. in mJy
-
-      write(39,*) Eph(i_ph)/eV, Eph(i_ph)*L_ion(i_ph), L_ion(i_ph)
-      write(40,*) nu(i_ph), S_ion(i_ph)
-
-      dEph = Eph(i_ph)*(Eph_int - 1.d0)
-      L_ion_tot = L_ion_tot + L_ion(i_ph)*dEph
-    end do
-
-    if (shock == 'FS') close(60)
-
-    close(39)
-    close(40)
-
-    !---------------------------------------------------------------------
-    !print*, '\n slab emission'
-    !vol_slab = (pi*(R0*sin(0.3d0))**2) * 0.03d0*R0
-    !do i_ph = 1,mE_ph
-      !6.8d-38*Zq**2*gamma_ISM*n_a(l)**2/sqrt(T(l))
-      !emi_ff_0 = cte_l(2) * exp(-h*nu(i_ph)/k/T_ISM) * g_ff(2,i_ph) !* nu(i_ph) !* vol_slab
-      !if ( (nu(i_ph)>2.99d9) .and. (nu(i_ph)<3.07d9) ) print*, 'emi_ff_o', emi_ff_0
-      !if ( (nu(i_ph)>2.99d9) .and. (nu(i_ph)<3.07d9) ) print*, nu(i_ph)/1.d9, emi_ff_0*flux/nu(i_ph)
-    !end do
-
-    if (shock == 'FS') then
-      print*, '\n f-f emission from the ionized layer by the star:'
-    else if (shock == 'RS') then
-      print*, '\n f-f emission from the RS:'
+    if (radiative) then
+      ne_v = rho_IL_s/(mu_e*mp)
+      ni_v = rho_IL_s/(mu_i*mp)
+      T_v  = T_min
+      V_v  = frac_H*dV_ring                    ! IL width reduced by eta_H
+    else
+      ne_v = rho_sh/(mu_e*mp)
+      ni_v = rho_sh/(mu_i*mp)
+      T_v  = T_sh
+      V_v  = dV_ring
     end if
 
-    write(*,90) 'S_110MHz[mJy]=',L_ion(i_110M)*Eph(i_110M)*flux110
-    write(*,90) 'S_890MHz[mJy]=',L_ion(i_890M)*Eph(i_890M)*flux0
-    write(*,90) 'S_1.4GHz[mJy]=',L_ion(i_1G)*Eph(i_1G)*flux1
-    write(*,90) 'S_3.0GHz[mJy]=',L_ion(i_3G)*Eph(i_3G)*flux2
-    write(*,90) 'S_4.86GHz[mJy]=',L_ion(i_5G)*Eph(i_5G)*flux3
+    do l = 1, m_theta
+      call gaunt_ff_calc(nu_th, m_nu, T_v(l), zq, g_v(l,:))
+    end do
 
-    write(*,80) 'L_ion_tot =',L_ion_tot
+    ! nu*L_nu of each ring [erg/s]
+    nuL_v = spread(6.8d-38*zq**2*ne_v*ni_v/sqrt(T_v)*V_v, 2, m_nu) &
+          * exp(-h*spread(nu_th,1,m_theta)/(k*spread(T_v,2,m_nu))) * g_v * spread(nu_th,1,m_theta)
+    nuL_v_tot = sum(nuL_v, dim=1)
+    L_v_tot = sum(nuL_v_tot)*(nu_int-1.d0)
 
     !------------------------------------------------------------
+    ! Hot layer of the FS: L_ff,HL = (Lambda_ff/Lambda_tot)*(1-T_IL/T_HL)*L_perp
+
+    nuL_HL = 0.d0
+    if (radiative) then
+      do l = 1, m_theta
+        call gaunt_ff_calc(nu_th, m_nu, T_sh(l), zq, g_HL(l,:))
+      end do
+      nuL_HL = exp(-h*spread(nu_th,1,m_theta)/(k*spread(T_sh,2,m_nu))) * g_HL * spread(nu_th,1,m_theta)
+      integ = matmul(nuL_HL, dnu/nu_th)                     ! int j_nu dnu (up to a constant)
+      P_rad = merge( lambda_ff(T_sh)/lambda_cool(T_sh)*(1.d0-T_min/T_sh)*L_inj*4.d0*mphi, &
+                     0.d0, T_sh > T_min )                   ! whole ring: 4*mphi linear emitters
+      nuL_HL = nuL_HL*spread(P_rad/integ, 2, m_nu)
+    end if
+    nuL_HL_tot = sum(nuL_HL, dim=1)
+    L_HL_tot = sum(nuL_HL_tot)*(nu_int-1.d0)
+
     !------------------------------------------------------------
-    !------------------------------------------------------------
-    ! Emission maps
+    ! SEDs and fluxes
+
+    if (radiative) then
+      open(newunit=iu, file=output_file(shock//'_ff.dat'))
+      write(iu,'(2es17.8e3)') (h*nu_th(i)/eV, nuL_HL_tot(i), i=1,m_nu)             ! E [eV], nu*L_nu [erg/s]
+      close(iu)
+      open(newunit=iu, file=output_file('S_ff_'//system//'_'//shock//'.dat'))
+      write(iu,'(2es17.8e3)') (nu_th(i), nuL_HL_tot(i)/nu_th(i)*flux, i=1,m_nu)     ! nu [Hz], S [mJy]
+      close(iu)
+    end if
+
+    open(newunit=iu, file=output_file('ionized_ff_'//system//'_'//shock//'.dat'))
+    write(iu,'(3es17.8e3)') (h*nu_th(i)/eV, nuL_v_tot(i), nuL_v_tot(i)/(h*nu_th(i)), i=1,m_nu)  ! E [eV], nu*L_nu, L_E
+    close(iu)
+    open(newunit=iu, file=output_file('S_ionized_'//system//'_'//shock//'.dat'))
+    write(iu,'(2es17.8e3)') (nu_th(i), nuL_v_tot(i)/nu_th(i)*flux, i=1,m_nu)         ! nu [Hz], S [mJy]
+    close(iu)
 
     n_map = size(maps)
     allocate( i_map(n_map), S_map(m_l,n_map) )
-    i_map = nu_index(maps%nu, nu(1), log_nu_int, mE_ph)
+    i_map = nu_index(maps%nu, nu_th(1), log_nu_int, m_nu)
 
-    ! Hot layer
     if (radiative) then
-      F_nu_phi = F_nu/mphi/4.d0     ! 4 quadrants, but already mirrored
-      S_map = F_nu_phi(:,i_map) * spread(flux/nu(i_map), 1, m_l)
+      print*, '\n f-f emission from the hot layer:'
       do im = 1, n_map
-        open(newunit=iu, file='CD_hot_layer_'//trim(maps(im)%label)//'.dat')
+        write(*,'(A,A,A,X,Es10.3)') ' S_', trim(maps(im)%label), '[mJy]=', nuL_HL_tot(i_map(im))/nu_th(i_map(im))*flux
+      end do
+      write(*,'(A,X,Es10.2)') ' L_HL_tot =', L_HL_tot
+      write(*,'(A,X,Es10.2)') ' L_inj*(1-T_IL/T_HL)/L_HL_tot =', sum(L_inj*(1.d0-T_min/T_sh))*4.d0*mphi/L_HL_tot
+      print*, '\n f-f emission from the isothermal layer:'
+    else
+      print*, '\n f-f emission from the '//shock//':'
+    end if
+    do im = 1, n_map
+      write(*,'(A,A,A,X,Es10.3)') ' S_', trim(maps(im)%label), '[mJy]=', nuL_v_tot(i_map(im))/nu_th(i_map(im))*flux
+    end do
+    write(*,'(A,X,Es10.2)') ' L_ion_tot =', L_v_tot
+
+    ! In an adiabatic shock the thermal emission must be a small fraction of the injected power
+    if (.not. radiative .and. L_v_tot > sum(L_inj)*4.d0*mphi) &
+      write(*,*) 'WARNING (shock_thermal): thermal luminosity of the '//shock// &
+                 ' larger than the injected power; the shock is not adiabatic'
+
+    !------------------------------------------------------------
+    ! Emission maps at the frequencies of maps(:): flux of each linear
+    ! emitter (4*mphi per ring), the same in both halves [mJy]
+
+    if (radiative) then
+      S_map(1:m_theta,:) = nuL_HL(:,i_map)/(4.d0*mphi) * spread(flux/nu_th(i_map), 1, m_theta)
+      S_map(m_theta+1:,:) = S_map(1:m_theta,:)
+      do im = 1, n_map
+        open(newunit=iu, file=output_file('CD_hot_layer_'//trim(maps(im)%label)//'.dat'))
         write(iu,'(es17.8e3)') S_map(:,im)
         close(iu)
       end do
     end if
 
-    !------------------------------------------------------------
-    ! Emission from the RS and the isothermal region in the FS
-    F_nu_phi_ion = F_nu_ion/mphi/4.d0   ! 4 quadrants
-    S_map = F_nu_phi_ion(:,i_map) * spread(flux/nu(i_map), 1, m_l)
+    S_map(1:m_theta,:) = nuL_v(:,i_map)/(4.d0*mphi) * spread(flux/nu_th(i_map), 1, m_theta)
+    S_map(m_theta+1:,:) = S_map(1:m_theta,:)
     do im = 1, n_map
-      open(newunit=iu, file='CD_th_'//shock//'_'//trim(maps(im)%label)//'.dat')
+      open(newunit=iu, file=output_file('CD_th_'//shock//'_'//trim(maps(im)%label)//'.dat'))
       write(iu,'(es17.8e3)') S_map(:,im)
       close(iu)
     end do
 
+    ! Average flux between nu_av_min and nu_av_max:
+    ! sum (nu*L_nu/nu)*flux*dnu/(nu_av_max-nu_av_min), dnu = nu*(nu_int-1)
+    w_avg = merge(flux*(nu_int-1.d0)/(nu_av_max-nu_av_min), 0.d0, &
+                  nu_th >= nu_av_min .and. nu_th <= nu_av_max) / (4.d0*mphi)
+
+    if (radiative) then
+      S_avg = matmul(nuL_HL, w_avg)
+      open(newunit=iu, file=output_file('CD_hot_radiomap_avg.dat'))
+      write(iu,'(es17.8e3)') S_avg, S_avg                    ! both halves
+      close(iu)
+    end if
+
+    S_avg = matmul(nuL_v, w_avg)
+    open(newunit=iu, file=output_file('CD_th_radiomap_avg_'//shock//'.dat'))
+    write(iu,'(es17.8e3)') S_avg, S_avg                      ! both halves
+    close(iu)
+
     deallocate( i_map, S_map )
 
     !------------------------------------------------------------
-    ! Avg flux btw nu_av_min and nu_av_max
+    ! Diagnostics
 
+    ! Cumulative flux at 3 GHz along the shock (FS)
     if (radiative) then
-      open(50,file='CD_hot_radiomap_avg.dat')
+      i_3G = nu_index(3.d9, nu_th(1), log_nu_int, m_nu)
+      S_cum = [( sum(nuL_v(1:l,i_3G)), l=1,m_theta )]/nu_th(i_3G)*flux
+      open(newunit=iu, file=output_file('L_3GHz.dat'))
+      write(iu,'(2es17.8e3)') (theta(l), S_cum(l), l=1,m_theta)
+      close(iu)
     end if
-    open(51,file='CD_th_radiomap_avg_'//shock//'.dat')
 
-    ! Count the number of steps
-    N_avg = 0
-    do i_ph=1,mE_ph
-      if ((nu(i_ph) >= nu_av_min) .and. (nu(i_ph) <= nu_av_max)) then
-        N_avg = N_avg + 1
-      end if
-    end do
+    ! f-f absorption coefficient at 1.4 GHz [1/cm]: HL and RS/IL
+    i_1G = nu_index(1.42d9, nu_th(1), log_nu_int, m_nu)
+    alpha_v = 3.7d8*zq**2*ne_v*ni_v/sqrt(T_v) * (1.d0-exp(-h*nu_th(i_1G)/(k*T_v)))/nu_th(i_1G)**3 * g_v(:,i_1G)
+    alpha_HL = 0.d0
+    if (radiative) alpha_HL = 3.7d8*zq**2*(rho_sh/(mu_e*mp))*(rho_sh/(mu_i*mp))/sqrt(T_sh) &
+                              * (1.d0-exp(-h*nu_th(i_1G)/(k*T_sh)))/nu_th(i_1G)**3 * g_HL(:,i_1G)
+    open(newunit=iu, file=output_file('Tau_'//shock//'.dat'))
+    write(iu,'(3es17.8e3)') (theta(l), alpha_HL(l), alpha_v(l), l=1,m_theta)
+    close(iu)
 
-    h_avg = (nu_av_max/nu_av_min)**(1.d0/(N_avg-1))
-
-    do l = 1,m_l
-      if (radiative) then
-        F_nu_tot(l) = 0.d0      ! hot layer
-      end if
-      F_nu_ion_tot(l) = 0.d0  ! isothermal layer and RS
-      do i_ph=1,mE_ph
-        if ((nu(i_ph) >= nu_av_min) .and. (nu(i_ph) <= nu_av_max)) then
-          dnu_avg = nu(i_ph)*(h_avg-1.d0)
-          if (radiative) then
-            F_nu_tot(l) = F_nu_tot(l) + F_nu_phi(l,i_ph)*flux/nu(i_ph)*dnu_avg
-          end if
-          F_nu_ion_tot(l) = F_nu_ion_tot(l) + F_nu_phi_ion(l,i_ph)*flux/nu(i_ph)*dnu_avg
-        end if  
-      end do
-
-      if (radiative) then
-        F_nu_avg(l) = F_nu_tot(l)/(nu_av_max-nu_av_min)
-        write(50,*) F_nu_avg(l)
-      end if
-      F_nu_ion_avg(l) = F_nu_ion_tot(l)/(nu_av_max-nu_av_min)
-      write(51,*) F_nu_ion_avg(l)
-    end do
-
-    if (radiative) then
-      close(50)
-    end if
-    close(51)
-
-    !------------------------------------------------------------
-    !------------------------------------------------------------
-    ! Save the opacity at 1 GHz
-    open(50, file='Tau.dat')
-      do l = 1, m_theta
-        write(50,*) theta(l), alpha_ff_nu1(l,i_1G), alpha_ff_nu2(l,i_1G)
-      end do
-    close(50)
-
-    
-
-    deallocate( H_theta, H_1, rho, T, rho_IL )
-    deallocate( F_nu,F_nu_phi,F_nu_ion,F_nu_phi_ion )
-    deallocate( g_ff )
-    
-  END subroutine shock_thermal_run_spectrum
-  !============================================================================
-  ! shock_thermal_run_spectrum (END)
-  !============================================================================
+  END subroutine shock_thermal_run
 
 END module shock_thermal

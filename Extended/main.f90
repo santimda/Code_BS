@@ -97,7 +97,7 @@ PROGRAM main
    use controls
    use BB, only: BB_run
    use CD_termo, only: CD_termo_run
-   use shock_thermal, only: shock_thermal_run_total,shock_thermal_run_spectrum
+   use shock_thermal, only: shock_thermal_run
    use CD_diste, only: CD_diste_run
    use CD_distp, only: CD_distp_run
    use CD_radsyn, only: CD_radsyn_run
@@ -140,13 +140,7 @@ PROGRAM main
       end if
    end if
 
-   if (Xrad_calc .and. radiative) then
-      call shock_thermal_run_total(shock, radiative = .true.)
-      call shock_thermal_run_spectrum(shock, radiative = .true.)
-   else if (Xrad_calc .and. (.not. radiative)) then
-      call shock_thermal_run_total(shock, radiative = .false.)
-      call shock_thermal_run_spectrum(shock, radiative = .false.)
-   endif
+   if (Xrad_calc) call shock_thermal_run(shock, radiative)
 
    !===============================================================!
    !                                                               ! 
@@ -323,7 +317,7 @@ PROGRAM main
             end do
             close(51)
 
-            open (52,file='ionized_ff_'//system//'_RS.dat')
+            open (52,file=output_file('ionized_ff_'//system//'_RS.dat'))
             do i_E = 1, mE_ph
                read(52,*) E_ff(i_E), Lff_tot(i_E)
                dE_ff(i_E) = (E_ff(2)/E_ff(1) - 1.d0)
@@ -516,15 +510,15 @@ Subroutine abs_maps(shock)
             print *, 'Save synthetic radio emission maps'
             do im = 1, n_map
                call merge_map('CD_sync_radiomap_'//tag_cd//trim(maps(im)%label)//'.dat', &
-                              'CD_th_RS_'//trim(maps(im)%label)//'.dat',                   &
-                              'CD_th_FS_'//trim(maps(im)%label)//'.dat',                   &
-                              'CD_hot_layer_'//trim(maps(im)%label)//'.dat',               &
-                              iu_syn(im), iu_th(im), iu_hot(im))
+                            output_file('CD_th_RS_'//trim(maps(im)%label)//'.dat'),      &
+                            output_file('CD_th_FS_'//trim(maps(im)%label)//'.dat'),      &
+                            output_file('CD_hot_layer_'//trim(maps(im)%label)//'.dat'),  &
+                            iu_syn(im), iu_th(im), iu_hot(im))
             end do
             call merge_map('CD_sync_radiomap_avg'//tag_cd//'.dat',   &
-                           'CD_th_radiomap_avg_RS.dat',              &
-                           'CD_th_radiomap_avg_FS.dat',              &
-                           'CD_hot_radiomap_avg.dat',                &
+                           output_file('CD_th_radiomap_avg_RS.dat'), &
+                           output_file('CD_th_radiomap_avg_FS.dat'), &
+                           output_file('CD_hot_radiomap_avg.dat'),   &
                            iu_syn_avg, iu_th_avg, iu_hot_avg)
          endif
 

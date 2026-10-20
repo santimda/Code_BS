@@ -24,7 +24,7 @@ CD.o: CD.f90 global.o
 
 CD_termo.o: CD_termo.f90 global.o
 
-shock_thermal.o: shock_thermal.f90 global.o gaunt_factor.o map_freqs.o numerical_utils.o
+shock_thermal.o: shock_thermal.f90 global.o gaunt_factor.o map_freqs.o
 
 diffusion.o: diffusion.f90 constants.o system_parameters.o
 
