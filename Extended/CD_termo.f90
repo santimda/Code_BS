@@ -27,15 +27,14 @@ module CD_termo
       real(dp) :: A_z, A_omega, st, ct
       real(dp) :: cte_P, cte_ad
       real(dp) :: Beq0_new, Beq0_RH, v_sh
-      real(dp) :: dR(m_theta), dV_ring(m_theta), R_acel(m_theta)
-      real(dp) :: L_inj(m_theta), L_cum(m_theta), L_inj_tot, L_sh
-      real(dp) :: e_flux(m_theta), dA_perp(m_theta), dM(m_theta), dot_M(m_theta)
-      real(dp) :: v_A_new(m_theta), v_ARH(m_theta), V_A(m_theta)
+      real(dp) :: L_inj_tot, L_sh
       real(dp) :: v_vec(2), n_perp(2), n_t(2)
       real(dp) :: drho, P_th_med, Omega_in, theta_min, T_med
-      real(dp) :: lambda_tot(m_theta)
-      real(dp) :: t_th(m_theta), t_adv(m_theta), T_IL(m_theta), T_RH(m_theta), T_new(m_theta)
-      real(dp) :: T_ratio
+      real(dp), allocatable :: dR(:), dV_ring(:), R_acel(:)
+      real(dp), allocatable :: L_inj(:), L_cum(:), e_flux(:), dA_perp(:), dM(:), dot_M(:)
+      real(dp), allocatable :: v_A_new(:), v_ARH(:), V_A(:)
+      real(dp), allocatable :: lambda_tot(:), t_th(:), t_adv(:), t_ratio(:)
+      real(dp), allocatable :: T_IL(:), T_RH(:), T_new(:)
       integer  :: l_crit, l_transition, l_min, n_adi
       integer  :: iu, iu_n, iu_termo, iu_norm, iu_cmp, iu_H
       logical  :: transition
@@ -48,6 +47,11 @@ module CD_termo
       allocate( P_new(m_theta),rho_new(m_theta),B_new(m_theta),v_t_new(m_theta) )
       allocate( v_t_RH(m_theta), P_RH(m_theta), rho_RH(m_theta), B_RH(m_theta), rho_min(m_theta) )
       allocate( y_eff(m_theta) )
+      allocate( dR(m_theta), dV_ring(m_theta), R_acel(m_theta) )
+      allocate( L_inj(m_theta), L_cum(m_theta), e_flux(m_theta), dA_perp(m_theta), dM(m_theta), dot_M(m_theta) )
+      allocate( v_A_new(m_theta), v_ARH(m_theta), V_A(m_theta) )
+      allocate( lambda_tot(m_theta), t_th(m_theta), t_adv(m_theta), t_ratio(m_theta) )
+      allocate( T_IL(m_theta), T_RH(m_theta), T_new(m_theta) )
 
       80    format(A13,X,Es10.2)
       81    format(A18,X,Es10.2)
@@ -434,6 +438,8 @@ module CD_termo
       deallocate( x, y, y_eff )
       deallocate( v_t_new, P_new, rho_new, B_new)
       deallocate( v_t_RH, P_RH, rho_RH, B_RH )
+      deallocate( dR, dV_ring, R_acel, L_inj, L_cum, e_flux, dA_perp, dM, dot_M )
+      deallocate( v_A_new, v_ARH, V_A, lambda_tot, t_th, t_adv, t_ratio, T_IL, T_RH, T_new )
 
    END subroutine CD_termo_run
 

@@ -16,7 +16,8 @@ contains
 
    subroutine CD_run
       real(dp), parameter :: theta_0 = 1.d-4   ! theta(1) = 0 yields numerical errors
-      real(dp) :: dtheta, dR(m_theta), Length(m_theta), R_acel(m_theta), r_aprox(m_theta)
+      real(dp) :: dtheta
+      real(dp), allocatable :: dR(:), Length(:), R_acel(:), r_aprox(:)
       integer  :: iu
 
       interface
@@ -29,6 +30,7 @@ contains
       end interface
 
       allocate( x(m_theta), y(m_theta) )
+      allocate( dR(m_theta), Length(m_theta), R_acel(m_theta), r_aprox(m_theta) )
 
       print*, 'Calculate the CD position'
 
@@ -92,7 +94,8 @@ contains
 
       write(*,110) 'Length_proj[arcsec] =', (sqrt((x(m_theta)*R0+R0)**2+y(m_theta)**2)/AU)/(distance/pc)/abs(cos(incli))
 
-      deallocate(x,y)
+      deallocate( x, y )
+      deallocate( dR, Length, R_acel, r_aprox )
 
    End subroutine CD_run
 

@@ -25,22 +25,26 @@ module opac_ff
 contains
 
   subroutine opac_ff_run
-    real(dp) :: dif_R(m_theta), r_ff(mr_ff), dr, log_nu_int
-    real(dp) :: Mdot_eff, A_ff
-    real(dp) :: g_ff_w(mE_ff), cte_alpha(mr_ff), kappa_nu(mE_ff), alphaff(mr_ff,mE_ff), S(mE_ff)
-    ! wind radio maps
-    integer  :: im, i_nu
+    real(dp) :: dr, log_nu_int, Mdot_eff, A_ff
     real(dp) :: nu_S, B_ff_D2, cte_Tau, convert, Delta_r
-    real(dp) :: r_map(mr_map), S_ff_cm2(mr_map), S_map(mr_map), phi_map(mphi)
-    ! Stromgren sphere and ionized ISM
-    real(dp) :: E_st(mE_ph), E_st_0, E_st_int, Q_ion, alpha_B, R_str, vol, vol_str
+    real(dp) :: E_st_0, E_st_int, Q_ion, alpha_B, R_str, vol, vol_str
     real(dp) :: ne_ISM, ni_ISM, nH_ISM, nu_int_ff
-    real(dp) :: g_ff_ISM(mE_ff), p_ff(mE_ff), factor_opac(mE_ff), Lnu(mE_ff)
     real(dp) :: P_trans, M_tot, V_trans
-    integer  :: iu
+    ! stellar wind
+    real(dp), allocatable :: dif_R(:), r_ff(:), g_ff_w(:), cte_alpha(:), kappa_nu(:), S(:)
+    real(dp), allocatable :: alphaff(:,:)
+    ! wind radio maps
+    real(dp), allocatable :: r_map(:), S_ff_cm2(:), S_map(:), phi_map(:)
+    ! Stromgren sphere and ionized ISM
+    real(dp), allocatable :: E_st(:), g_ff_ISM(:), p_ff(:), factor_opac(:), Lnu(:)
+    integer  :: im, i_nu, iu
     character(len=32) :: fmt
 
     allocate( nu(mE_ff), nu_ISM(mE_ff) )
+    allocate( dif_R(m_theta), r_ff(mr_ff), g_ff_w(mE_ff), cte_alpha(mr_ff), kappa_nu(mE_ff), S(mE_ff) )
+    allocate( alphaff(mr_ff,mE_ff) )
+    allocate( r_map(mr_map), S_ff_cm2(mr_map), S_map(mr_map), phi_map(mphi) )
+    allocate( E_st(mE_ph), g_ff_ISM(mE_ff), p_ff(mE_ff), factor_opac(mE_ff), Lnu(mE_ff) )
 
     !-----------------------------------------------------------------
     ! Shock position and cell size, and frequency grid
@@ -84,6 +88,7 @@ contains
     open(newunit=iu, file=output_file('windalphaff.dat'))
     write(iu,fmt) ((alphaff(l,i), i=1,mE_ff), l=1,mr_ff)
     close(iu)
+    deallocate( alphaff )                      ! not needed anymore (largest array)
 
     ! Total radio flux density of the wind: Eq. 8 of Wright & Barlow (1975),
     ! Eq. 1 of Leitherer et al. (1995): Mdot [M_sun/yr], v [km/s], d [kpc] -> S [Jy]
@@ -194,6 +199,9 @@ contains
     write(*,'(a, Es10.2)') ' V_trans[cm/s] =', V_trans
 
     deallocate( nu, nu_ISM )
+    deallocate( dif_R, r_ff, g_ff_w, cte_alpha, kappa_nu, S )
+    deallocate( r_map, S_ff_cm2, S_map, phi_map )
+    deallocate( E_st, g_ff_ISM, p_ff, factor_opac, Lnu )
 
   END subroutine opac_ff_run
 

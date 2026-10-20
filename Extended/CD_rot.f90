@@ -16,10 +16,11 @@ contains
 
   subroutine CD_rot_run(phi)
     real(dp), intent(in) :: phi
-    real(dp) :: x_cd(m_theta), y_cd(m_theta)
+    real(dp), allocatable :: x_cd(:), y_cd(:)
     integer  :: iu
 
     if (verbose) print *, 'Rotate the coords'
+    allocate( x_cd(m_theta), y_cd(m_theta) )
 
     open(newunit=iu, file=output_file('CD_xy.dat'))
     read(iu,*) (x_cd(l), y_cd(l), l=1,m_theta)
@@ -31,6 +32,8 @@ contains
     ! lower half (mirror, y -> -y)
     write(iu,'(3es25.16e3)') (x_cd(l), -y_cd(l)*cos(phi), -y_cd(l)*sin(phi), l=1,m_theta)
     close(iu)
+
+    deallocate( x_cd, y_cd )
 
   END subroutine CD_rot_run
 

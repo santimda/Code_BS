@@ -5,7 +5,7 @@ module shock_thermal
   !  - FS (radiative = .true.):
   !      hot layer (HL): spectral shape at T_HL, normalized at each cell to the
   !                      radiated f-f power (Eq. 14)
-  !      isothermal layer (IL): at T_ISM, volume eta_H*dV_ring (Eq. 15)
+  !      isothermal layer (IL): at T_IL(theta) (CD_termo), volume eta_H*dV_ring (Eq. 15)
   ! Emissivity (Rybicki & Lightman, Eq. 5.14b):
   !   j_nu = 6.8e-38 Z**2 n_e n_i T**(-1/2) exp(-h nu/kT) g_ff  [erg/s/cm3/Hz]
   ! with n_e = rho/(mu_e*mp), n_i = rho/(mu_i*mp).
@@ -24,23 +24,30 @@ contains
     character(LEN=*), intent(in) :: shock
     logical, intent(in) :: radiative
     integer, parameter :: m_l = 2*m_theta        ! CD positions, both halves
-    real(dp) :: nu_th(m_nu), dnu(m_nu), nu_int, log_nu_int, flux, zq
-    real(dp) :: dV_ring(m_theta), L_inj(m_theta), T_min(m_theta)
-    real(dp) :: rho_sh(m_theta), T_sh(m_theta), rho_IL_s(m_theta)
+    real(dp) :: nu_int, log_nu_int, flux, zq, L_v_tot, L_HL_tot
+    real(dp), allocatable :: nu_th(:), dnu(:), nuL_v_tot(:), nuL_HL_tot(:), w_avg(:)
+    real(dp), allocatable :: dV_ring(:), L_inj(:), T_min(:), rho_sh(:), T_sh(:), rho_IL_s(:)
     ! RS (shocked wind) or FS isothermal layer: "volume" component
-    real(dp) :: ne_v(m_theta), ni_v(m_theta), T_v(m_theta), V_v(m_theta)
-    real(dp) :: g_v(m_theta,m_nu), nuL_v(m_theta,m_nu), nuL_v_tot(m_nu), L_v_tot
+    real(dp), allocatable :: ne_v(:), ni_v(:), T_v(:), V_v(:)
     ! FS hot layer
-    real(dp) :: g_HL(m_theta,m_nu), nuL_HL(m_theta,m_nu), nuL_HL_tot(m_nu), L_HL_tot
-    real(dp) :: integ(m_theta), P_rad(m_theta)
+    real(dp), allocatable :: integ(:), P_rad(:)
     ! maps and diagnostics
-    real(dp) :: w_avg(m_nu), S_avg(m_theta), S_cum(m_theta), alpha_HL(m_theta), alpha_v(m_theta)
+    real(dp), allocatable :: S_avg(:), S_cum(:), alpha_HL(:), alpha_v(:)
+    ! (theta, nu) arrays
+    real(dp), allocatable :: g_v(:,:), nuL_v(:,:), g_HL(:,:), nuL_HL(:,:)
     real(dp), allocatable :: S_map(:,:)
     integer,  allocatable :: i_map(:)
     integer  :: im, n_map, iu, i_1G, i_3G
 
     call validate_shock(shock, 'shock_thermal_run')
     print*, 'Calculate the thermal emission from the '//shock
+
+    allocate( nu_th(m_nu), dnu(m_nu), nuL_v_tot(m_nu), nuL_HL_tot(m_nu), w_avg(m_nu) )
+    allocate( dV_ring(m_theta), L_inj(m_theta), T_min(m_theta), rho_sh(m_theta), T_sh(m_theta), &
+              rho_IL_s(m_theta), ne_v(m_theta), ni_v(m_theta), T_v(m_theta), V_v(m_theta), &
+              integ(m_theta), P_rad(m_theta), S_avg(m_theta), S_cum(m_theta), &
+              alpha_HL(m_theta), alpha_v(m_theta) )
+    allocate( g_v(m_theta,m_nu), nuL_v(m_theta,m_nu), g_HL(m_theta,m_nu), nuL_HL(m_theta,m_nu) )
 
     if (shock == 'RS') then
       zq = Zq_sw
@@ -96,7 +103,7 @@ contains
     if (radiative) then
       ne_v = rho_IL_s/(mu_e*mp)
       ni_v = rho_IL_s/(mu_i*mp)
-      T_v  = T_min
+      T_v  = T_min                             ! T of the IL (CD_termo)
       V_v  = frac_H*dV_ring                    ! IL width reduced by eta_H
     else
       ne_v = rho_sh/(mu_e*mp)
@@ -215,8 +222,6 @@ contains
     write(iu,'(es17.8e3)') S_avg, S_avg                      ! both halves
     close(iu)
 
-    deallocate( i_map, S_map )
-
     !------------------------------------------------------------
     ! Diagnostics
 
@@ -238,6 +243,11 @@ contains
     open(newunit=iu, file=output_file('Tau_'//shock//'.dat'))
     write(iu,'(3es17.8e3)') (theta(l), alpha_HL(l), alpha_v(l), l=1,m_theta)
     close(iu)
+
+    deallocate( i_map, S_map )
+    deallocate( nu_th, dnu, nuL_v_tot, nuL_HL_tot, w_avg, dV_ring, L_inj, T_min, rho_sh, T_sh, &
+                rho_IL_s, ne_v, ni_v, T_v, V_v, integ, P_rad, S_avg, S_cum, alpha_HL, alpha_v )
+    deallocate( g_v, nuL_v, g_HL, nuL_HL )
 
   END subroutine shock_thermal_run
 
