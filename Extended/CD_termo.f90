@@ -35,6 +35,7 @@ module CD_termo
       real(dp) :: drho, P_th_med, Omega_in, theta_min, T_med
       real(dp) :: lambda_tot(m_theta)
       real(dp) :: t_th(m_theta), t_adv(m_theta), T_IL(m_theta), T_RH(m_theta), T_new(m_theta)
+      real(dp) :: T_ratio
       integer  :: l_crit, l_transition, l_min, n_adi
       integer  :: iu, iu_n, iu_termo, iu_norm, iu_cmp, iu_H
       logical  :: transition
@@ -293,10 +294,13 @@ module CD_termo
       ! Temperature and density of the isothermal layer
 
       if (radiative) then
-         T_IL(1) = max( (t_th(1)/t_adv(2))*T(1), T_ISM )   ! t_adv(1) ~ infinite (v_t ~ 0)
-         T_IL(2:) = (t_th(2:)/t_adv(2:))*T(2:)
-         T_IL(2:) = merge( T(2:), max(T_IL(2:), T_ISM), T(2:) <= T_IL(2:) )
-         rho_IL = rho*(T/T_IL)
+         ! Temperature reached by the shocked gas after cooling during the advection
+         ! time, between the photoionization temperature T_ion and the post-shock T
+         ! (at the apex t_adv(1) ~ infinite: use t_adv(2))
+         t_ratio = t_th/t_adv
+         t_ratio(1) = t_th(1)/t_adv(2)
+         T_IL = min( T, max(t_ratio*T, T_ion) )
+         rho_IL = rho*(T/T_IL)                ! pressure equilibrium with the HL
 
          open(newunit=iu, file=output_file('T_IL_'//shock//'.dat'))
          write(iu,'(2es17.8e3)') (theta(l), T_IL(l), l=1,m_theta)
