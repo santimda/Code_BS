@@ -87,7 +87,7 @@ module CD_abssyn
    n_abs = count(nu < nu_max_ff)
    call tau_calc(shock, radiative, n_abs, kappa_ff, tau_w, tau_il)
 
-   open(30,file='Stromgren.dat')
+   open(30,file=output_file('Stromgren.dat'))
       read(30,*) R_str
    close(30)
    tau_str = kappa_ff * n_ISM**2 * R_str
@@ -234,12 +234,12 @@ module CD_abssyn
    !------------------------------------------------------------
    ! Wind opacity table alpha(r_ff,nu) (opac_ff.f90)
 
-   open(15,file='r_ff.dat')
+   open(15,file=output_file('r_ff.dat'))
    read(15,*) r_ff
    close(15)
    dr_tab = r_ff(2)-r_ff(1)          ! equiespaciated table
 
-   open(18,file='windalphaff.dat')
+   open(18,file=output_file('windalphaff.dat'))
    read(18,*) ((alphaffw(ir,it), it=1,m_nu), ir=1,mr_ff)
    close(18)
 

@@ -34,7 +34,7 @@ module radstr
         83    format(A13,X,Es10.2)
         84    format(A14,X,Es10.2)
 
-        open(100,file='Stromgren.dat')
+        open(100,file=output_file('Stromgren.dat'))
             read(100,*) R_str, dummy
         close(100)
 

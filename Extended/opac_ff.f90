@@ -1,375 +1,225 @@
 module opac_ff
-  !This module calculates the f-f absorption and emission of the unshocked SW
-  !and the absorption and emission of the unshocked ISM
+  !=========================================================================
+  ! Free-free absorption and emission of the unshocked stellar wind and of
+  ! the ionized ISM (Stromgren sphere).
+  ! Outputs (in output/):
+  !  r_ff.dat               radial grid of the wind opacity table [cm]
+  !  windalphaff.dat        alpha_ff(r,nu) of the wind [1/cm], one row per r
+  !  windemiff.dat          nu [Hz], wind flux density [mJy] (Wright & Barlow 1975)
+  !  S_ff_map_<label>.dat   wind radio maps at the frequencies of maps(:)
+  !  gaunt_ISM.dat, radff.dat, flux_ISM.dat   f-f emission of the ionized ISM
+  !  Stromgren.dat          R_str [cm] and volume of the HII region outside the BS [cm3]
+  ! Densities: wind  -> n_i = rho/(mu_w*mp), n_e = gamma_w*n_i, with mu_w the
+  !                     mean mass per ion (Leitherer et al. 1995, Eq. 2)
+  !            ISM   -> n_ISM is the total particle density (rho_ISM = n_ISM*mu_ISM*mp):
+  !                     n_e = rho/(mu_e*mp), n_i = rho/(mu_i*mp), n_H = X*rho/mp
+  !=========================================================================
   use global
   use numerical_utils, only: vector_log
-  use gaunt_factor
+  use gaunt_factor, only: gaunt_ff_calc
+  use map_freqs, only: maps, nu_index
   implicit none
-  
+  private
   public :: opac_ff_run
 
-  contains
+contains
 
-  !============================================================================
-  ! opac_ff_run
-  !============================================================================
-  ! Output files:
-  ! 1) windalphaff.dat contains a table with nu(Hz) and opacity 
-  ! alphaff(r_ff,nu) [1/cm], with r the distance to the star.
-  ! 2) windemiff.dat contains a table with nu(Hz) and the emissivity 
-  ! epsff(l,nu)*dl^3 [mJy]
-  ! 3) r_ff.dat, a list of r_ff(n)
-  !============================================================================
-  
-    subroutine opac_ff_run
-      !$ use omp_lib
-      !integer, parameter :: mE_ph = 400
-      real(dp) :: T_w,T_ion,S(mE_ff),ne,ne_ISM,ni_ISM,ni
-      real(dp) :: alphaff(mr_ff,mE_ff)
-      real(dp) :: r_ff(mr_ff),dr,A_ff,cte_alpha_ff,cte_alpha_ff_ISM, cte_nu
-      real(dp) :: alpha_ff, p_ff(mE_ph), f_ff, factor_opac
-      real(dp) :: Lnu(mE_ff), Enu
-      integer :: i_ph
-      real(dp) :: g_ff_w(mE_ff), g_ff_ISM(mE_ff)  
-      real(dp) :: Mdot_eff = Mdot/sqrt(filling) ! effective mass-loss rate (account for clumping)
-      real(dp) :: P_trans, M_tot, V_trans
-      real(dp) :: dif_R(m_theta)
-      real(dp) :: Q_ion, R_str, alpha_B, vol, dV, vol_str
-      real(dp) :: cte_f, cte_Lnu
-      real(dp) :: nu_int_ff
-      real(dp) :: E_st_min, E_st_max, E_st_0, E_st_int, dnu_st, E_st(mE_ph), integ_st, norm_BB_st
-      !Variables for radio maps:
-      integer :: i_1G,i_3G,i_5G
-      real(dp) :: log_nu_int,nu_S,B_ff,B_ff_D2,K_ff,cte_Tau
-      real(dp) :: r_map(mr_map),S_ff_cm2(mr_map),A_cell(mr_map),S_map(mr_map)
-      real(dp) :: convert,Delta_r,x_map(mphi),y_map(mphi),phi_map(mphi)
+  subroutine opac_ff_run
+    real(dp) :: dif_R(m_theta), r_ff(mr_ff), dr, log_nu_int
+    real(dp) :: Mdot_eff, A_ff
+    real(dp) :: g_ff_w(mE_ff), cte_alpha(mr_ff), kappa_nu(mE_ff), alphaff(mr_ff,mE_ff), S(mE_ff)
+    ! wind radio maps
+    integer  :: im, i_nu
+    real(dp) :: nu_S, B_ff_D2, cte_Tau, convert, Delta_r
+    real(dp) :: r_map(mr_map), S_ff_cm2(mr_map), S_map(mr_map), phi_map(mphi)
+    ! Stromgren sphere and ionized ISM
+    real(dp) :: E_st(mE_ph), E_st_0, E_st_int, Q_ion, alpha_B, R_str, vol, vol_str
+    real(dp) :: ne_ISM, ni_ISM, nH_ISM, nu_int_ff
+    real(dp) :: g_ff_ISM(mE_ff), p_ff(mE_ff), factor_opac(mE_ff), Lnu(mE_ff)
+    real(dp) :: P_trans, M_tot, V_trans
+    integer  :: iu
+    character(len=32) :: fmt
 
-      interface
-         subroutine S_ff_map(B_ff_D2,cte_Tau,r_i,r_f,S_ff_cm2,r_map)
-            use global
-            real(dp), intent(in) :: B_ff_D2,cte_Tau,r_i,r_f
-            real(dp), intent(out) :: r_map(mr_map),S_ff_cm2(mr_map)
-         end subroutine S_ff_map
-      end interface
+    allocate( nu(mE_ff), nu_ISM(mE_ff) )
 
-      allocate( nu(mE_ff), nu_ISM(mE_ff) )
-      S = 0.d0
+    !-----------------------------------------------------------------
+    ! Shock position and cell size, and frequency grid
 
-      ! set omp threads number
-      !$ call omp_set_num_threads(nth)
-      ! !$ write(*,'(a, i3, a)') '# Using OpenMP with ', nth ,' threads \n'
+    open(newunit=iu, file=output_file('CD.dat'))
+    read(iu,*) (theta(l), r_norm(l), dif_R(l), dummy, dummy, l=1,m_theta)
+    close(iu)
 
-      !-----------------------------------------------------------------
-      ! Read the shock position and cell size: theta,r_norm(theta),dR(theta)
-      open(11,file=output_file('CD.dat'))
-      do l = 1, m_theta
-         read(11,*) theta(l), r_norm(l), dif_R(l), dummy, dummy
-      end do
-      close(11)
-
-      !==================================================================
-      
-      print*, 'Calculate the f-f abs. and emi. coefficients in the stellar wind'
-      
-      !------------------------------------------------------------------
-      ! Assume spherically symmetric winds
-          
-      r_ff(1) = 10.*R_st        ! r_apex >> R_st
-      r_ff(mr_ff) = 5.d0*R0 
-      dr = (r_ff(mr_ff) - r_ff(1))/float(mr_ff)
-      open (12,file='r_ff.dat')
-      write(12,*) r_ff(1)
-      do l = 2,mr_ff
-         r_ff(l) = r_ff(l-1) + dr
-         write(12,*) r_ff(l)
-      enddo
-      close(12)
-
-      !------------------------------------------------------------------
-
-      T_w = 0.3d0*T_st      ! assume constant T in the wind (valid far from the star)
-      open(14,file=output_file('nu.dat'))
-      do i = 1,mE_ff
-         read(14,*) nu(i)
-      enddo
-      close(14)      
-      log_nu_int = log(nu(2)/nu(1))
-
-      call gaunt_ff_calc(nu,size(nu),T_w,Zq_w,g_ff_w)
+    open(newunit=iu, file=output_file('nu.dat'))
+    read(iu,*) nu
+    close(iu)
+    log_nu_int = log(nu(2)/nu(1))
 
     !==================================================================
-    !     
-    !     Calculate tauff(r,E) 
+    !
+    !   UNSHOCKED STELLAR WIND
     !
     !==================================================================
-      
-      A_ff = Mdot_eff/(4.d0*pi*v_w*mu_w*mp) ! Assume r >> Rstr --> v_w = v_infty
-      
-      ! $omp parallel do & 
-      do l=1,mr_ff
-         ni = A_ff/r_ff(l)**2/(gamma_w+1.d0)  ! mui = mu*(g_e+1)
-         ne = gamma_w*ni      
-         cte_alpha_ff = 3.7d8*Zq_w**2*ne*ni/sqrt(T_w)
-         do i=1,mE_ff
-            alphaff(l,i) = cte_alpha_ff*nu(i)**(-3)*(1.d0-exp(-h*nu(i)/k/T_w))*g_ff_w(i) !1/cm
-         enddo
-      enddo
-      ! $omp end parallel do
 
-      open(18,file='windalphaff.dat')
-      do l=1,mr_ff
-         write(18,*) (alphaff(l,i), i=1,mE_ff)
-      enddo
-      close(18)
+    print*, 'Calculate the f-f abs. and emi. coefficients in the stellar wind'
 
-      !------------------------------------------------------------------------------   
-      ! The total radio flux is given by Eq. 8 from Wright 1975:
+    ! Radial grid (spherically symmetric wind, r >> R_st)
+    dr = (5.d0*R0 - 10.d0*R_st)/real(mr_ff-1,dp)
+    r_ff = 10.d0*R_st + dr*[( real(l,dp), l=0,mr_ff-1 )]
 
-      open(19,file='windemiff.dat')
+    open(newunit=iu, file=output_file('r_ff.dat'))
+    write(iu,'(es25.16e3)') r_ff
+    close(iu)
 
-      do i = 1, mE_ff    
-        S(i) = (23.2d0/distance**2) * ( ((Mdot_eff/M_sun_yr)/&
-            (v_w/1.d5)/mu_w)**2 *nu(i)*gamma_w*g_ff_w(i)*Zq_w**2 )**(2.d0/3.d0) ! Jy = 1d-26 W/m/Hz
-        !S(i) = (23.d0/distance**2) * (Mdot/mu_w/v_w)**(4./3.) * (nu(i)*gamma_w*g_ff_w(i))**(2./3.) * Zq_w**(4./3.)
-        !print*, g_ff_w(i)
-        if (nu(i) > 1.d-3*k*T_w/h) then
-          S(i) = S(i)*exp(-h*nu(i)/k/T_w)      ! Invented... 
-        endif      
-        write(19,*) nu(i),S(i)*1.d3 ! Stored in mJy
-      enddo
-      close(19)
+    call gaunt_ff_calc(nu, mE_ff, T_wind, Zq_w, g_ff_w)    ! T_wind: constant T in the wind
 
+    ! Opacity alpha_ff(r,nu) [1/cm] (Rybicki & Lightman, Eq. 5.18b), with
+    ! n_i = A_ff/r**2 and n_e = gamma_w*n_i
+    Mdot_eff = Mdot/sqrt(filling)              ! effective mass-loss rate (clumping)
+    A_ff = Mdot_eff/(4.d0*pi*v_w*mu_w*mp)      ! r >> R_st: v_w = v_infty
+    cte_alpha = 3.7d8*Zq_w**2*gamma_w*(A_ff/r_ff**2)**2/sqrt(T_wind)
+    kappa_nu  = nu**(-3)*(1.d0-exp(-h*nu/(k*T_wind)))*g_ff_w
+    alphaff   = spread(cte_alpha,2,mE_ff)*spread(kappa_nu,1,mr_ff)
 
-      !============================================================
-      !
-      !   Fluxes for radio-maps
-      
-      phi_map(1)=0.d0
-      do j=2,mphi
-         phi_map(j) = phi_map(j-1) + delta_phi
-      enddo
-      convert = 206265.d0/distance             ! image to angular size ["]
-                  
-      !------------  1.4 GHz
+    write(fmt,'(a,i0,a)') '(', mE_ff, 'es17.8e3)'
+    open(newunit=iu, file=output_file('windalphaff.dat'))
+    write(iu,fmt) ((alphaff(l,i), i=1,mE_ff), l=1,mr_ff)
+    close(iu)
 
-      i_1G = int(log(1.42d9/nu(1))/log_nu_int) + 1        ! 1.4 GHz
-      nu_S = nu(i_1G)
+    ! Total radio flux density of the wind: Eq. 8 of Wright & Barlow (1975),
+    ! Eq. 1 of Leitherer et al. (1995): Mdot [M_sun/yr], v [km/s], d [kpc] -> S [Jy]
+    S = 23.2d0/(distance/kpc)**2 * ( ((Mdot_eff/M_sun_yr)/(v_w/1.d5)/mu_w)**2 &
+        * nu*gamma_w*g_ff_w*Zq_w**2 )**(2.d0/3.d0)
+    S = S*merge(exp(-h*nu/(k*T_wind)), 1.d0, nu > 1.d-3*k*T_wind/h)   ! ad hoc high-frequency cutoff
 
-      B_ff = 2.*nu_S**2*k*T_w/c**2    ! Planck function at the h nu << kT limit
-      B_ff_D2 = B_ff/distance**2*1.d26 ! in mJy
+    open(newunit=iu, file=output_file('windemiff.dat'))
+    write(iu,'(2es17.8e3)') (nu(i), S(i)*1.d3, i=1,mE_ff)               ! [mJy]
+    close(iu)
 
-      K_ff = 3.7d8*h*Zq_w**2*g_ff_w(i_1G)/(k*T_w**1.5*nu_S**2)
-      cte_Tau = K_ff*gamma_w*A_ff**2*pi/2.d0
+    !------------------------------------------------------------------
+    ! Wind radio maps at the frequencies of maps(:)
 
-      call S_ff_map(B_ff_D2,cte_Tau,R_st,R0,S_ff_cm2,r_map)
-      open(160,file='S_ff_map_1G.dat')
-      Delta_r = r_map(2)-r_map(1)
-      do i = 1,mr_map
-         A_cell(i) = r_map(i)*Delta_r*d_phi
-         S_map(i) = S_ff_cm2(i)*A_cell(i)
-         do j=1,mphi
-            y_map(j) = r_map(i) * sin(phi_map(j)) * convert
-            x_map(j) = r_map(i) * cos(phi_map(j)) * convert
-            write(160,*) x_map(j),y_map(j),S_map(i)
-         enddo
-      enddo
-      close(160)
+    convert = 206265.d0/distance             ! linear to angular size ["]
+    phi_map = delta_phi*[( real(j,dp), j=0,mphi-1 )]
 
-      !------------ 3.0 GHz
+    do im = 1, size(maps)
+       i_nu = nu_index(maps(im)%nu, nu(1), log_nu_int, mE_ff)
+       nu_S = nu(i_nu)
+       ! Rayleigh-Jeans intensity over d**2 [mJy/cm**2] and optical depth along the LOS
+       B_ff_D2 = 2.d0*nu_S**2*k*T_wind/c**2/distance**2*1.d26
+       cte_Tau = 3.7d8*h*Zq_w**2*g_ff_w(i_nu)/(k*T_wind**1.5d0*nu_S**2) * gamma_w*A_ff**2*pi/2.d0
 
-      i_3G = int(log(3.0d9/nu(1))/log_nu_int) + 1        ! 4.8 GHz
-      nu_S = nu(i_3G)
+       call S_ff_map(B_ff_D2, cte_Tau, R_st, R0, S_ff_cm2, r_map)
+       Delta_r = r_map(2)-r_map(1)
+       S_map = S_ff_cm2*r_map*Delta_r*d_phi          ! flux of each cell [mJy]
 
-      B_ff = 2.*nu_S**2*k*T_w/c**2    ! Planck function at the h nu << kT limit
-      B_ff_D2 = B_ff/distance**2*1.d26 ! in mJy
+       open(newunit=iu, file=output_file('S_ff_map_'//trim(maps(im)%label)//'.dat'))
+       write(iu,'(3es17.8e3)') ((r_map(i)*cos(phi_map(j))*convert, r_map(i)*sin(phi_map(j))*convert, &
+                                 S_map(i), j=1,mphi), i=1,mr_map)
+       close(iu)
+    end do
 
-      K_ff = 3.7d8*h*Zq_w**2*g_ff_w(i_3G)/(k*T_w**1.5*nu_S**2)
-      cte_Tau = K_ff*gamma_w*A_ff**2*pi/2.
-      
-      call S_ff_map(B_ff_D2,cte_Tau,R_st,R0,S_ff_cm2,r_map)
-      open(161,file='S_ff_map_3G.dat')
-      do i = 1,mr_map
-         A_cell(i) = r_map(i)*Delta_r*d_phi
-         S_map(i) = S_ff_cm2(i)*A_cell(i)
-         do j=1,mphi
-            y_map(j) = r_map(i) * sin(phi_map(j)) * convert
-            x_map(j) = r_map(i) * cos(phi_map(j)) * convert
-            write(161,*) x_map(j),y_map(j),S_map(i)
-         enddo
-      enddo
-      close(161)
+    !==================================================================
+    !
+    !   IONIZED UNSHOCKED ISM (STROMGREN SPHERE)
+    !
+    !==================================================================
 
-      !------------ 4.8 GHz
+    print*, 'Calculate the emission from the ionized unshocked ISM'
 
-      i_5G = int(log(4.86d9/nu(1))/log_nu_int) + 1        ! 4.8 GHz
-      nu_S = nu(i_5G)
+    ! Ionizing photon rate of the star: Q_ion = int_{13.6 eV} L_N dE,
+    ! with L_N = 4*pi*R_st**2*c*nBB [photons/s/erg] (see nBB in global.f90)
+    E_st_0 = 2.7d0*k*T_st
+    call vector_log(13.6d0*eV, 20.d0*E_st_0, E_st_int, E_st)
+    Q_ion = 4.d0*pi*R_st**2*c*(E_st_int-1.d0) * sum([( nBB(E_st(i),T_st)*E_st(i), i=1,mE_ph )])
 
-      B_ff = 2.*nu_S**2*k*T_w/c**2    ! Planck function at the h nu << kT limit
-      B_ff_D2 = B_ff/distance**2*1.d26 ! in mJy
+    ! Densities of the ionized ISM
+    ne_ISM = rho_ISM/(mu_e*mp)
+    ni_ISM = rho_ISM/(mu_i*mp)
+    nH_ISM = X_ab*rho_ISM/mp
 
-      K_ff = 3.7d8*h*Zq_w**2*g_ff_w(i_5G)/(k*T_w**1.5*nu_S**2)
-      cte_Tau = K_ff*gamma_w*A_ff**2*pi/2.
-      
-      call S_ff_map(B_ff_D2,cte_Tau,R_st,R0,S_ff_cm2,r_map)
-      open(162,file='S_ff_map_5G.dat')
-      do i = 1,mr_map
-         A_cell(i) = r_map(i)*Delta_r*d_phi
-         S_map(i) = S_ff_cm2(i)*A_cell(i)
-         do j=1,mphi
-            y_map(j) = r_map(i) * sin(phi_map(j)) * convert
-            x_map(j) = r_map(i) * cos(phi_map(j)) * convert
-            write(162,*) x_map(j),y_map(j),S_map(i)
-         enddo
-      enddo
-      close(162)
+    ! Stromgren radius: Q_ion = (4pi/3)*R_str**3*n_e*n_H*alpha_B (case B)
+    alpha_B = 2.56d-13*(T_ISM/1.d4)**(-0.83d0)
+    R_str = ( 3.d0*Q_ion/(4.d0*pi*ne_ISM*nH_ISM*alpha_B) )**(1.d0/3.d0)
+    write(*,'(a, Es10.2)') ' Q_ion(ph/s) = ', Q_ion
+    write(*,'(a, F7.3)')   ' R_str(pc) = ', R_str/pc
+    write(*,'(a, F7.2)')   ' R_str/R0 = ', R_str/R0
 
+    !----------------------------------------------------------
+    ! f-f emission of the sphere (Olnon 1975)
 
-      !============================================================
-      !
-      !   UNSHOCKED ISM
-      !
-      !------------------------------------------------------------  
+    call vector_log(nu_min_ff, nu_max_ff, nu_int_ff, nu_ISM)
+    call gaunt_ff_calc(nu_ISM, mE_ff, T_ISM, Zq_ISM, g_ff_ISM)
 
-      print*, 'Calculate the emission from the ionized unshocked ISM'
+    ! Optical depth through the center of the sphere (Olnon 1975, Eqs. 4 and 10)
+    p_ff = 2.d0*ne_ISM*ni_ISM*(R_str/pc) * 8.235d-2*T_ISM**(-1.35d0)*(nu_ISM/1.d9)**(-2.1d0)
 
-      ! First calculate the normalization for the BB
-      E_st_0 = 2.7d0*k*T_st
-      E_st_min = E_st_0/1.d1 
-      E_st_max = E_st_0*4.d1 
-      call vector_log(E_st_min, E_st_max, E_st_int, E_st)
-      integ_st = 0.d0
-      do i_ph =1,mE_ph
-        dnu_st = E_st(i_ph)*(E_st_int - 1.d0)/h
-        integ_st = integ_st + nBB(E_st(i_ph),T_st)*dnu_st     ! 1/erg/s/cm3
-      end do
-      norm_BB_st = 4.d0*pi*R_st**2*sigma*T_st**4/integ_st    ! erg2*cm3          
+    ! Eq. 11 of Olnon (1975) for a sphere; for p << 1 it tends to 2p/3
+    where (p_ff > 1.d-4)
+       factor_opac = 1.d0 - (2.d0/p_ff**2)*(1.d0-(p_ff+1.d0)*exp(-p_ff))
+    elsewhere
+       factor_opac = 2.d0*p_ff/3.d0
+    end where
+    Lnu = 8.d0*pi**2*k*T_ISM*R_str**2/c**2 * nu_ISM**2 * factor_opac      ! [erg/s/Hz]
 
-      ! Now calculate the total ionizing flux
-      E_st_min = 13.6 * eV 
-      E_st_max = E_st_0*2.d1
-      Q_ion = 0.d0
-      call vector_log(E_st_min, E_st_max, E_st_int, E_st)
+    open(newunit=iu, file=output_file('gaunt_ISM.dat'))
+    write(iu,'(2es17.8e3)') (h*nu_ISM(i)/(k*T_ISM), g_ff_ISM(i), i=1,mE_ff)
+    close(iu)
 
-      ! Finally, calculate the Strömgren sphere radius
-      do i_ph=1,mE_ph
-        dnu_st = E_st(i_ph)*(E_st_int - 1.d0)/h
-        Q_ion = Q_ion + norm_BB_st*nBB(E_st(i_ph),T_st)*dnu_st/E_st(i_ph)    ! erg2*cm3/erg/cm3/s
-      end do
-      !R_str = 0.68d0 * pc * (Q_ion/1.d49)**(1./3.) * (n_ISM/1.d3)**(-2./3.) * (T_ISM/1.d4)**0.28   ! Lacki 2013
-      alpha_B = 2.56d-13 * (T_ISM/1.d4)**(-0.83d0)
-      R_str = (3*Q_ion/(4.d0 * pi * (n_ISM/mu_ISM)**2 * alpha_B))**(1.d0/3.d0) 
-      write(*,'(a, Es10.2)') ' Q_ion(ph/s) = ', Q_ion
-      write(*,'(a, F6.3)') ' R_str(pc) = ', R_str/pc
-      write(*,'(a, F5.2)') ' R_str/R0 = ', R_str/R0
+    open(newunit=iu, file=output_file('radff.dat'))
+    write(iu,'(2es17.8e3)') (h*nu_ISM(i)/eV, Lnu(i)/h, i=1,mE_ff)            ! E [eV], L_E [1/s]
+    close(iu)
 
-      !----------------------------------------------------------
-      ! Define some variables
+    open(newunit=iu, file=output_file('flux_ISM.dat'))
+    write(iu,'(2es17.8e3)') (nu_ISM(i), Lnu(i)*1.d26/(4.d0*pi*distance**2), i=1,mE_ff)   ! [mJy]
+    close(iu)
 
-      !ni_ISM = n_ISM/mu_SISM      ! Number particle density in the ionized ISM is larger (should it be ni_ISM = 2.*n_ISM?)
-      ni_ISM = n_ISM                ! Already ionized
-      ne_ISM = n_ISM
-      T_ion = T_ISM
-      cte_f = 8.235d-2*T_ion**(-1.35)   ! Eq.4 Olnon 1975
-      cte_Lnu = 8.*pi**2*k*T_ion*R_str**2/c**2
+    !----------------------------------------------------------
+    ! Volume of the HII region outside the BS
 
-      call vector_log(nu_min_ff,nu_max_ff,nu_int_ff,nu_ISM)
+    vol = sum( pi*(R_theta*sin(theta))**2*dif_R )
+    vol_str = (4.d0/3.d0)*pi*R_str**3 - vol
 
-      !----------------------------------------------------------
-      call gaunt_ff_calc(nu_ISM,size(nu_ISM),T_ion,Zq_ISM,g_ff_ISM)
+    open(newunit=iu, file=output_file('Stromgren.dat'))
+    write(iu,'(2es25.16e3)') R_str, vol_str
+    close(iu)
 
-      ! Calculate the free-free emission at each frequency
+    !----------------------------------------------------------
+    ! Velocity transferred to the ISM by the stellar radiation
+    ! V = P/m, with P = F*t (extreme case p_ff = 1), F = L_st/c, t = R_str/v_st
+    ! and m the ISM mass inside the Stromgren sphere
 
-      open (300,file='gaunt_ISM.dat')
-      open (400,file='radff.dat')
-      open (500, file='flux_ISM.dat')
-      do i=1,mE_ff
-         f_ff = cte_f*(nu_ISM(i)/1.d9)**(-2.1)  ! [cm^6/pc] --> Eq.4 Olnon 1975
-         !cte_f = 8.235d-2*T_ion**(-1.35)*(nu_ISM(i)/1.d9)**(-2.1)
-         p_ff(i) = 2.d0*ne_ISM*ni_ISM*(R_str/pc)*f_ff      ! Eq. 10 Olnon 1975
-         cte_alpha_ff_ISM = 3.7d8*Zq_ISM**2/sqrt(T_ion)*ne_ISM*ni_ISM ! Rybicky & Lightman? (eq. 5.18 b)
-         cte_nu = nu_ISM(i)**(-3)*(1.d0-exp(-h*nu_ISM(i)/k/T_ion))*g_ff_ISM(i) !(eq. 5.18 b)
-         alpha_ff = cte_alpha_ff_ISM*cte_nu !1/cm
-         !if (alpha_ff * R_str > 1.d0) print*, 'The str. sphere is optically thick at', nu_ISM(i)/1.d6, 'MHz'
-         !p_ff(i) = alpha_ff * R_str 
-         if (p_ff(i) > 1.d-4) then
-          factor_opac = ( 1. - (2./p_ff(i)**2)*(1.-(p_ff(i)+1.)*exp(-p_ff(i))) ) ! Eq. 11 Olnon 1975 for sphere
-         else ! if p_ff << 1d-5 there are numerical errors, but analytically the factor --> p
-          factor_opac = p_ff(i)
-         endif
-         Lnu(i) = cte_Lnu*nu_ISM(i)**2*factor_opac
-         write(300,*) h*nu_ISM(i)/(k*T_ion),g_ff_ISM(i)
-         write(400,*) h*nu_ISM(i)/eV,Lnu(i)/h   ! [Lnu] = erg/s/Hz
-         write(500,*) nu_ISM(i), Lnu(i)*1.d26/(4.*pi*distance**2)  ! mJy
-         !print*, nu_ISM(i)/1.d9, Lnu(i)*1.d26/(4.*pi*distance**2)
-      end do
-      close(300)
-      close(400)
+    P_trans = (L_st/c)*(R_str/v_st)
+    M_tot = rho_ISM*(4.d0/3.d0)*pi*R_str**3
+    V_trans = P_trans/M_tot
+    write(*,'(a, Es10.2)') ' V_trans[cm/s] =', V_trans
 
-      !Lnu=Lnu/h ![Lnu] = erg/s/erg
-      !Enu=h*nu
+    deallocate( nu, nu_ISM )
 
-      vol = 0.d0
-      do l=1,m_theta
-         dV = pi * (R_theta(l)*sin(theta(l)))**2 * dif_R(l)
-         vol = vol + dV
-      end do
+  END subroutine opac_ff_run
 
-      vol_str = (4.d0/3.d0) * pi * R_str**3 - vol
+  !=========================================================================
+  ! S_ff_map: brightness of the wind at impact parameter r_map, divided by
+  ! d**2 [mJy/cm**2] (Wright & Barlow 1975, Eq. 5): S = B*(1-exp(-tau)),
+  ! tau = cte_Tau/p**3, corrected for the occultation by the star for p < R_c
+  !=========================================================================
 
-      open(100,file='Stromgren.dat')
-         write(100,*) R_str, vol_str
-      close(100)
+  subroutine S_ff_map(B_ff_D2, cte_Tau, r_i, r_f, S_ff_cm2, r_map)
+    real(dp), intent(in)  :: B_ff_D2, cte_Tau, r_i, r_f
+    real(dp), intent(out) :: S_ff_cm2(mr_map), r_map(mr_map)
+    real(dp) :: R_c, x_c(mr_map), Tau_max(mr_map)
+    integer  :: ir
 
-      do i=1,mE_ff
-         Lnu(i) = 6.8d-38 * Zq_ISM**2 * n_ISM**2 * g_ff_ISM(i) * exp(-h*nu_ISM(i)/k/T_ISM) / sqrt(T_ISM)
-         !print*, nu_ISM(i)/1.d9, 1.d26*Lnu(i)*vol_str /(4.*pi*distance**2)
-      end do
+    R_c = 2.d0*r_i ! NOT SURE!
+    r_map = r_i + (r_f-r_i)/real(mr_map-1,dp)*[( real(ir,dp), ir=0,mr_map-1 )]
+    x_c = r_map/R_c
 
-      !----------------------------------------------------------
-      ! Calculate the velocity and momentum transferred to the ISM by the star
-      ! V = P/m, with P = p_ff*F*t; F = L_st/c; t = R_str/v_st; m = rho_ISM*4pi*R_str**3
+    where (r_map >= R_c)
+       Tau_max = cte_Tau/r_map**3
+    elsewhere
+       Tau_max = cte_Tau/r_map**3*( 0.5d0 - acos(x_c)/pi - sqrt(1.d0-x_c**2)*x_c/pi )
+    end where
+    S_ff_cm2 = B_ff_D2*(1.d0-exp(-Tau_max))
 
-      P_trans = (L_st/c)*(R_str/v_st)   ! Assume extreme case p_ff = 1
-      M_tot = rho_ISM*4.*pi*R_str**3    ! Total ISM mass inside the Str. sphere
-      V_trans = P_trans/M_tot
+  END subroutine S_ff_map
 
-      write(*,'(a, Es10.2)') 'V_trans[cm/s] =', V_trans
-
-  !////////////////////////////////////////////////////////////////////////////////
-
-      deallocate ( nu, nu_ISM )
-
-    END subroutine opac_ff_run
-
-  END module opac_ff
-
-  !////////////////////////////////////////////////////////////////////////////////
-  !
-
-  Subroutine S_ff_map(B_ff_D2,cte_Tau,r_i,r_f,S_ff_cm2,r_map)
-    use global
-    real(dp), intent(in) :: B_ff_D2,cte_Tau,r_i,r_f
-    real(dp), intent(out) :: S_ff_cm2(mr_map),r_map(mr_map)
-    real(dp) :: delta_r,Tau_max,R_c,coc_r
-
-    R_c = 2.*r_i ! NOT SURE!
-    delta_r = (r_f - r_i)/float(mr_map-1)
-    r_map(1) = r_i
-    do i = 2,mr_map
-       r_map(i) = r_map(i-1) + delta_r
-    enddo
-    
-    do i = 1,mr_map
-       ! Eq. 5 from Wright1975
-       if ( r_map(i) >= R_c ) then 
-          Tau_max = cte_Tau/r_map(i)**3
-       else if ( r_map(i) < R_c ) then
-          coc_r = r_map(i)/R_c
-          Tau_max = cte_Tau/r_map(i)**3* ( 0.5 - acos(coc_r)/pi -&
-               sqrt(1.-coc_r**2)*coc_r/pi )
-       endif
-       S_ff_cm2(i) = B_ff_D2*(1.-exp(-Tau_max))
-    enddo
-    
-    return
-  END Subroutine S_ff_map
+END module opac_ff

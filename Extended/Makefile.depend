@@ -18,7 +18,7 @@ BB.o: BB.f90 global.o numerical_utils.o
 
 gaunt_factor.o: gaunt_factor.f90 constants.o
 
-opac_ff.o: opac_ff.f90 global.o gaunt_factor.o numerical_utils.o
+opac_ff.o: opac_ff.f90 global.o gaunt_factor.o numerical_utils.o map_freqs.o
 
 CD.o: CD.f90 global.o
 
