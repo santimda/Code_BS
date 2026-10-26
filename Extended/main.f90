@@ -258,7 +258,7 @@ PROGRAM main
 
 
          if (radbr_sw_calc) then
-            open (42,file='radbr_'//shock//'.dat')     ! One linear-emitter
+            open (42,file=output_file('radbr_'//shock//'.dat'))     ! One linear-emitter
             open (52,file='radbr_'//system//'_'//shock//'_tot.dat') ! The total SW
             do i_E = 1,mE_f
                read(42,*) E_br(i_E),Lbr_one

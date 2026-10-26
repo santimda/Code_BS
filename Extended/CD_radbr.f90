@@ -1,7 +1,9 @@
 module CD_radbr
    use global
+   use controls, only: verbose
    use numerical_utils, only: vector_log
    implicit none
+   private
 
    public :: CD_radbr_run
 
@@ -10,152 +12,104 @@ contains
    !============================================================================
    ! CD_radbr_run
    !============================================================================
-   ! This module calculates the intrinsic bremsstrahlung emission. 
-   ! If screened = .True. it is screend, if =.False. it is unscreend 
-   ! The program reads as an input the electron energy distribution. 
+   ! Intrinsic relativistic bremsstrahlung emission of one linear emitter,
+   ! using the electron distribution diste_<system>_<shock>.dat.
+   ! screened = .true.: screened nuclei; .false.: unscreened nuclei.
+   ! Emission rate per unit photon energy:
+   !   dN/dt/dE_f = n_a * c * int N(E) dsigma/dE_f dE,
+   !   E_f*dsigma/dE_f = 4*alpha*re**2*Zq**2*z_br*Phi(u,gamma), u = E_f/E,
+   ! with n_a = rho/(mu*mp) and z_br from Padovani et al. (2018).
+   ! Output (output/): radbr_<shock>.dat with E_f [eV] and E_f*L_E [erg/s]
    !============================================================================
 
-   subroutine CD_radbr_run(screened, shock) 
+   subroutine CD_radbr_run(screened, shock)
       logical, intent(in) :: screened
       character(LEN=*), intent(in) :: shock
-      Real(dp) :: n_a(m_theta),dsigma_Br,cte_sigma,u_br
-      Real(dp) :: Ef_int,dEf,sum,sum_br
-      Real(dp) :: gamma_e(mE_e), Eps(mE_f), Ef(mE_f)
-      Integer :: nl
+      real(dp) :: Ef_int, Eint, cte_sigma, sum_br
+      integer  :: l, i, j, iu
+      real(dp), allocatable :: rho(:), n_a(:)
+      real(dp), allocatable :: E_e(:), gamma_e(:), dE_e(:), N_etot(:,:)
+      real(dp), allocatable :: Ef(:), Phi(:,:), Lbr(:,:), Lbr_tot(:)
 
-      interface
-         function Phi_Br(u_br,gamma_e,screened)
-            use iso_fortran_env, only: dp => real64
-            implicit none
-            real(dp) :: Phi_Br
-            real(dp), intent(in) :: u_br,gamma_e
-            logical, intent(in) :: screened
-         end function Phi_Br
-      end interface
+      allocate( rho(m_theta), n_a(m_theta) )
+      allocate( E_e(mE_e), gamma_e(mE_e), dE_e(mE_e), N_etot(m_theta,mE_e) )
+      allocate( Ef(mE_f), Phi(mE_f,mE_e), Lbr(m_theta,mE_f), Lbr_tot(mE_f) )
 
-      allocate( Lbr(mE_f),Lbr_tot(mE_f) )
-      allocate( B(m_theta),rho(m_theta),P(m_theta),v_t(m_theta),T(m_theta) )
-      allocate( N_e(mE_e),E_e(mE_e),N_etot(m_theta,mE_e) )
-
-      80    format(A7,X,Es10.2)
-
-      print*, '\n Calculate the (unabsorbed) rel. brem. emission in the '//shock//''
+      call validate_shock(shock, 'CD_radbr_run')
+      if (verbose) print*, '\n Calculate the (unabsorbed) rel. brem. emission in the '//shock
 
       !------------------------------------------------------------------------
-      !  Read information (thermodynamical quantities and relativist electrons)
+      !  Read information (thermodynamical quantities and relativistic electrons)
 
-      open(11,file=output_file('termo_'//shock//'.dat'))
-      do l=1,m_theta
-         read(11,*) nl,rho(l),P(l),v_t(l),T(l),B(l)
-         if (shock == 'RS') then
-            n_a(l) = rho(l)/mp/mu_sw
-         else if (shock == 'FS') then
-            n_a(l) = rho(l)/mp/mu_ISM
-         end if
-      end do
-      close(11)
-
-      ! Number of electrons at r(l) with energy E_e(i): N_etot(l,i) 
-      open (14,file=output_file('diste_'//system//'_'//shock//'.dat'))
-      do l=1,m_theta
-         do i=1,mE_e
-            read(14,*) dummy, E_e(i),N_etot(l,i)
-            E_e(i) = E_e(i)*eV    !   energy from eV to erg
-         end do
-         read(14,*)
-      end do
-      close(14) 
-      Eint_e = E_e(2)/E_e(1)
-
-      !------------------------------------------------------------
-      ! Build Ef vector for the SED with Ef_min = 1 keV
-      call vector_log(1.d3*eV,E_e(mE_e),Ef_int,Ef)
-
+      open(newunit=iu, file=output_file('termo_'//shock//'.dat'))
+      read(iu,*) (dummy, rho(l), dummy, dummy, dummy, dummy, dummy, dummy, dummy, dummy, dummy, dummy, &
+                  l=1,m_theta)    ! all the 12 columns
+      close(iu)
       if (shock == 'RS') then
-         cte_sigma = 4.d0*alfa*re**2*Zq_sw**2*z_br  ! z_br > 1 if not pure H
-      else if (shock == 'FS') then
+         n_a = rho/mp/mu_sw       ! ambient number density
+         cte_sigma = 4.d0*alfa*re**2*Zq_sw**2*z_br
+      else
+         n_a = rho/mp/mu_ISM
          cte_sigma = 4.d0*alfa*re**2*Zq_ISM**2*z_br
       end if
-   
-      !===========================================================
-      ! Calculate the relativistic Bremsstrahlung spectra
 
-      Lbr_tot = 0.d0
-
-      Eps = Ef/mec2
+      ! Number of electrons at r(l) with energy E_e(i): N_etot(l,i)
+      ! (one block of mE_e lines per position, separated by a blank line)
+      open(newunit=iu, file=output_file('diste_'//system//'_'//shock//'.dat'))
+      do l = 1, m_theta
+         read(iu,*) (dummy, E_e(i), N_etot(l,i), i=1,mE_e)
+         read(iu,*)
+      end do
+      close(iu)
+      E_e     = E_e*eV            ! energy from eV to erg
+      Eint    = E_e(2)/E_e(1)
       gamma_e = E_e/mec2
+      dE_e    = E_e*(Eint-1.d0)
 
-      ! At each position we calculate the brem. emission; then we sum all.
-      sum_br=0.d0
-      DO l=1,m_theta
-         N_e = N_etot(l,:)      ! N_e = electron distribution at position "l"
-         do i = 1,mE_f              ! Eps(i) 
-            dEf = Ef(i)*(Ef_int-1.d0)
-            sum = 0.d0
-            do j = 1,mE_e              ! N_e(j),gamma_e(j)
-               u_br = Eps(i)/gamma_e(j)     ! energy ratio
-               if (u_br > 1.d0) then   ! Ef <= Ee from energy conservation
-                  dsigma_Br = 0.d0  ![cm**2/m_e c2]
-               else
-                  dsigma_Br= cte_sigma*Phi_Br(u_br,gamma_e(j),screened) !/Ef(i), cancels later
-                  if (dsigma_Br > 0.d0) then !Phi_Br can yield negative values in bad E ranges
-                     P_ef = n_a(l)*c*dsigma_Br ! *Ef(i), cancels in dsigma_Br; [P_eps] = 1/seg
-                     dE_e = E_e(j)*(Eint_e-1.d0)
-                     dP_Ef = N_e(j)*P_ef*dE_e
-                     sum = dP_Ef + sum ! P = int dP_Ef
-                  endif
-               endif
-            end do ! j
-            Lbr(i) = sum            ! [erg/seg]
-            Lbr_tot(i) = Lbr_tot(i) + Lbr(i)
+      ! Photon energy grid, from 1 keV
+      call vector_log(1.d3*eV, E_e(mE_e), Ef_int, Ef)
 
-            sum_br = sum_br + Lbr(i)*dEf
+      !===========================================================
+      ! Relativistic bremsstrahlung spectrum.
+      ! Phi depends only on (E_f, E_e), not on the position, so:
+      !   L_E(l,i) = n_a(l)*c*cte_sigma * sum_j N(l,j)*dE(j)*Phi(i,j)   [erg/s/erg]
 
-         end do ! i
+      Phi = Phi_Br( spread(Ef,2,mE_e)/spread(E_e,1,mE_f), spread(gamma_e,1,mE_f), screened )
+      Lbr = spread(n_a*c*cte_sigma, 2, mE_f) * matmul( N_etot*spread(dE_e,1,m_theta), transpose(Phi) )
+      Lbr_tot = sum(Lbr, dim=1)
+      sum_br  = sum(Lbr_tot*Ef)*(Ef_int-1.d0)
 
-      end do ! l
-
-      write(*,80) 'L_Brem=',sum_br*mphi*2.
+      write(*,'(A7,X,Es10.2)') 'L_Brem=', sum_br*mphi*4.d0   ! mphi emitters, 4 quadrants
 
       !---------------------------------------
-      !
-      !   Save data
+      !   Save data (one linear emitter)
 
-      open(16,file='radbr_'//shock//'.dat')
-      do i=1,mE_f
-         write(16,*) Ef(i)/eV,Ef(i)*Lbr_tot(i)
-      end do
-      close(16)
+      open(newunit=iu, file=output_file('radbr_'//shock//'.dat'))
+      write(iu,'(2es17.8e3)') (Ef(j)/eV, Ef(j)*Lbr_tot(j), j=1,mE_f)
+      close(iu)
 
-      deallocate( rho,P,v_t,T,B )
-      deallocate( E_e,N_etot,N_e )
-      deallocate( Lbr,Lbr_tot )
+      deallocate( rho, n_a, E_e, gamma_e, dE_e, N_etot, Ef, Phi, Lbr, Lbr_tot )
 
    END subroutine CD_radbr_run
 
-
    !========================================
 
+   elemental function Phi_Br(u,g_e,screened)
+      ! Phi function of the rel. Br. cross-section (Blumenthal & Gould 1970).
+      ! Zero for u >= 1 (E_f <= E_e from energy conservation) and where the
+      ! unscreened expression becomes negative (outside its range of validity).
+      real(dp) :: Phi_Br
+      real(dp), intent(in) :: u,g_e
+      logical, intent(in) :: screened
+
+      if (u >= 1.d0) then
+         Phi_Br = 0.d0
+      else if (screened) then      ! screened nuclei
+         Phi_Br = ( 1.d0 + (1.d0-u)**2 - (2.d0/3.d0)*(1.d0-u) )*log(191.d0/z_br**(1.d0/3.d0)) + (1.d0-u)/9.d0
+      else                         ! un-screened nuclei
+         Phi_Br = ( 1.d0 + (1.d0-u)**2 - (2.d0/3.d0)*(1.d0-u) )*( log(2.d0*g_e*(1.d0/u-1.d0)) - 0.5d0 )
+      endif
+      Phi_Br = max(Phi_Br, 0.d0)
+   End function Phi_Br
 
 END module CD_radbr
-
-
-!========================================
-
-Function Phi_Br(u,g_e,screened)
-   ! Calculates Phi function in rel.Br. cross-section assuming a factor z_br given in global
-   ! It can give negative values for un-screened nuclei in certain E ranges.
-   use global  
-   implicit none
-   real(dp) :: Phi_Br
-   real(dp), intent(in) :: u,g_e
-   logical, intent(in) :: screened
-
-   if (screened) then      ! screened nuclei
-      Phi_Br = ( 1. + (1.-u)**2 - (2./3.d0)*(1.-u))*log(191.d0/z_br**(1./3.d0)) + (1.-u)/9.d0
-      else                    ! un-screened nuclei 
-      Phi_Br = ( 1. + (1.-u)**2 - (2./3.d0)*(1.-u))*( log(2.*g_e*(1./u-1.)) -0.5d0 )
-   endif
-End function Phi_Br
-
-!========================================
