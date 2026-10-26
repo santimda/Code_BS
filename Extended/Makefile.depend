@@ -36,7 +36,7 @@ CD_radsyn.o: CD_radsyn.f90 global.o controles.o map_freqs.o numerical_utils.o
 
 CD_radbr.o: CD_radbr.f90 global.o numerical_utils.o
 
-CD_radic.o: CD_radic.f90 global.o numerical_utils.o
+CD_radic.o: CD_radic.f90 global.o controles.o numerical_utils.o
 
 CD_radpp.o: CD_radpp.f90 global.o numerical_utils.o
 

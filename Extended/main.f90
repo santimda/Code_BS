@@ -175,7 +175,7 @@ PROGRAM main
             if (radic_st_calc) then
                print *, 'Calculate the IC(star) emission'
                call CD_radic_st_run(LIC_int,shock) 
-               open (35,file='radic_st_'//shock//'.dat')
+               open (35,file=output_file('radic_st_'//shock//'.dat'))
                do i_E = 1,mE_f    ! SED --> sum emission from different phi
                   read(35,*) E_IC_st(i_E),LIC_one
                   ! LIC_one is for linear emitters with 0 <= phi <= pi/2; I later multiply by 2
@@ -219,7 +219,7 @@ PROGRAM main
          endif
 
          if (radic_ir_calc) then
-            open (32,file='radic_ir_'//shock//'.dat')     ! One linear-emitter
+            open (32,file=output_file('radic_ir_'//shock//'.dat'))     ! One linear-emitter
             open (33,file='radic_ir_'//system//'_'//shock//'_tot.dat') ! The total emission IC(dust) in the SW
             do i_E = 1,mE_f
                read(32,*) E_IC_IR(i_E),LIC_one
