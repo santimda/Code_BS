@@ -37,7 +37,7 @@ contains
     integer,  parameter :: m_l = 2*m_theta  ! CD positions, both sides
     integer  :: l, l2, i, iu
     real(dp) :: ang, Kappa_st, L_unabs, L_unabs_tot, Ef_int
-    real(dp) :: X_emi(3), X_Ee(3), X_obs(3), X_st(3)
+    real(dp) :: X_emi(3), X_Ee(3), X_st(3)
     real(dp) :: LIC(mE_f), N_e(mE_e)          ! private copies per OpenMP thread (small)
     real(dp), allocatable :: Ef(:), LIC_tot(:), E_e(:), N_etot(:,:), x(:), y(:), z(:)
 
@@ -69,7 +69,6 @@ contains
 
     call vector_log(k*T_st, E_e(mE_e), Ef_int, Ef)
 
-    X_obs = (/ sin(incli), cos(incli), 0.d0 /)
     X_st  = (/ 0.d0, 0.d0, 0.d0 /)
 
     LIC_tot = 0.d0
@@ -83,7 +82,7 @@ contains
       Kappa_st = ( R_st/(2.d0*norm2(X_emi-X_st)) )**2   ! dilution at the emitter
 
       call unit_vector_diff(X_emi, X_st, 3, X_Ee)  ! (X_emi - X_st)/|X_emi - X_st|
-      ang = safe_acos_dot(X_obs, X_Ee)             ! scattering angle: X_obs vs X_Ee
+      ang = safe_acos_dot(e_obs, X_Ee)             ! scattering angle: LOS (global.f90) vs X_Ee
 
       N_e = N_etot(l,:)
       call IC_ani(E_e, N_e, Ef, Kappa_st, T_st_ad, ang, LIC, L_unabs)

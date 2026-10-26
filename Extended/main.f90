@@ -574,7 +574,7 @@ subroutine merge_map(f_syn, f_th_RS, f_th_FS, f_hot, iu_s, iu_t, iu_h)
       real(dp) :: S_RS(m_l), S_FS(m_l), S_th(m_l), S_hot(m_l)
       integer :: iu, il
 
-      open(newunit=iu, file=f_syn);   read(iu,*) uve;  close(iu)
+      open(newunit=iu, file=output_file(f_syn));   read(iu,*) uve;  close(iu)
       open(newunit=iu, file=f_th_RS); read(iu,*) S_RS; close(iu)
       open(newunit=iu, file=f_th_FS); read(iu,*) S_FS; close(iu)
       S_th = S_RS + S_FS

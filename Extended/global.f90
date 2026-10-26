@@ -74,7 +74,8 @@ module global
    ! IC
    real(dp), dimension(:), allocatable :: LIC,LIC_tot
    real(dp) :: Kappa_st, Kappa_IR(m_theta) ! = (R/2D)**2 
-   real(dp) :: X_st(3),X_emi(3),X_eE(3),X_obs(3) ! Position vectors for absorption integrals
+   !real(dp) :: X_st(3),X_emi(3),X_eE(3),X_obs(3) ! Position vectors for absorption integrals
+   real(dp), parameter :: e_obs(3) = [ -sin(incli), cos(incli), 0.d0 ]   ! unit vector towards the observer (apex at -x; incli = 90 deg: BS in front of the star)
    real(dp), parameter :: cte_Ndot = 2.*re**2*mec2**3/(pi*h_bar**3*c**2)
    logical, parameter :: ani = .True., iso = .False. 
 
