@@ -46,7 +46,7 @@ CD_abssyn.o: CD_abssyn.f90 global.o controles.o gaunt_factor.o map_freqs.o
 
 SW_conv.o: SW_conv.f90 global.o map_freq_type.o
 
-radstr.o: radstr.f90 global.o
+radstr.o: radstr.f90 global.o controles.o diffusion.o
 
 rad_H_alpha.o : rad_H_alpha.f90 global.o
 

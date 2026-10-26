@@ -1,162 +1,160 @@
 module radstr
-    use global
-    use diffusion
-    implicit none
+   use global
+   use controls, only: verbose
+   use diffusion, only: Diff
+   implicit none
+   private
+   public :: radstr_run
 
-    public :: radstr_run
+   real(dp), parameter :: B_str = 10.d-6                ! magnetic field in the HII region [G]
+   character(len=*), parameter :: diff_regime = 'G'     ! Gabici+ 2006 (diffusion.f90)
 
-    contains
+contains
 
-    !========================================================================================!
-    ! This progrma estimates the luminosity emitted via p-p and NT Br. inside the H II region!
-    ! We concentrate on particles with E = E_break                                           !
-    !========================================================================================!
+   !========================================================================
+   !        radstr_run
+   !========================================================================
+   ! Order-of-magnitude estimate of the p-p and relativistic bremsstrahlung
+   ! luminosities of the particles that escape from the BS into the HII
+   ! region (Stromgren sphere). Only particles with E = E_break are considered.
+   !  - Escape time from the HII region: 1/t_esc = 1/t_adv + 1/t_diff, with
+   !    t_adv = R_str/v_st and t_diff = R_str**2/(6*D(E_break, B_str)).
+   !  - Power injected into the HII region = power injected in the BS minus
+   !    the power radiated in the BS:
+   !      protons:   L_inj_p_HII = L_inj_p - L_pp
+   !      electrons: L_inj_e_HII = L_inj_e - (L_br + L_IC,st + L_sy)
+   !  - Fraction radiated before escaping: f = t_esc/(t_esc + t_loss)
+   !    (-> t_esc/t_loss for t_esc << t_loss, and <= 1).
+   ! Input files (output/): Stromgren.dat, L_inj_p_/L_inj_e_<shock>.dat (one
+   ! linear emitter), radpp_tot_<shock>.dat, radbr_<shock>.dat (one linear
+   ! emitter), rad_IC_st_tot_<shock>.dat and radsyn_tot_<shock>.dat (totals).
+   ! Missing radiation files are taken as zero losses (with a warning).
+   ! Output (output/): rad_pp_str_<shock>.dat and rad_Br_str_<shock>.dat,
+   ! E [eV] and E*L_E [erg/s].
+   !========================================================================
 
-    subroutine radstr_run(shock)
-        character(LEN=*), intent(in) :: shock
-        integer :: i, i_E
-        real(dp) :: R_str
-        real(dp) :: L_inj_p_BS, L_inj_p, Lpp_sh_tot
-        real(dp) :: L_inj_e_BS, L_inj_e, Lbr_sh_tot, LIC_sh_tot, Lsy_sh_tot
-        real(dp) :: L_pp_Etran, L_br_Etran, L_IC_Etran, L_sy_Etran
-        real(dp) :: E_pp(mE_f), E_br(mE_f)
-        real(dp) :: Lpp_sh(mE_f), Lbr_sh(mE_f)
-        real(dp) :: t_diff,t_adv,t_esc,t_pp,t_br,t_IC_CMB,t_sy
-        real(dp) :: n_p
-        real(dp) :: D_diff
-        real(dp), parameter :: B_str = 10.d-6
-        character(len=*), parameter :: diff_regime = 'G'
+   subroutine radstr_run(shock)
+   character(LEN=*), intent(in) :: shock
+   integer  :: iu, j
+   real(dp) :: R_str, D_diff, t_diff, t_adv, t_esc, t_pp, t_br, n_i
+   real(dp) :: L_inj_p_BS, L_inj_e_BS, L_inj_p, L_inj_e
+   real(dp) :: Lpp_sh, Lbr_sh, LIC_sh, Lsy_sh, L_pp_Etran, L_br_Etran
+   real(dp), allocatable :: E_br(:), EL_br(:)
 
-        90    format(A8,X,Es10.2)
-        91    format(A7,X,Es10.2)
-        81    format(A13,X,Es10.2,X,Es10.2)
-        82    format(A15,X,Es10.2)
-        83    format(A13,X,Es10.2)
-        84    format(A14,X,Es10.2)
+   80 format(A,X,Es10.2)
+   81 format(A,X,Es10.2,A,Es10.2,A)
 
-        open(100,file=output_file('Stromgren.dat'))
-            read(100,*) R_str, dummy
-        close(100)
+   call validate_shock(shock, 'radstr_run')
+   if (verbose) print *, 'Estimate the emission of the escaping particles in the HII region'
 
-        t_diff = R_str**2/(6.d0*Diff(E_break,B_str,diff_regime))
-        t_adv = R_str/V_st
-        t_esc = 1./( 1./t_adv + 1.d0/t_diff )
-        write(*,90) 'D_diff =', Diff(E_break,B_str,diff_regime)
-        write(*,90) 't_diff =', t_diff
-        write(*,91) 't_adv =', t_adv
-        write(*,91) 't_esc =', t_esc
+   !------------------------------------------------------------
+   ! Escape time from the HII region
 
-        n_p = (mu/mu_i)*n_ISM
-        print*, 'n_p=', n_p
+   open(newunit=iu, file=output_file('Stromgren.dat'))
+   read(iu,*) R_str
+   close(iu)
 
-        !---------------------------------------------------
-        !---------------------------------------------------
+   D_diff = Diff(E_break, B_str, diff_regime)
+   t_diff = R_str**2/(6.d0*D_diff)
+   t_adv  = R_str/v_st
+   t_esc  = 1.d0/(1.d0/t_adv + 1.d0/t_diff)
 
-        
-        open(30,file=output_file'L_inj_p_'//shock//'.dat'))
-            read(30,*) L_inj_p_BS
-        close(30)
+   write(*,80) 'D_diff =', D_diff
+   write(*,80) 't_diff =', t_diff
+   write(*,80) 't_adv  =', t_adv
+   write(*,80) 't_esc  =', t_esc
 
-        !---------------------------------------------------
-        open(31,file='radpp_'//shock//'_tot.dat')
-        do i_E = 1, mE_f
-            read(31,*) E_pp(i_E), Lpp_sh(i_E)
-        end do
-        close(31)
+   n_i = rho_ISM/(mu_i*mp)            ! ion density of the HII region (n_ISM: total particle density)
+   write(*,80) 'n_i    =', n_i
 
-        Lpp_sh_tot = 0.d0
-        do i_E = 1, mE_f
-            Lpp_sh_tot = Lpp_sh_tot + Lpp_sh(i_E)
-        end do
-        !---------------------------------------------------
+   !============================================================
+   ! Protons
 
-        L_inj_p = 4.d0*mphi*L_inj_p_BS - Lpp_sh_tot
+   open(newunit=iu, file=output_file('L_inj_p_'//shock//'.dat'))
+   read(iu,*) L_inj_p_BS                         ! one linear emitter
+   close(iu)
 
-        write(*,81) 'L_inj_p_HII =', L_inj_p, 4.d0*mphi*L_inj_p_BS
+   Lpp_sh = read_total('radpp_tot_'//shock//'.dat')   ! already x 4*mphi
 
-        !---------------------------------------------------
-        
-        t_pp = 1.d15/n_p
+   L_inj_p = 4.d0*mphi*L_inj_p_BS - Lpp_sh
+   write(*,81) 'L_inj_p_HII =', L_inj_p, '  (L_inj_p =', 4.d0*mphi*L_inj_p_BS, ')'
+   if (L_inj_p < 0.d0) then
+      print *, 'WARNING (radstr): L_pp in the BS > L_inj_p; L_inj_p_HII set to 0'
+      L_inj_p = 0.d0
+   end if
 
-        ! We estimate that approx 0.1*L_pp is radiated by E_break
-        L_pp_Etran = 1.d-1*(t_esc/t_pp)*L_inj_p
+   t_pp = 1.d15/n_i                              ! p-p cooling time (order of magnitude)
 
-        ! Protons with E = E_break radiate mostly at sim 0.1E_break
-        write(*,82) 'L_pp(100 MeV) =', L_pp_Etran
+   ! We estimate that approx 0.1*L_pp is radiated by E_break; protons with
+   ! E = E_break radiate mostly at ~0.1*E_break
+   L_pp_Etran = 0.1d0*t_esc/(t_esc + t_pp)*L_inj_p
+   write(*,80) 'L_pp(0.1 E_break) =', L_pp_Etran
 
-        open(50,file='rad_pp_str.dat')
-            write(50,*) 0.1d0*E_break/eV, L_pp_Etran
-        close(50) 
+   open(newunit=iu, file=output_file('rad_pp_str_'//shock//'.dat'))
+   write(iu,'(2es17.8e3)') 0.1d0*E_break/eV, L_pp_Etran
+   close(iu)
 
-        !---------------------------------------------------
-        !---------------------------------------------------
+   !============================================================
+   ! Electrons
+
+   open(newunit=iu, file=output_file('L_inj_e_'//shock//'.dat'))
+   read(iu,*) L_inj_e_BS                         ! one linear emitter
+   close(iu)
+
+   ! Bremsstrahlung of one linear emitter: E [eV], E*L_E [erg/s] in a log grid
+   Lbr_sh = 0.d0
+   if (file_ok('radbr_'//shock//'.dat')) then
+      allocate( E_br(mE_f), EL_br(mE_f) )
+      open(newunit=iu, file=output_file('radbr_'//shock//'.dat'))
+      read(iu,*) (E_br(j), EL_br(j), j=1,mE_f)
+      close(iu)
+      Lbr_sh = 4.d0*mphi * sum(EL_br)*log(E_br(2)/E_br(1))   ! int L_E dE = int E*L_E dlnE
+      deallocate( E_br, EL_br )
+   end if
+
+   LIC_sh = read_total('rad_IC_st_tot_'//shock//'.dat')   ! total (both halves, all phi)
+   Lsy_sh = read_total('radsyn_tot_'//shock//'.dat')      ! already x 4*mphi
+
+   L_inj_e = 4.d0*mphi*L_inj_e_BS - (Lbr_sh + LIC_sh + Lsy_sh)
+   write(*,81) 'L_inj_e_HII =', L_inj_e, '  (L_inj_e =', 4.d0*mphi*L_inj_e_BS, ')'
+   if (L_inj_e < 0.d0) then
+      print *, 'WARNING (radstr): radiated power in the BS > L_inj_e; L_inj_e_HII set to 0'
+      L_inj_e = 0.d0
+   end if
+
+   t_br = 1.d15/n_i                              ! relativistic bremsstrahlung cooling time (order of magnitude)
+   write(*,80) 't_br   =', t_br
+
+   ! Electrons with E = E_break radiate mostly at ~E_break
+   L_br_Etran = t_esc/(t_esc + t_br)*L_inj_e
+   write(*,80) 'L_br(E_break) =', L_br_Etran
+
+   open(newunit=iu, file=output_file('rad_Br_str_'//shock//'.dat'))
+   write(iu,'(2es17.8e3)') E_break/eV, L_br_Etran
+   close(iu)
+
+   contains
+
+      ! The file exists in output/ (warning otherwise)
+      logical function file_ok(name)
+      character(len=*), intent(in) :: name
+      inquire(file=output_file(name), exist=file_ok)
+      if (.not. file_ok) print *, 'WARNING (radstr): '//name//' not found; that loss is taken as 0'
+      end function file_ok
+
+      ! First value of a file (0 if it does not exist)
+      real(dp) function read_total(name)
+      character(len=*), intent(in) :: name
+      integer :: iu2
+      read_total = 0.d0
+      if (file_ok(name)) then
+         open(newunit=iu2, file=output_file(name))
+         read(iu2,*) read_total
+         close(iu2)
+      end if
+      end function read_total
 
 
-        open(40,file=output_file('L_inj_e_'//shock//'.dat'))
-            read(40,*) L_inj_e_BS
-        close(40)
-
-        !---------------------------------------------------
-        open(41,file='radbr_'//shock//'_tot.dat')
-        do i_E = 1, mE_f
-            read(41,*) E_br(i_E), Lbr_sh(mE_f)
-        end do
-        close(41)
-
-        Lbr_sh_tot = 0.d0
-        do i = 1, mE_f
-            Lbr_sh_tot = Lbr_sh_tot + Lbr_sh(mE_f)
-        end do
-
-        !---------------------------------------------------
-        open(42,file='rad_IC_st_tot_'//shock//'.dat')
-            read(42,*) LIC_sh_tot
-        close(42)
-
-        !---------------------------------------------------
-        open(43,file=output_file('radsyn_tot_'//shock//'.dat'))
-            read(43,*) Lsy_sh_tot
-        close(43)
-
-        L_inj_e = 4.d0*mphi*L_inj_e_BS - (Lbr_sh_tot + LIC_sh_tot + Lsy_sh_tot)
-
-        write(*,81) 'L_inj_e_HII =', L_inj_e, 4.d0*mphi*L_inj_e_BS
-
-        !---------------------------------------------------
-
-        !t_sy = E_break*(4.d0/3.d0*c*sigma_T*(B_str**2/8.d0/pi)*(E_break/mec2)**2)**(-1.)
-
-        ! We estimate that approx 0.1*L_sy is radiated by E_break
-        !L_sy_Etran = 0.1d0*(t_esc/t_sy)*L_inj_e
-
-        ! Electrons with E = E_break radiate mostly at sim E_break
-        !write(*,84) 'L_sy(75 MHz) =', L_sy_Etran
-
-        !---------------------------------------------------
-        
-        t_br = 1.d15/n_p
-        write(*,91) 't_Br. =', t_br
-
-        ! We estimate that approx 0.1*L_Br is radiated by E_break
-        L_br_Etran = (t_esc/t_br)*L_inj_e
-
-        ! Electrons with E = E_break radiate mostly at sim E_break
-        write(*,83) 'L_br(1 GeV) =', L_br_Etran
-
-        open(60,file='rad_Br_str.dat')
-            write(60,*) E_break/eV, L_br_Etran
-        close(60)
-
-        !---------------------------------------------------
-        !t_IC_CMB = E_break*(4.d0/3.d0*c*sigma_T*U_CMB*(E_break/mec2)**2)**(-1.)
-
-        ! We estimate that approx 0.1*L_IC_CMB is radiated by E_break
-        !L_IC_Etran = 0.1d0*(t_esc/t_IC_CMB)*L_inj_e
-
-        ! Electrons with E = E_break radiate mostly at sim E_cmb*(E_break/mc2)**2
-        !write(*,84) 'L_IC(40 keV) =', L_IC_Etran
-
-    end subroutine radstr_run
-
+   end subroutine radstr_run
 
 END module radstr

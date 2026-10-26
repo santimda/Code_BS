@@ -123,7 +123,7 @@ PROGRAM main
    real(dp) :: dE_sy(m_nu),dE_IC_IR(mE_f),dE_IC_st(mE_f)
    real(dp) :: u_proj,v_proj,emi,emi_abs
    real(dp) :: phi
-   integer :: i_phi,i_E  
+   integer :: i_phi,i_E, iu 
 
    LIC_st_tot = 0.d0
    Lbr_sh_tot = 0.d0
@@ -183,9 +183,9 @@ PROGRAM main
                end do
                close(35)
                LIC_all = LIC_all + LIC_int
-               open(54,file='rad_IC_st_tot_'//shock//'.dat')
-                  write(54,*) LIC_all
-               close(54)
+               open(newunit=iu, file=output_file('rad_IC_st_tot_'//shock//'.dat'))
+                  write(iu,'(es17.8e3)') 2.d0*LIC_all   ! total: x2 for the mirror (z -> -z)
+               close(iu)
             endif
 
             ! -----------------------------------------------------------------------------
@@ -196,7 +196,7 @@ PROGRAM main
 
          if (radic_ir_calc) then
             print *, 'The total L_IC_st is:'
-            write(*,80) 'L_IC_st = ', LIC_all ! 
+            write(*,80) 'L_IC_st = ', 2.d0*LIC_all ! 
             print *, ''
          endif
 
