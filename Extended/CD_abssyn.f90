@@ -103,7 +103,7 @@ module CD_abssyn
    ! E [eV] and nu*L_nu [erg/s] (already multiplied by E)
 
    if (shock == 'RS') then
-      open (32,file='emisyn_RS.dat')
+      open (32,file=output_file('emisyn_RS.dat'))
       do l=1,m_theta
          do i=1,m_nu
             read(32,*) nl,E_sy(i),L_em(l,i)
@@ -112,7 +112,7 @@ module CD_abssyn
       close(32)
 
    else if (shock == 'FS') then
-      open (33,file='emisyn_FS.dat')
+      open (33,file=output_file('emisyn_FS.dat'))
       do l=1,m_theta
          do i=1,m_nu
             read(33,*) nl,E_sy(i),L_em(l,i)
@@ -121,8 +121,8 @@ module CD_abssyn
       close(33)
 
    else if (shock == 'BOTH') then
-      open (32,file='emisyn_RS.dat')
-      open (33,file='emisyn_FS.dat')
+      open (32,file=output_file('emisyn_RS.dat'))
+      open (33,file=output_file('emisyn_FS.dat'))
       do l=1,m_theta
          do i=1,m_nu
             read(32,*) nl,E_sy(i),L_em(l,i)

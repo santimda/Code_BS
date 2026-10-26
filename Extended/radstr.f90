@@ -114,7 +114,7 @@ module radstr
         close(42)
 
         !---------------------------------------------------
-        open(43,file='radsyn_tot_'//shock//'.dat')
+        open(43,file=output_file('radsyn_tot_'//shock//'.dat'))
             read(43,*) Lsy_sh_tot
         close(43)
 

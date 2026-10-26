@@ -19,19 +19,23 @@ contains
   !============================================================================
   ! Intrinsic (unabsorbed) synchrotron emission of one linear emitter, using
   ! the electron distribution diste_<system>_<shock>.dat and the frequency
-  ! grid in nu.dat (vec_nu). Includes the Razin-Tsytovich (R-T) suppression.
+  ! grid in nu.dat. Includes the Razin-Tsytovich (R-T) suppression.
   ! Lsy(l,i) is the luminosity per unit Eps = h*nu/mec2 at position l [erg/s].
-  ! Output: radsyn_<shock>.dat, S_syn_<system>_<shock>.dat, radsyn_tot_<shock>.dat
-  ! and emisyn_<shock>.dat, which has Eps*Lsy(l,i) = nu*L_nu [erg/s] and is
-  ! used by CD_abssyn for the absorption and the maps.
+  ! Output (output/): radsyn_<shock>.dat, S_syn_<system>_<shock>.dat,
+  ! radsyn_tot_<shock>.dat and emisyn_<shock>.dat, which has
+  ! Eps*Lsy(l,i) = nu*L_nu [erg/s] and is used by CD_abssyn for the absorption
+  ! and the maps.
+  ! Synchrotron self-absorption is neglected: the brightness temperature of
+  ! the BS (~1e2-1e3 K at ~100 MHz) is many orders of magnitude below the
+  ! kinetic temperature of the emitting electrons (~1e12 K).
   !============================================================================
 
   subroutine CD_radsyn_run(shock)
     !$ use omp_lib
     character(LEN=*), intent(in) :: shock
-    integer  :: l, i, il, im, iu, j_max
+    integer  :: l, i, im, iu, j_max
     real(dp) :: Eps_int, Eint, sum_sy, nuc_max, ne, nu_RT
-    real(dp) :: x_sy(mE_e)
+    real(dp) :: x_sy(mE_e)        ! private copy per OpenMP thread (small)
     integer,  allocatable :: i_map(:)
     real(dp), allocatable :: nu(:), Eps(:), dEps(:), Lsy(:,:), Lsy_tot(:), S_nu(:)
     real(dp), allocatable :: rho(:), B(:), B_par(:)
@@ -41,6 +45,7 @@ contains
     allocate( rho(m_theta), B(m_theta), B_par(m_theta) )
     allocate( E_e(mE_e), gamma_e(mE_e), dE_e(mE_e), N_etot(m_theta,mE_e) )
 
+    call validate_shock(shock, 'CD_radsyn_run')
     if (verbose) print *, 'Calculate the (unabsorbed) synchrotron emission in the '//shock
 
     ! set omp threads number
@@ -50,31 +55,29 @@ contains
     !
     ! Read thermodynamical quantites at each position
 
-    open(11,file=output_file('termo_'//shock//'.dat'))
-    do l = 1, m_theta
-       read(11,*) il,rho(l),dummy,dummy,dummy,B(l) ! CGS
-    enddo
-    close(11)
+    open(newunit=iu, file=output_file('termo_'//shock//'.dat'))
+    read(iu,*) (dummy, rho(l), dummy, dummy, dummy, B(l), dummy, dummy, dummy, dummy, dummy, dummy, &
+                l=1,m_theta)    ! CGS, all the 12 columns
+    close(iu)
     B_par = B*par
 
     ! Number of electrons at r(l) with energy E_e(i): N_etot(l,i)
-    open (14,file=output_file('diste_'//system//'_'//shock//'.dat'))
+    ! (one block of mE_e lines per position, separated by a blank line)
+    open(newunit=iu, file=output_file('diste_'//system//'_'//shock//'.dat'))
     do l = 1, m_theta
-       do i = 1, mE_e
-          read(14,*) dummy, E_e(i),N_etot(l,i)
-       enddo
-       read(14,*)
+       read(iu,*) (dummy, E_e(i), N_etot(l,i), i=1,mE_e)
+       read(iu,*)
     enddo
-    close(14)
+    close(iu)
     E_e     = E_e*eV          ! energy from eV to erg
     Eint    = E_e(2)/E_e(1)
     gamma_e = E_e/mec2
     dE_e    = E_e*(Eint - 1.d0)
 
-    ! Frequency grid (vec_nu)
-    open(12,file=output_file('nu.dat'))
-      read(12,*) nu
-    close(12)
+    ! Frequency grid
+    open(newunit=iu, file=output_file('nu.dat'))
+    read(iu,*) nu
+    close(iu)
     Eps     = nu*h/mec2       ! dimensionless photon energy
     Eps_int = Eps(2)/Eps(1)
     dEps    = Eps*(Eps_int - 1.d0)
@@ -95,10 +98,11 @@ contains
     ! Lsy(Eps) = int_Emin^Emax N(E_e) P(E_e,Eps) dE, with
     ! P = 4.39d-22*B_par*x**(1/3)*exp(-x)/h [erg/s/erg], x = nu/nu_c, nu_c = 4.22d6*B_par*gamma**2,
     ! neglected for x > 10. At each position we calculate the synchrotron emission.
+    ! R-T suppression: exp(-nu_RT/nu), nu_RT = 20*n_e/B [Hz], n_e = rho/(mu_e*mp)
 
     !$omp parallel do default(shared) schedule(dynamic) private(l, i, ne, nu_RT, x_sy)
     DO l = 1, m_theta
-      ne    = 1.395d0*rho(l)/mp/2.085d0     ! 2.085 = x + 4*y + 14*z, 1.395 = x + 2*y + 7*z  ?????????
+      ne    = rho(l)/(mu_e*mp)              ! electron density of the shocked gas
       nu_RT = 20.d0*ne/B(l)                 ! characteristic frequency for R-T effect
       do i = 1,m_nu                         ! Eps(i), nu(i)
         x_sy = nu(i)/(4.22d6*B_par(l)*gamma_e**2)
@@ -125,22 +129,22 @@ contains
     !
     !   Save data
 
-    open(100, file='radsyn_tot_'//shock//'.dat')
-      write(100,*) sum_sy*(mphi*4.)
-    close(100)
+    open(newunit=iu, file=output_file('radsyn_tot_'//shock//'.dat'))
+    write(iu,'(es17.8e3)') sum_sy*(mphi*4.)
+    close(iu)
 
-    ! Total SED
-    open(17,file='radsyn_'//shock//'.dat')
-    write(17,'(3es25.16e3)') (Eps(i)*mec2/eV, Lsy_tot(i), Lsy_tot(i)/(Eps(i)*mec2), i=1,m_nu)
-    close(17)
+    ! Total SED (one linear emitter): E [eV], nu*L_nu [erg/s], L_E [1/s]
+    open(newunit=iu, file=output_file('radsyn_'//shock//'.dat'))
+    write(iu,'(3es25.16e3)') (Eps(i)*mec2/eV, Lsy_tot(i), Lsy_tot(i)/(Eps(i)*mec2), i=1,m_nu)
+    close(iu)
 
-    ! Fluxes
-    open(18,file='S_syn_'//system//'_'//shock//'.dat')
-    write(18,'(2es25.16e3)') (nu(i), S_nu(i), i=1,m_nu)
-    close(18)
+    ! Fluxes of the whole shock: nu [Hz], S [mJy]
+    open(newunit=iu, file=output_file('S_syn_'//system//'_'//shock//'.dat'))
+    write(iu,'(2es25.16e3)') (nu(i), S_nu(i), i=1,m_nu)
+    close(iu)
 
-    ! 3-D emission map
-    open(newunit=iu,file='emisyn_'//shock//'.dat')
+    ! Emission of each position: l, E [eV], nu*L_nu [erg/s]
+    open(newunit=iu, file=output_file('emisyn_'//shock//'.dat'))
     do l = 1, m_theta
        write(iu,'(i6,2es25.16e3)') (l, Eps(i)*mec2/eV, Eps(i)*Lsy(l,i), i=1,m_nu)
        write(iu,*)
@@ -153,4 +157,4 @@ contains
 
   END subroutine CD_radsyn_run
 
-End module CD_radsyn
+END module CD_radsyn

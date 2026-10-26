@@ -243,7 +243,7 @@ PROGRAM main
 
          if (radsyn_sw_calc) then   ! NOT VERY USEFUL
             open (51,file='radsyn_'//system//'_'//shock//'_tot.dat')
-            open (41,file='radsyn_'//shock//'.dat')
+            open (41,file=output_file('radsyn_'//shock//'.dat'))
             do i_E = 1,m_nu
                read(41,*) E_sy(i_E),Lsy_one,L_syn_E_one
                Lsy_sh_tot(i_E) = Lsy_one*mphi * 4.d0
