@@ -483,13 +483,13 @@ Subroutine abs_maps(shock)
 
    ! Output maps (all phi together): one file per selected frequency + the average
    do im = 1, n_map
-      open(newunit=iu_syn(im), file='sync_radiomap_'//tag_out//trim(maps(im)%label)//'.dat')
-      open(newunit=iu_th(im),  file='th_ff_map_'//tag_out//trim(maps(im)%label)//'.dat')
-      if (hot) open(newunit=iu_hot(im), file='hot_layer_'//trim(maps(im)%label)//'.dat')
+      open(newunit=iu_syn(im), file=output_file('sync_radiomap_'//tag_out//trim(maps(im)%label)//'.dat'))
+      open(newunit=iu_th(im),  file=output_file('th_ff_map_'//tag_out//trim(maps(im)%label)//'.dat'))
+      if (hot) open(newunit=iu_hot(im), file=output_file('hot_layer_'//trim(maps(im)%label)//'.dat'))
    end do
-   open(newunit=iu_syn_avg, file='sync_radiomap_'//tag_out//'avg.dat')
-   open(newunit=iu_th_avg,  file='th_ff_map_'//tag_out//'avg.dat')
-   if (hot) open(newunit=iu_hot_avg, file='hot_layer_avg.dat')
+   open(newunit=iu_syn_avg, file=output_file('sync_radiomap_'//tag_out//'avg.dat'))
+   open(newunit=iu_th_avg,  file=output_file('th_ff_map_'//tag_out//'avg.dat'))
+   if (hot) open(newunit=iu_hot_avg, file=output_file('hot_layer_avg.dat'))
 
    phi = 0.d0
    if (rotate) then
@@ -582,7 +582,7 @@ subroutine merge_map(f_syn, f_th_RS, f_th_FS, f_hot, iu_s, iu_t, iu_h)
          open(newunit=iu, file=f_hot); read(iu,*) S_hot; close(iu)
       end if
 
-      if (i_phi == 1) then
+      if (i_phi == 1 .or. i_phi == mphi) then
          write(iu_s,'(4es17.8e3)') uve
          write(iu_t,'(es17.8e3)') S_th
          if (hot) write(iu_h,'(es17.8e3)') S_hot

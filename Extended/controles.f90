@@ -40,7 +40,7 @@ logical, parameter :: convolution = yes! no
 ! Radio-map frequencies
 ! nu: freq in Hz
 ! label: str
-! sigma: instrument resolution (x,y)
+! sigma: instrument resolution (x,y) ["]
 type(map_freq_t), parameter :: map_catalogue(*) = [ &
    !           nu [Hz]   label      sigma (x,y)      make maps?
    map_freq_t( 1.10d8,  '110MHz', [ 4.0d0,  4.0d0], no ), &
