@@ -368,12 +368,11 @@ PROGRAM main
       if (escribir_p) then
 
          if (radpp_calc) then
-            open (43,file='radpp_'//shock//'.dat')     ! One linear-emitter
+            open (43,file=output_file('radpp_'//shock//'.dat'))     ! One linear-emitter
             open (53,file='radpp_'//system//'_'//shock//'_tot.dat')
             do i_E = 1,mE_f
                read(43,*) E_pp(i_E),Lpp_one       
-               Lpp_sh_tot(i_E) = Lpp_one*mphi *2.d0
-               ! Multiply by a factor 2 because of the axial symmetry in the SW
+               Lpp_sh_tot(i_E) = Lpp_one*mphi *4.d0   ! mphi emitters, 4 quadrants
                write(53,*) E_pp(i_E),Lpp_sh_tot(i_E) 
             end do
             close(43)

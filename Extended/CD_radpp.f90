@@ -1,183 +1,138 @@
 module CD_radpp
   use global
+  use controls, only: verbose
   use numerical_utils, only: vector_log
   implicit none
-  
+  private
+
   public :: CD_radpp_run
 
-  contains
+  ! delta-function approximation (Kelner et al. 2006, Sect. 4.3)
+  real(dp), parameter :: K_pi = 0.17d0   ! fraction of the proton kinetic energy given to the pion
+  real(dp), parameter :: n_pp = 0.86d0   ! n~ (depends on the proton spectrum; see Kelner+2006)
+
+contains
 
   !============================================================================
-  ! CD_radpp_run (START)
+  ! CD_radpp_run
   !============================================================================
-  ! This module calculates the intrinsic and absorbed p-p emission using as an 
-  ! input the proton distribution in distp(number).dat. The integrated 
-  ! luminosity (unabs and abs) for the linear emitter is stored in radpp.dat.
+  ! Intrinsic gamma-ray emission from pi0 decay (p-p) of one linear emitter,
+  ! using the proton distribution distp_<system>_<shock>.dat (Kelner et al. 2006):
+  !  - E_f > 10 GeV: Eq. 71, Phi(E_f) = c*n*int sigma(E_p) N(E_p) F(E_f/E_p,E_p) dE_p/E_p
+  !  - E_f < 10 GeV: delta-function approximation, Eqs. 77-78, written as an
+  !    integral over the proton energy (E_pi = K_pi*(E_p - mpc2), dE_pi = K_pi*dE_p):
+  !    Q(E_f) = 2*n~*c*n * int sigma(E_p) N(E_p) dE_p / sqrt(E_pi**2 - m_pi**2),
+  !    for E_pi > E_f + m_pi**2/(4*E_f)
+  ! In both ranges Q(l,E_f) = c*n_a(l)*z_pp * sum_j N(l,j)*dE(j)*Kern(E_f,j), with a
+  ! kernel that does not depend on the position: it is built once.
+  ! Output (output/): radpp_<shock>.dat with E_f [eV] and E_f*L_E [erg/s] (one
+  ! linear emitter) and radpp_tot_<shock>.dat with the total luminosity.
   !============================================================================
 
-  subroutine CD_radpp_run(shock)  
+  subroutine CD_radpp_run(shock)
     character(LEN=*), intent(in) :: shock
-    real(dp) :: n_a(m_theta),Q_Ef,Q_phi,dx_pp,x_pp,qpi
-    real(dp) :: Ef_int,dEf,Ef(mE_f),sum_pp,Epp,L1
-    real(dp) :: Epi_min,Epi_max,Epi_int,dE_pi,integral
-    real(dp), parameter :: K_pi=0.17d0, n_pp=0.86d0, kappa_pp=K_pi*n_pp! n_pp=1.1 for alfa=2, n_pp=0.86 for alpha=2.5
-    integer :: nl,mE_pi,i_p
-    ! m_theta - CD, mE_p - protons, mE_f - photons, mE_pi(variable) - pions
-    real(dp), dimension(:), allocatable :: Epi                      
-    interface
-    function F(a,b)
-      use iso_fortran_env, only: dp => real64
-      implicit none
-      real(dp) :: F
-      real(dp), intent(in) :: a,b
-    end function F
-    end interface
+    integer  :: l, i, j, iu
+    real(dp) :: Ef_int, Eint, sum_pp, Epi_min, L1
+    real(dp), allocatable :: rho(:), n_a(:)
+    real(dp), allocatable :: E_p(:), dE(:), Epi(:), sig(:), N_ptot(:,:)
+    real(dp), allocatable :: Ef(:), Kern(:,:), Lpp(:,:), Lpp_tot(:)
 
-    allocate ( Lpp(mE_f),Lpp_tot(mE_f) )
-    allocate ( B(m_theta),rho(m_theta),P(m_theta),v_t(m_theta),T(m_theta) )
-    allocate ( B_par(m_theta),E_p(mE_p),N_ptot(m_theta,mE_p),N_p(mE_p) )
+    allocate( rho(m_theta), n_a(m_theta) )
+    allocate( E_p(mE_p), dE(mE_p), Epi(mE_p), sig(mE_p), N_ptot(m_theta,mE_p) )
+    allocate( Ef(mE_f), Kern(mE_f,mE_p), Lpp(m_theta,mE_f), Lpp_tot(mE_f) )
 
-    80    format(A7,X,Es10.2)
-
-    print*, 'Calculate the p-p emission in the Shock'
+    call validate_shock(shock, 'CD_radpp_run')
+    if (verbose) print*, 'Calculate the p-p emission in the '//shock
 
     !------------------------------------------------------------------
-    ! Read thermodynamical quantites at each position
+    ! Read the density and the proton distribution
 
-    open(11,file=output_file('termo_'//shock//'.dat'))
-    do l=1,m_theta
-       read(11,*) nl,rho(l),P(l),v_t(l),T(l),B(l)
-      if (shock == 'RS') then 
-         n_a(l) = rho(l)/mp/mu_sw
-      else if (shock == 'FS') then
-         n_a(l) = rho(l)/mp/mu_ISM
+    open(newunit=iu, file=output_file('termo_'//shock//'.dat'))
+    read(iu,*) (dummy, rho(l), dummy, dummy, dummy, dummy, dummy, dummy, dummy, dummy, dummy, dummy, &
+                l=1,m_theta)    ! all the 12 columns
+    close(iu)
+    if (shock == 'RS') then
+      n_a = rho/mp/mu_sw
+    else
+      n_a = rho/mp/mu_ISM
+    end if
+
+    ! Number of protons at r(l) with energy E_p(i): N_ptot(l,i)
+    ! (one block of mE_p lines per position, separated by a blank line)
+    open(newunit=iu, file=output_file('distp_'//system//'_'//shock//'.dat'))
+    do l = 1, m_theta
+      read(iu,*) (dummy, E_p(i), N_ptot(l,i), i=1,mE_p)
+      read(iu,*)
+    end do
+    close(iu)
+    E_p  = E_p*eV                     ! energy from eV to erg
+    Eint = E_p(2)/E_p(1)
+    dE   = E_p*(Eint-1.d0)
+
+    ! Photon energy grid, from 10 MeV
+    call vector_log(10.d6*eV, E_p(mE_p), Ef_int, Ef)
+
+    !=======================================================================
+    ! Kernel Kern(E_f,E_p) [cm2/erg]
+
+    sig = [( sigma_pp(log(E_p(j)/TeV), E_p(j)), j=1,mE_p )]   ! zero below E_th
+    Epi = K_pi*(E_p - mpc2)                                    ! pion energy (delta approx.)
+
+    Kern = 0.d0
+    do i = 1, mE_f
+      if (Ef(i) < 0.01d0*TeV) then            ! delta-function approximation
+        Epi_min = 1.005d0*( Ef(i) + m_pic2**2/(4.d0*Ef(i)) )   ! 1.005: avoid the integrable singularity
+        do j = 1, mE_p
+          if (Epi(j) >= Epi_min) Kern(i,j) = 2.d0*n_pp*sig(j)/sqrt(Epi(j)**2 - m_pic2**2)
+        end do
+      else                                    ! Kelner+2006, Eq. 71
+        do j = 1, mE_p
+          if (Ef(i) < E_p(j)) then
+            L1 = log(E_p(j)/TeV)
+            Kern(i,j) = sig(j)*F_gamma(Ef(i)/E_p(j), L1)/E_p(j)
+          end if
+        end do
       end if
     end do
-    close(11)
-    B_par = B*par
-
-    ! Number of electrons at r(l) with energy E_p(i): N_ptot(l,i) 
-    open (14,file=output_file('distp_'//system//'_'//shock//'.dat'))
-    do l=1,m_theta
-      do i=1,mE_p
-        read(14,*) dummy, E_p(i),N_ptot(l,i)
-        E_p(i) = E_p(i)*eV    !   energy from eV to erg
-      end do
-      read(14,*)
-    end do
-    close(14) 
-    Eint_p = E_p(2)/E_p(1)
-
 
     !=======================================================================
-    !  Begin p-p calculations 
-    !=======================================================================
+    ! L_E(l,E_f) = E_f*Q(l,E_f) [erg/s/erg]
 
-    ! Build logarithmic spaced photon energy vector, Ef(i), with Ef_min = 10 MeV
+    Lpp = spread(c*n_a*z_pp, 2, mE_f) * matmul(N_ptot*spread(dE,1,m_theta), transpose(Kern)) &
+          * spread(Ef, 1, m_theta)
+    Lpp_tot = sum(Lpp, dim=1)
+    sum_pp  = sum(Lpp_tot*Ef)*(Ef_int-1.d0)
 
-    call vector_log(10.d6*eV,E_p(mE_p),Ef_int,Ef)
-
-    ! At each position we calculate the p-p emission; then we sum all.
-    Epi_max = E_p(mE_p)
-
-    Lpp_tot = 0.d0
-    sum_pp=0.d0
-
-    do l=1,m_theta            ! l
-      N_p = N_ptot(l,:)       ! N_p = proton distribution at position "l"
-      mE_pi = mE_f            ! Initial value
-      do i = 1,mE_f           ! Ef(i) 
-        dEf = Ef(i)*(Ef_int-1.d0)
-        ! We use a different formalism in 2 energy ranges: 
-
-        if (Ef(i) < 0.01d0*TeV) then     ! Ep < 100 GeV -> Ef < 0.01 TeV
-          allocate(Epi(mE_pi))
-          Epi_min = Ef(i)+(m_pic2)**2/4.d0/Ef(i)
-          Epi_min = Epi_min*1.005d0     ! Factor to avoid numerical errors very close to Epi_min
-          call vector_log(Epi_min,Epi_max,Epi_int,Epi)
-          integral = 0.d0
-          do j=1,mE_pi       ! E_pi
-            dE_pi = Epi(j)*(Epi_int-1.d0)
-            Epp = n_pp*Epi(j)/kappa_pp + mpc2       ! Eq.75 Kelner+2006
-            i_p = int(log(Epp/Emin_p)/log(Eint_p))+1
-            if (i_p <= mE_p .and. Epp <= E_p(mE_p) .and. Epp > E_th) then 
-              L1 = log(Epp/TeV)    
-              qpi = n_pp*N_p(i_p)*sigma_pp(L1,Epp)/K_pi ! Eq.77 Kelner+2006 [1/erg/s]
-              integral = integral + qpi*dE_pi/sqrt(Epi(j)**2-(m_pic2)**2) 
-            end if
-          end do              ! E_pi
-          Q_Ef = 2.d0*c*n_a(l)*integral*z_pp   !Eq.78 Kelner+2006
-          Lpp(i) = Ef(i)*Q_Ef
-          deallocate(Epi)
-          mE_pi = MAX(mE_pi-1,32) ! Diminish the number of points 
-
-
-        elseif (Ef(i) > 0.01d0*TeV) then  ! Ef > 100 GeV > Emin_p
-          integral=0
-          do j=1,mE_p
-            if (Ef(i) < E_p(j)) then
-              dE_p = E_p(j)*(Eint_p-1.d0)
-              x_pp = Ef(i)/E_p(j)
-              dx_pp = Ef(i)*dE_p/(E_p(j)**2)
-              L1 = log(E_p(j)/TeV)      ! L = ln(Ep/1TeV)
-              integral = integral + sigma_pp(L1,E_p(j))*N_p(j)*F(x_pp,L1)*dx_pp/x_pp
-            end if
-          end do
-          Q_phi = c*n_a(l)*integral*z_pp
-          Lpp(i) = Ef(i)*Q_phi          ! [erg/seg]
-
-        end if          
-
-        sum_pp = sum_pp + Lpp(i)*dEf
-
-        Lpp_tot(i) = Lpp_tot(i) + Lpp(i)
-
-      end do      ! i
-
-    end do        ! l
-
-    write(*,80) 'L_pp=',sum_pp*mphi*2.d0
-
-    open(20,file='radpp_tot_'//shock//'.dat')
-      write(20,*) sum_pp*mphi*2.d0
-    close(20) 
+    write(*,'(A5,X,Es10.2)') 'L_pp=', sum_pp*mphi*4.d0     ! mphi emitters, 4 quadrants
 
     !---------------------------------------
-    !
     !   Save data
 
-    open(16,file='radpp_'//shock//'.dat')
-    do i=1,mE_f
-      write(16,*) Ef(i)/eV,Ef(i)*Lpp_tot(i)
-    end do
-    close(16)
+    open(newunit=iu, file=output_file('radpp_tot_'//shock//'.dat'))
+    write(iu,'(es17.8e3)') sum_pp*mphi*4.d0
+    close(iu)
 
-    deallocate ( Lpp,Lpp_tot)
-    deallocate ( rho,P,v_t,T,B,B_par )
-    deallocate ( E_p,N_ptot,N_p )
+    open(newunit=iu, file=output_file('radpp_'//shock//'.dat'))     ! one linear emitter
+    write(iu,'(2es17.8e3)') (Ef(i)/eV, Ef(i)*Lpp_tot(i), i=1,mE_f)
+    close(iu)
 
+    deallocate( rho, n_a, E_p, dE, Epi, sig, N_ptot, Ef, Kern, Lpp, Lpp_tot )
 
   END subroutine CD_radpp_run
 
-
   !========================================
 
+  elemental function F_gamma(x, L)
+    ! Gamma-ray spectrum of a single p-p interaction, Kelner et al. (2006), Eq. 58;
+    ! x = E_f/E_p, L = ln(E_p/1 TeV)
+    real(dp), intent(in) :: x, L
+    real(dp) :: F_gamma, Bg, beta, kg, xb
+    Bg   = 1.30d0 + 0.14d0*L + 0.011d0*L**2
+    beta = 1.d0/(1.79d0 + 0.11d0*L + 0.008d0*L**2)
+    kg   = 1.d0/(0.801d0 + 0.049d0*L + 0.014d0*L**2)
+    xb   = x**beta
+    F_gamma = Bg*log(x)/x * ( (1.d0-xb)/(1.d0+kg*xb*(1.d0-xb)) )**4 &
+            * ( 1.d0/log(x) - 4.d0*beta*xb/(1.d0-xb) - 4.d0*kg*beta*xb*(1.d0-2.d0*xb)/(1.d0+kg*xb*(1.d0-xb)) )
+  end function F_gamma
 
 END module CD_radpp
-
-
-!========================================
-
-Function F(x,L)
-  integer, parameter :: dp = kind(1.d0)
-  real(dp), intent(in) :: x,L
-  real(dp) :: B,k,beta,F,L2
-  L2 = L**2
-  B = 1.30d0 + 0.14d0*L + 0.011d0*L2
-  beta = 1.d0/(1.79d0 + 0.11d0*L + 0.008d0*L2)
-  k = 1.d0/(0.801d0 + 0.049d0*L + 0.014d0*L2)
-  F = B*log(x)/x*((1.d0-x**beta)/(1.d0+k*x**beta*(1.d0-x**beta)))**4* &
-    (1.d0/log(x)-(4.d0*beta*x**beta)/(1.d0-x**beta)- &
-    (4.d0*k*beta*x**beta*(1.d0-2.d0*x**beta)/(1.d0+k*x**beta*(1.d0-x**beta))))
-end Function F
-
