@@ -57,7 +57,7 @@ module CD_radpp
     B_par = B*par
 
     ! Number of electrons at r(l) with energy E_p(i): N_ptot(l,i) 
-    open (14,file='distp_'//system//'_'//shock//'.dat')
+    open (14,file=output_file('distp_'//system//'_'//shock//'.dat'))
     do l=1,m_theta
       do i=1,mE_p
         read(14,*) dummy, E_p(i),N_ptot(l,i)
