@@ -408,26 +408,26 @@ Subroutine H_alpha_map(shock)
    real(dp) :: S_H_alpha
    real(dp) :: u_proj, v_proj
    real(dp) :: phi
-   integer :: i_phi,i_l
+   integer :: i_phi,i_l, iu, iu_map
 
-   open(710,file='S_alpha_map_'//shock//'.dat')
+   open(newunit=iu_map, file=output_file('S_alpha_map_'//shock//'.dat'))
    phi = 0.d0
    do i_phi = 1,mphi
       print *, 'i(phi)=',i_phi,'/',mphi
       call CD_rot_run(phi)
-      call project_H_alpha_map(shock, phi)       ! This projects the H_alpha map in u,v
-      open(70,file='S_alpha_proj_'//shock//'.dat')
+      call project_H_alpha_map(shock)       ! This projects the H_alpha map in u,v
+      open(newunit=iu, file=output_file('S_alpha_proj_'//shock//'.dat'))
       do i_l = 1,2*m_theta
-         read(70,*) u_proj,v_proj,S_H_alpha
-         write(710,*) u_proj,v_proj,S_H_alpha
-         if (i_phi.ne.1) then
-            write(710,*) u_proj,-v_proj,S_H_alpha
+         read(iu,*) u_proj,v_proj,S_H_alpha
+         write(iu_map,*) u_proj,v_proj,S_H_alpha
+         if (i_phi /= 1 .and. i_phi /= mphi) then
+            write(iu_map,*) u_proj,-v_proj,S_H_alpha
          endif
       end do
-      close(70)
+      close(iu)
       phi = phi + delta_phi
    end do
-   close(710)
+   close(iu_map)
 
    if (convolution_alpha) then
       call rad_H_alpha_run(shock)

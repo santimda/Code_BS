@@ -48,6 +48,6 @@ SW_conv.o: SW_conv.f90 global.o map_freq_type.o
 
 radstr.o: radstr.f90 global.o controles.o diffusion.o
 
-rad_H_alpha.o : rad_H_alpha.f90 global.o
+rad_H_alpha.o: rad_H_alpha.f90 global.o controles.o
 
 main.o: main.f90 global.o numerical_utils.o controles.o map_freq_type.o map_freqs.o diffusion.o initialize.o BB.o opac_ff.o CD.o CD_termo.o shock_thermal.o CD_diste.o CD_distp.o CD_radsyn.o CD_radbr.o CD_radic.o CD_radpp.o CD_rot.o CD_abssyn.o SW_conv.o radstr.o rad_H_alpha.o
