@@ -58,7 +58,7 @@ contains
     B_par = B*par
 
     ! Number of electrons at r(l) with energy E_e(i): N_etot(l,i)
-    open (14,file='diste_'//system//'_'//shock//'.dat')
+    open (14,file=output_file('diste_'//system//'_'//shock//'.dat'))
     do l = 1, m_theta
        do i = 1, mE_e
           read(14,*) dummy, E_e(i),N_etot(l,i)

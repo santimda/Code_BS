@@ -33,7 +33,6 @@ module CD_diste
       real(dp) :: log_coul, cte_coul, gdot_coul, Kappa_st
       real(dp) :: Ka, integral, Ne, cool, dE_aprox, suma
       real(dp) :: Q_E(mE_e)
-      ! Shock quantities (one value per position l)
       real(dp), allocatable :: theta(:), rho(:), T(:), B(:), v_t(:), n_a(:)
       real(dp), allocatable :: L_inj_e(:), dR(:), H_theta(:), R_acel(:), dV_ring(:)
       real(dp), allocatable :: efi_ac_sh(:), alpha_sh(:), E_corr(:)
@@ -41,7 +40,6 @@ module CD_diste
       real(dp), allocatable :: t_cell(:), t_adv(:), t_adi(:), t_br(:)
       real(dp), allocatable :: log10Emax(:), Emax_e0(:), rg_e_max(:)
       real(dp), allocatable :: E_NT(:), U_NT(:), U_B(:)
-      ! Energy grid and (l,E) quantities
       real(dp), allocatable :: E_e(:), dE(:), N_etot(:,:), E_dot(:,:)
       real(dp), allocatable :: t_coole(:,:), t_loss(:,:), t_sy(:,:), t_ic(:,:), t_ic_st(:,:), t_ic_IR(:,:)
       real(dp), allocatable :: t_diff(:,:), t_esc(:,:), t_ac(:,:), t_coul(:,:), t_ion(:,:)
@@ -58,6 +56,7 @@ module CD_diste
       allocate( t_ic_st(m_theta,mE_e), t_ic_IR(m_theta,mE_e), t_diff(m_theta,mE_e), t_esc(m_theta,mE_e) )
       allocate( t_ac(m_theta,mE_e), t_coul(m_theta,mE_e), t_ion(m_theta,mE_e) )
 
+      call validate_shock(shock, 'CD_diste_run')
       if (verbose) print *, 'Calculate the non-thermal electron distribution in the '//shock
 
       ! set omp threads number
@@ -70,18 +69,18 @@ module CD_diste
       call read_shock(shock, theta, rho, T, B, v_t, n_a, L_inj_e, dR, H_theta, R_acel, dV_ring, &
                       efi_ac_sh, alpha_sh, t_adv)
 
-      open(21,file='L_inj_e_'//shock//'.dat')
-      write(21,'(es17.8e3)') sum(L_inj_e)
-      close(21)
+      open(newunit=iu, file=output_file('L_inj_e_'//shock//'.dat'))
+      write(iu,'(es17.8e3)') sum(L_inj_e)
+      close(iu)
 
       ! Dust (IR) photon field; T_IR.dat is also read by CD_radic
       T_IR     = 27.d0*(0.2d0)**(-1.d0/6.d0)*(L_st/1.d38)**(1.d0/6.d0)*(R_theta/pc)**(-1.d0/3.d0) ! Eq.10 del Valle 2012
       !T_IR    = 100.d0                ! K2017
       T_IR_ad  = k*T_IR/mec2           ! Adimensional dust temperature
       Kappa_IR = L_IR/(16.d0*pi*sigma*T_IR**4*R_theta**2) ! assume the dust is in a shell outside the BS
-      open(113,file='T_IR.dat')
-      write(113,'(4es25.16e3)') (theta(l), T_IR(l), T_IR_ad(l), Kappa_IR(l), l=1,m_theta)
-      close(113)
+      open(newunit=iu, file=output_file('T_IR.dat'))
+      write(iu,'(4es25.16e3)') (theta(l), T_IR(l), T_IR_ad(l), Kappa_IR(l), l=1,m_theta)
+      close(iu)
 
       !--------------------------------------------------------------------
       ! Build an energy vector that is common for all linear-emitters:
@@ -90,7 +89,7 @@ module CD_diste
       dE = E_e*(Eint - 1.d0)
 
       !========================================================================
-      ! First calculate the cooling time at all energies and at each position
+      ! Calculate the cooling time at all energies and at each position
       ! (and also the maximum energy)
 
       cte_IC  = pi*h_bar**3*c**2/(2.d0*re**2*mec2**3)
@@ -120,7 +119,6 @@ module CD_diste
          cte_coul = 3.d-14*n_a(l)*log_coul
 
          do i = 1, mE_e
-            !D_diff = lambda_diff*E_e(i)*c/(3.d0*qe*B(l)) ! Bohm
             D_diff = Diff(E_e(i),B(l),'B')
             t_diff(l,i) = R_acel(l)**2/(2.d0*D_diff) ! Diffusion losses
             t_esc(l,i)  = 1.d0/( 1.d0/t_adv(l) + 1.d0/t_diff(l,i) ) ! escape
@@ -159,21 +157,21 @@ module CD_diste
 
       rg_e_max = Emax_e0/qe/B     ! Max gyroradius
 
-      open(70,file='CD_tcoole_'//system//'_'//shock//'.dat')
+      open(newunit=iu, file=output_file('CD_tcoole_'//system//'_'//shock//'.dat'))
       do l = 1, m_theta
-         write(70,'(i6,16es17.8e3)') (l, E_e(i)/eV, t_ic(l,i), t_sy(l,i), t_br(l), t_diff(l,i), t_ac(l,i), &
+         write(iu,'(i6,16es17.8e3)') (l, E_e(i)/eV, t_ic(l,i), t_sy(l,i), t_br(l), t_diff(l,i), t_ac(l,i), &
               t_coole(l,i), t_adv(l), t_cell(l), t_ic_st(l,i), t_ic_IR(l,i), t_esc(l,i), t_loss(l,i), &
               t_adi(l), t_coul(l,i), t_ion(l,i), i=1,mE_e)
       end do
-      close(70)
+      close(iu)
 
-      open(78,file='Emaxe'//shock//'.dat')
-      write(78,'(i6,es17.8e3)') (l, Emax_e0(l)/eV, l=1,m_theta)
-      close(78)
+      open(newunit=iu, file=output_file('Emaxe'//shock//'.dat'))
+      write(iu,'(i6,es17.8e3)') (l, Emax_e0(l)/eV, l=1,m_theta)
+      close(iu)
 
-      open(83,file='Gyroradius_e_'//shock//'.dat')
-      write(83,'(i6,3es17.8e3)') (l, theta(l), rg_e_max(l), H_theta(l)/rg_e_max(l), l=1,m_theta)
-      close(83)
+      open(newunit=iu, file=output_file('Gyroradius_e_'//shock//'.dat'))
+      write(iu,'(i6,3es17.8e3)') (l, theta(l), rg_e_max(l), H_theta(l)/rg_e_max(l), l=1,m_theta)
+      close(iu)
 
       !========================================================================
 
@@ -281,7 +279,7 @@ module CD_diste
 
       !----------------------------------------------------------------------
       ! Save the electron distribution at each position
-      open(newunit=iu,file='diste_'//system//'_'//shock//'.dat')
+      open(newunit=iu, file=output_file('diste_'//system//'_'//shock//'.dat'))
       do l = 1, m_theta
          write(iu,'(3es25.16e3)') (theta(l), E_e(i)/eV, N_etot(l,i), i=1,mE_e)
          write(iu,*)
@@ -292,12 +290,12 @@ module CD_diste
       E_NT = matmul(N_etot, E_e*dE) * 4.d0*mphi
       U_NT = E_NT/dV_ring
       U_B  = B**2/(8.d0*pi)
-      open(80,file='ENTe_'//shock//'.dat')
-      write(80,'(4es17.8e3)') (theta(l), E_NT(l), U_NT(l), U_NT(l)/U_B(l), l=1,m_theta)
-      close(80)
-      open(81,file='PNTe_'//shock//'.dat')
-      write(81,'(2es17.8e3)') (theta(l), (U_NT(l)/3.d0)/U_B(l), l=1,m_theta)   ! Ratio P_e,rel/P_mag
-      close(81)
+      open(newunit=iu, file=output_file('ENTe_'//shock//'.dat'))
+      write(iu,'(4es17.8e3)') (theta(l), E_NT(l), U_NT(l), U_NT(l)/U_B(l), l=1,m_theta)
+      close(iu)
+      open(newunit=iu, file=output_file('PNTe_'//shock//'.dat'))
+      write(iu,'(2es17.8e3)') (theta(l), (U_NT(l)/3.d0)/U_B(l), l=1,m_theta)   ! Ratio P_e,rel/P_mag
+      close(iu)
 
       !------------------------------------------------------------
       ! Group in bins according to position angle
@@ -388,7 +386,7 @@ module CD_diste
 
       !----------------------------------------------------------------------
       ! Save the electron distribution at each position
-      open(newunit=iu,file='diste_approx_'//shock//'.dat')
+      open(newunit=iu, file=output_file('diste_approx_'//shock//'.dat'))
       do l = 1, m_theta
          write(iu,'(3es25.16e3)') (theta(l), E_e(i)/eV, N_etot(l,i), i=1,mE_e)
          write(iu,*)
@@ -398,11 +396,11 @@ module CD_diste
       E_NT = matmul(N_etot, E_e*dE) * 4.d0*mphi      ! Total NT energy in each BS "ring"
       U_NT = E_NT/dV_ring
       U_B  = B**2/(8.d0*pi)
-      open(newunit=iu,file='ENTe_approx_'//shock//'.dat')
+      open(newunit=iu, file=output_file('ENTe_approx_'//shock//'.dat'))
       write(iu,'(i6,3es17.8e3)') (l, E_NT(l), U_NT(l), U_NT(l)/U_B(l), l=1,m_theta)
       close(iu)
 
-      open(newunit=iu,file='diste_approx_'//shock//'_total.dat')
+      open(newunit=iu, file=output_file('diste_approx_'//shock//'_total.dat'))
       write(iu,'(2es17.8e3)') (E_e(i)/eV, sum(N_etot(:,i))*mphi*1.d0, i=1,mE_e) ! Total distribution for 1 of the 4 quadrants
       close(iu)
 
@@ -427,38 +425,39 @@ module CD_diste
                          efi_ac_sh, alpha_sh, t_adv)
       ! Reads, at each cell: the cell size dR and injected luminosity (Linj), the thermodynamical
       ! quantities (termo), the shock width, R_acel and volume (Hnorm), the acceleration efficiency
-      ! (efi_ac), the injection index (alpha) and the advection time (t_conv)
+      ! (efi_ac), the injection index (alpha) and the advection time (t_conv).
+      ! One read per line, so that the number of columns of each file does not matter.
       character(LEN=*), intent(in) :: shock
       real(dp), dimension(m_theta), intent(out) :: theta, rho, T, B, v_t, n_a, L_inj_e, dR, H_theta, &
                                                     R_acel, dV_ring, efi_ac_sh, alpha_sh, t_adv
-      integer  :: l, l2
+      integer  :: l, l2, iu_L, iu_t, iu_H, iu_e, iu_a, iu_c
       real(dp) :: dum, L_inj(m_theta)
 
-      open(12, file=output_file('Linj_'//shock//'.dat'))
-      open(11, file=output_file('termo_'//shock//'.dat'))
-      open(103,file=output_file('Hnorm_'//shock//'.dat'))
-      open(114,file=output_file('efi_ac_'//shock//'.dat'))
-      open(20, file=output_file('alpha_'//shock//'.dat'))
-      open(65, file=output_file('t_conv_'//shock//'.dat'))
+      open(newunit=iu_L, file=output_file('Linj_'//shock//'.dat'))
+      open(newunit=iu_t, file=output_file('termo_'//shock//'.dat'))
+      open(newunit=iu_H, file=output_file('Hnorm_'//shock//'.dat'))
+      open(newunit=iu_e, file=output_file('efi_ac_'//shock//'.dat'))
+      open(newunit=iu_a, file=output_file('alpha_'//shock//'.dat'))
+      open(newunit=iu_c, file=output_file('t_conv_'//shock//'.dat'))
       do l = 1, m_theta
-         read(12,*)  dum, dum, L_inj(l), dR(l)
-         read(11,*)  l2, rho(l), dum, v_t(l), T(l), B(l), dum, theta(l) ! all in CGS units
-         read(103,*) dum, H_theta(l), R_acel(l), dum, dV_ring(l)
-         read(114,*) dum, efi_ac_sh(l)
-         read(20,*)  dum, alpha_sh(l)
-         read(65,*)  dum, t_adv(l)   ! Characteristic advection time
+         read(iu_L,*) dum, dum, L_inj(l), dR(l)
+         read(iu_t,*) l2, rho(l), dum, v_t(l), T(l), B(l), dum, theta(l) ! all in CGS units
+         read(iu_H,*) dum, H_theta(l), R_acel(l), dum, dV_ring(l)
+         read(iu_e,*) dum, efi_ac_sh(l)
+         read(iu_a,*) dum, alpha_sh(l)
+         read(iu_c,*) dum, t_adv(l)   ! Characteristic advection time
       end do
-      close(12)
-      close(11)
-      close(103)
-      close(114)
-      close(20)
-      close(65)
+      close(iu_L)
+      close(iu_t)
+      close(iu_H)
+      close(iu_e)
+      close(iu_a)
+      close(iu_c)
       dR = R0*dR               ! The file contained dR/R0, not dR [cm]
       L_inj_e = inj_e*L_inj    ! The cell size is already taken into account in L_inj
       if (shock == 'RS') then
          n_a = rho/mp/mu_sw    ! Ambient number density
-      else if (shock == 'FS') then
+      else
          n_a = rho/mp/mu_SISM
       end if
    end subroutine read_shock
@@ -482,11 +481,11 @@ module CD_diste
          N_bin_i(j,:) = matmul( merge(1.d0, 0.d0, ang >= ang_lo(j) .and. ang < ang_hi(j)), Ne_tot )
       end do
 
-      open(newunit=iu,file='diste_'//shock//'_'//system//'_total.dat')
+      open(newunit=iu, file=output_file('diste_'//shock//'_'//system//'_total.dat'))
       write(iu,'(2es17.8e3)') (Ee(i)/eV, sum(Ne_tot(:,i))*mphi*1.d0, i=1,mE_e) ! Total distribution for 1 of the 4 quadrants
       close(iu)
 
-      open(newunit=iu,file='diste_'//shock//'_'//system//'_bin.dat')
+      open(newunit=iu, file=output_file('diste_'//shock//'_'//system//'_bin.dat'))
       do j = 1, N_bins
          write(iu,'(i3,2es17.8e3)') (j, Ee(i)/eV, N_bin_i(j,i)*mphi*1.d0, i=1,mE_e)
          write(iu,*)
@@ -548,7 +547,6 @@ module CD_diste
 
       E_l = 10.d0**log10E
 
-      !D_diff = lambda_diff*E_l*c/(3.d0*qe*Bl)   ! Bohm
       D_diff = Diff(E_l,Bl,'B')
       t_diff = Rdiff**2/(2.d0*D_diff)     ! Diffusion losses
       t_esc = 1.d0/(1.d0/t_adv + 1.d0/t_diff) ! escape

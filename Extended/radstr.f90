@@ -53,7 +53,7 @@ module radstr
         !---------------------------------------------------
 
         
-        open(30,file='L_inj_p_'//shock//'.dat')
+        open(30,file=output_file'L_inj_p_'//shock//'.dat'))
             read(30,*) L_inj_p_BS
         close(30)
 
@@ -92,7 +92,7 @@ module radstr
         !---------------------------------------------------
 
 
-        open(40,file='L_inj_e_'//shock//'.dat')
+        open(40,file=output_file('L_inj_e_'//shock//'.dat'))
             read(40,*) L_inj_e_BS
         close(40)
 

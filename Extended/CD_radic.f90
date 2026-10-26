@@ -50,7 +50,7 @@ module CD_radic
     z = R0*z
 
     ! Number of electrons at r(l) with energy E_e(i): N_etot(l,i) 
-    open (14,file='diste_'//system//'_'//shock//'.dat')
+    open (14,file=output_file('diste_'//system//'_'//shock//'.dat'))
     do l=1,m_theta
       do i=1,mE_e
         read(14,*) dummy, E_e(i),N_etot(l,i)
@@ -154,14 +154,14 @@ module CD_radic
     !  Reading information here  
     !
 
-    open(13,file='T_IR.dat')
+    open(13,file=output_file('T_IR.dat'))
     do l=1,m_theta
       read(13,*) dummy,dummy,T_IR_ad(l),Kappa_IR(l)
     enddo
     close(13)
 
     ! Number of electrons at r(l) with energy E_e(i): N_etot(l,i) 
-    open (14,file='diste_'//system//'_'//shock//'.dat')
+    open (14,file=output_file('diste_'//system//'_'//shock//'.dat'))
     do l=1,m_theta
       do i=1,mE_e
         read(14,*) dummy, E_e(i),N_etot(l,i)
