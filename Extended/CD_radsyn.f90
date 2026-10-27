@@ -17,17 +17,8 @@ contains
   !============================================================================
   ! CD_radsyn_run
   !============================================================================
-  ! Intrinsic (unabsorbed) synchrotron emission of one linear emitter, using
-  ! the electron distribution diste_<system>_<shock>.dat and the frequency
-  ! grid in nu.dat. Includes the Razin-Tsytovich (R-T) suppression.
-  ! Lsy(l,i) is the luminosity per unit Eps = h*nu/mec2 at position l [erg/s].
-  ! Output (output/): radsyn_<shock>.dat, S_syn_<system>_<shock>.dat,
-  ! radsyn_tot_<shock>.dat and emisyn_<shock>.dat, which has
-  ! Eps*Lsy(l,i) = nu*L_nu [erg/s] and is used by CD_abssyn for the absorption
-  ! and the maps.
-  ! Synchrotron self-absorption is neglected: the brightness temperature of
-  ! the BS (~1e2-1e3 K at ~100 MHz) is many orders of magnitude below the
-  ! kinetic temperature of the emitting electrons (~1e12 K).
+  ! Synchrotron emission of one linear emitter, with Razin-Tsytovich
+  ! suppression. SSA is negligible (T_b << kinetic T of the electrons).
   !============================================================================
 
   subroutine CD_radsyn_run(shock)
@@ -58,8 +49,7 @@ contains
     close(iu)
     B_par = B*par
 
-    ! Number of electrons at r(l) with energy E_e(i): N_etot(l,i)
-    ! (one block of mE_e lines per position, separated by a blank line)
+    ! Electron distribution N_etot(l,i)
     open(newunit=iu, file=output_file('diste_'//system//'_'//shock//'.dat'))
     do l = 1, m_theta
        read(iu,*) (dummy, E_e(i), N_etot(l,i), i=1,mE_e)
@@ -92,10 +82,8 @@ contains
     !                                                                       !
     !-----------------------------------------------------------------------!
 
-    ! Lsy(Eps) = int_Emin^Emax N(E_e) P(E_e,Eps) dE, with
-    ! P = 4.39d-22*B_par*x**(1/3)*exp(-x)/h [erg/s/erg], x = nu/nu_c, nu_c = 4.22d6*B_par*gamma**2,
-    ! neglected for x > 10. At each position we calculate the synchrotron emission.
-    ! R-T suppression: exp(-nu_RT/nu), nu_RT = 20*n_e/B [Hz], n_e = rho/(mu_e*mp)
+    ! P = 4.39d-22*B_par*x**(1/3)*exp(-x)/h, x = nu/nu_c (neglected for x > 10)
+    ! R-T suppression: exp(-nu_RT/nu), nu_RT = 20*n_e/B
 
     !$omp parallel do default(shared) schedule(dynamic) private(l, i, ne, nu_RT, x_sy)
     DO l = 1, m_theta

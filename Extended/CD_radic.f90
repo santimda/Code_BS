@@ -7,13 +7,10 @@ module CD_radic
 
   public :: CD_radic_st_run, CD_radic_IR_run
 
-  ! radic_st uses the stellar photon field (anisotropic, constant T), while
-  ! radic_IR uses the IR one (isotropic, theta-dependent T).
-  ! IC emission: formalism of Khangulyan et al. (2014), with the functions
-  ! F_1, F_2 (anisotropic) and F_3, F_4 (isotropic) defined in global.
+  ! radic_st uses the stellar photon field, while radic_IR uses the IR
+  ! (theta-dependent) one. Khangulyan et al. (2014).
 
-  ! Tables of F_1..F_4, built once and interpolated linearly in log(x);
-  ! outside [x_lo, x_hi] the functions are evaluated directly
+  ! Tables of F_1..F_4
   real(dp), parameter :: x_lo = 1.d-6, x_hi = 1.d3
   integer,  parameter :: n_tab = 20001         ! relative interpolation error ~1e-7
   real(dp), allocatable, save :: F_tab(:,:)    ! (n_tab, 4)
@@ -24,10 +21,7 @@ contains
   !============================================================================
   ! CD_radic_st_run
   !============================================================================
-  ! Intrinsic IC emission with the (anisotropic) stellar photon field, using
-  ! the electron distribution diste_<system>_<shock>.dat and the positions of
-  ! the rotated CD (CDrot.dat, both halves: "up" and "down").
-  ! Output (output/): radic_st_<shock>.dat with E_f [eV] and E_f*L_E [erg/s]
+  ! IC emission with the (anisotropic) stellar photon field
   !============================================================================
 
   subroutine CD_radic_st_run(LIC_int, shock)
@@ -60,9 +54,7 @@ contains
     call init_F_table()
 
     !------------------------------------------------------------------------
-    !  IC emission of one linear emitter. The stellar photon field is
-    !  anisotropic and its temperature is constant. l2 runs over both
-    !  halves; l is the position in the upper half (same N_e in the mirror).
+    !  IC emission of one linear emitter (l2: both halves)
 
     call vector_log(k*T_st, E_e(mE_e), Ef_int, Ef)
 
@@ -103,10 +95,7 @@ contains
   !============================================================================
   ! CD_radic_IR_run
   !============================================================================
-  ! Intrinsic IC emission with the (isotropic) IR photon field, whose
-  ! temperature and dilution depend on theta (T_IR.dat, from CD_diste).
-  ! Output (output/): radic_ir_<shock>.dat with E_f [eV] and E_f*L_E [erg/s]
-  ! (one linear emitter)
+  ! IC emission with the (isotropic) IR photon field, one linear emitter
   !============================================================================
 
   subroutine CD_radic_IR_run(shock)
@@ -168,8 +157,7 @@ contains
   !---------------------------------------------------------------------------!
 
   subroutine read_diste(shock, E_e, N_etot)
-    ! Electron distribution N_etot(l,i) at position l and energy E_e(i) [erg]
-    ! (one block of mE_e lines per position, separated by a blank line)
+    ! Electron distribution N_etot(l,i)
     character(LEN=*), intent(in) :: shock
     real(dp), intent(out) :: E_e(mE_e), N_etot(m_theta,mE_e)
     integer :: l, i, iu
@@ -186,8 +174,7 @@ contains
   !============================================================================
 
   SUBROUTINE IC_ani(Ee,Ne,Ef,Kappa,T_ad,ang,L_IC,L_unabs)
-    ! Anisotropic IC emission from interactions with a BB photon field
-    ! (Khangulyan et al. 2014): t = 2*gamma*T*(1-cos(ang))
+    ! Anisotropic IC emission with a BB photon field (Khangulyan et al. 2014)
     real(dp), intent(in)  :: Ee(mE_e),Ne(mE_e),Ef(mE_f),Kappa,T_ad,ang
     real(dp), intent(out) :: L_IC(mE_f),L_unabs
     real(dp) :: gamm(mE_e),NedEe(mE_e),Eps(mE_f),Eps_int,T_ad_ang2,cte_Ndot_ani
@@ -220,8 +207,7 @@ contains
   !============================================================================
 
   SUBROUTINE IC_iso(Ee,Ne,Ef,Kappa,T_ad,L_IC,L_unabs)
-    ! Isotropic IC emission from interactions with a BB photon field
-    ! (Khangulyan et al. 2014): t = 4*gamma*T
+    ! Isotropic IC emission with a BB photon field (Khangulyan et al. 2014)
     real(dp), intent(in)  :: Ee(mE_e),Ne(mE_e),Ef(mE_f),Kappa,T_ad
     real(dp), intent(out) :: L_IC(mE_f),L_unabs
     real(dp) :: gamm(mE_e),NedEe(mE_e),Eps(mE_f),Eps_int,T_ad4,cte_Ndot_iso
@@ -254,7 +240,7 @@ contains
   !============================================================================
 
   subroutine init_F_table()
-    ! Tabulates F_1..F_4 on a logarithmic grid in [x_lo, x_hi] (only once)
+    ! Tables of F_1..F_4 in [x_lo, x_hi]
     integer  :: i
     real(dp) :: x
 
@@ -270,7 +256,7 @@ contains
   !============================================================================
 
   function F_tab_eval(n, x)
-    ! F_n(x) interpolated linearly in log(x); direct evaluation outside the table
+    ! F_n(x), interpolated in log(x)
     integer,  intent(in) :: n
     real(dp), intent(in) :: x
     real(dp) :: F_tab_eval, u, w

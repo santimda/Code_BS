@@ -9,6 +9,7 @@ PROGRAM main
    !$ use omp_lib
    implicit none
 
+   ! FS: .true. = radiative (isothermal layer, no NT particles), .false. = adiabatic
    logical, parameter :: radiative_FS = .true.
    integer :: st
 
@@ -30,9 +31,9 @@ PROGRAM main
    print *, ' START'
    print *, '============================\n '
 
-   call create_output_dir()           ! before anything is written to output/
+   call create_output_dir()
 
-   ! Number of OpenMP threads: OMP_NUM_THREADS if it is set, nth (global.f90) otherwise
+   ! OpenMP threads: OMP_NUM_THREADS or nth
    call get_environment_variable('OMP_NUM_THREADS', status=st)
    !$ if (st /= 0) call omp_set_num_threads(nth)
    !$ if (verbose) write(*,'(a,i0,a)') ' Using OpenMP with ', omp_get_max_threads(), ' threads'
@@ -100,11 +101,8 @@ END PROGRAM main
 
 
 !============================================================================
-! Weight of the two linear emitters (phi and phi + pi) of the i_phi-th rotation angle in the sums over phi 
-!(quantities that depend on the orientation: IC with the stellar photons, absorbed synchrotron SED, maps).
-! The angles phi = 0, ..., pi/2 (step delta_phi) plus their mirror images (z -> -z) give n_emit = 4*(mphi-1) distinct azimuths,
-!each one a wedge d_phi = delta_phi (global.f90).
-! The mirror of phi = 0 and phi = pi/2 is the same set of positions, so they count once; the other angles count twice.
+! Weight of each phi in the sums over phi: the mirror (z -> -z) of
+! phi = 0 and pi/2 gives the same positions
 !============================================================================
 
 pure real(kind(1.d0)) function phi_weight(i_phi, mphi)
@@ -172,8 +170,7 @@ Subroutine calculate(shock,radiative)
 
       if (radic_ir_calc) call CD_radic_ir_run(shock)      ! Just one linear emitter
 
-      ! IC-star emission depends on the 3D position: linear emitters for
-      ! different phi-values, weighted with phi_weight
+      ! IC-star emission depends on the 3D position: linear emitters for different phi
       phi = 0.d0
       LIC_all = 0.d0
       if (rotate .and. radic_st_calc) then
@@ -289,8 +286,7 @@ Subroutine calculate(shock,radiative)
 contains
 
    !-------------------------------------------------------------------------
-   ! X-ray luminosity of the shock in the band [Eph_min, Eph_max]: IC (star
-   ! and dust), synchrotron and thermal emission
+   ! X-ray luminosity: IC (star and dust), synchrotron and thermal
    !-------------------------------------------------------------------------
    subroutine X_ray_luminosity()
       real(dp) :: Eph_min, Eph_max, L_X_int, L_X_max
@@ -326,7 +322,7 @@ contains
       deallocate( E_ff, Lff_tot )
    end subroutine X_ray_luminosity
 
-   ! int_{emin}^{emax} L_E dE for E*L_E in a log grid E [eV]
+   ! int L_E dE between emin and emax [eV]
    real(dp) function band(E, EL, emin, emax)
       real(dp), intent(in) :: E(:), EL(:), emin, emax
       band = sum(EL, mask = (E >= emin) .and. (E <= emax)) * log(E(2)/E(1))
@@ -349,8 +345,7 @@ Subroutine H_alpha_map(shock)
    integer  :: i_phi, il, iu, iu_map
    real(dp), allocatable :: uvS(:,:)      ! u, v, S of each linear emitter
 
-   ! S of each emitter already has the weight of its azimuth (rad_H_alpha.f90):
-   ! phi = 0 and pi/2 are written once and the rest twice (mirror v -> -v)
+   ! phi = 0 and pi/2 are written once, the rest also mirrored (v -> -v)
    allocate( uvS(3,2*m_theta) )
    open(newunit=iu_map, file=output_file('S_alpha_map_'//shock//'.dat'))
    phi = 0.d0
@@ -503,10 +498,8 @@ Subroutine abs_maps(shock, radiative)
 contains
 
    !-------------------------------------------------------------------------
-   ! Reads the maps of one frequency for the current phi (synchrotron from
-   ! CD_abssyn, thermal RS + FS and hot layer from shock_thermal) and appends
-   ! them to the output files. Except for phi = 0 and
-   ! pi/2, it also writes the mirror image (v -> -v).
+   ! Appends the maps of the current phi (and their mirror image, except
+   ! for phi = 0 and pi/2)
    !-------------------------------------------------------------------------
    subroutine merge_map(f_syn, f_th_RS, f_th_FS, f_hot, iu_s, iu_t, iu_h)
       character(len=*), intent(in) :: f_syn, f_th_RS, f_th_FS, f_hot

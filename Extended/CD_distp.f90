@@ -16,11 +16,7 @@ module CD_distp
    ! CD_distp_run (START)
    !============================================================================
    !  Proton energy distribution at each position of the shock (same scheme as
-   !  CD_diste). Inputs: Linj_<shock>.dat, termo_<shock>.dat, Hnorm_<shock>.dat,
-   !  efi_ac_<shock>.dat, alpha_<shock>.dat and t_conv_<shock>.dat.
-   !  Outputs: distp_<system>_<shock>.dat, with Np(l,E(i)) (m_theta*mE_p data);
-   !  ENTp_<system>_<shock>.dat, with E_NT(l); L_inj_p_<shock>.dat and
-   !  several diagnostic files. Emin_p and Emax_p are fixed in global.
+   !  CD_diste): distp_<system>_<shock>.dat, with Np(l,E(i)).
    !============================================================================
 
    subroutine CD_distp_run(shock)
@@ -151,8 +147,6 @@ module CD_distp
       N_ptot = 0.d0
       ! At the starting point of the line we calculate the distribution
       ! Np_0(E_0), the cooling rate Edot0, and we sum it to Np_tot(l,i).
-      ! Each starting point l_min is independent: OpenMP over l_min, adding
-      ! the contributions to N_ptot with a reduction.
 
       !$omp parallel do default(shared) schedule(dynamic) reduction(+:N_ptot) &
       !$omp private(l_min, n_E, Q_E, integral, Ka, i, Np, index1, index2, l, l2, &
@@ -282,10 +276,7 @@ module CD_distp
    ! CD_distp_approx_run (START)
    !============================================================================
    !  Same as CD_distp_run, but NEGLECTING ENERGY LOSSES (JUST FOR A CHECK).
-   !  Emax is limited by advection (t_adv = t_ac) and by the Hillas criterion.
-   !  Without losses, N(l,E) = t_cell(l) * sum_{l_min <= l} Q_lmin(E).
-   !  Outputs: distp_approx_<shock>.dat, ENTp_approx_<shock>.dat and
-   !  distp_approx_<shock>_total.dat.
+   !  N(l,E) = t_cell(l) * sum_{l_min <= l} Q_lmin(E)
    !============================================================================
 
    subroutine CD_distp_approx_run(shock)
@@ -375,10 +366,7 @@ module CD_distp
 
    subroutine read_shock_p(shock, theta, rho, B, v_t, n_a, L_inj_p, dR, H_theta, R_acel, dV_ring, &
                            efi_ac_sh, alpha_sh, t_adv)
-      ! Reads, at each cell: the cell size dR and injected luminosity (Linj), the thermodynamical
-      ! quantities (termo), the shock width, R_acel and volume (Hnorm), the acceleration efficiency
-      ! (efi_ac), the injection index (alpha) and the advection time (t_conv).
-      ! One read per line, so that the number of columns of each file does not matter.
+      ! Reads the shock quantities at each cell
       character(LEN=*), intent(in) :: shock
       real(dp), dimension(m_theta), intent(out) :: theta, rho, B, v_t, n_a, L_inj_p, dR, H_theta, &
                                                     R_acel, dV_ring, efi_ac_sh, alpha_sh, t_adv
@@ -428,7 +416,7 @@ module CD_distp
       ang_lo = [ -huge(1.d0), (j*ang_step, j=1,N_bins-1) ]   ! the first bin has no lower limit
       ang_hi = [ (j*ang_step, j=1,N_bins-1), theta_max ]
       ! Sum over the positions l with ang_lo(j) <= ang(l) < ang_hi(j)
-      ! (do not build this mask with spread(): gfortran 13 -O3 miscompiles it)
+      ! (not with spread(): gfortran -O3 bug)
       do j = 1, N_bins
          N_bin_i(j,:) = matmul( merge(1.d0, 0.d0, ang >= ang_lo(j) .and. ang < ang_hi(j)), Np_tot )
       end do

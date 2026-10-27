@@ -14,13 +14,7 @@ module CD_diste
    ! CD_diste_run (START)
    !============================================================================
    !  This program calculates the electron energy distribution at each position
-   !  of the shock. Inputs: Linj_<shock>.dat, termo_<shock>.dat, Hnorm_<shock>.dat,
-   !  efi_ac_<shock>.dat, alpha_<shock>.dat and t_conv_<shock>.dat.
-   !  Outputs: diste_<system>_<shock>.dat, with Ne(l,E(i)) (m_theta*mE_e data);
-   !  ENTe_<shock>.dat, with E_NT(l); PNTe_<shock>.dat, with P_e,rel/P_mag;
-   !  T_IR.dat (dust field, used by CD_radic) and several diagnostic files.
-   !  Emin_e and Emax_e are fixed in global.
-   !  The acceleration time is t_ac = lambda_diff*efi_ac*E/(qe*B*c) everywhere.
+   !  of the shock: diste_<system>_<shock>.dat, with Ne(l,E(i)).
    !============================================================================
 
    subroutine CD_diste_run(shock)
@@ -178,8 +172,6 @@ module CD_diste
       N_etot = 0.d0
       ! At the starting point of the line we calculate the distribution
       ! Ne_0(E_0), the cooling rate Edot0, and we sum it to Ne_tot(l,i).
-      ! Each starting point l_min is independent: OpenMP over l_min, adding
-      ! the contributions to N_etot with a reduction.
 
       !$omp parallel do default(shared) schedule(dynamic) reduction(+:N_etot) &
       !$omp private(l_min, n_E, Q_E, integral, Ka, i, Ne, index1, index2, l, l2, &
@@ -318,12 +310,7 @@ module CD_diste
    ! CD_diste_approx_run (START)
    !============================================================================
    !  Same as CD_diste_run, but NEGLECTING ENERGY LOSSES (JUST FOR A CHECK).
-   !  Emax is limited by synchrotron losses (t_sy = t_ac) and by the Hillas
-   !  criterion. Without losses, the electrons injected at l_min are only advected,
-   !  N_lmin(l,E) = Q_lmin(E)*t_cell(l), so in steady state
-   !     N(l,E) = t_cell(l) * sum_{l_min <= l} Q_lmin(E).
-   !  Outputs: diste_approx_<shock>.dat, ENTe_approx_<shock>.dat and
-   !  diste_approx_<shock>_total.dat.
+   !  N(l,E) = t_cell(l) * sum_{l_min <= l} Q_lmin(E)
    !============================================================================
 
    subroutine CD_diste_approx_run(shock)
@@ -417,10 +404,7 @@ module CD_diste
 
    subroutine read_shock(shock, theta, rho, T, B, v_t, n_a, L_inj_e, dR, H_theta, R_acel, dV_ring, &
                          efi_ac_sh, alpha_sh, t_adv)
-      ! Reads, at each cell: the cell size dR and injected luminosity (Linj), the thermodynamical
-      ! quantities (termo), the shock width, R_acel and volume (Hnorm), the acceleration efficiency
-      ! (efi_ac), the injection index (alpha) and the advection time (t_conv).
-      ! One read per line, so that the number of columns of each file does not matter.
+      ! Reads the shock quantities at each cell
       character(LEN=*), intent(in) :: shock
       real(dp), dimension(m_theta), intent(out) :: theta, rho, T, B, v_t, n_a, L_inj_e, dR, H_theta, &
                                                     R_acel, dV_ring, efi_ac_sh, alpha_sh, t_adv
@@ -470,7 +454,7 @@ module CD_diste
       ang_lo = [ -huge(1.d0), (j*ang_step, j=1,N_bins-1) ]   ! the first bin has no lower limit
       ang_hi = [ (j*ang_step, j=1,N_bins-1), theta_max ]
       ! Sum over the positions l with ang_lo(j) <= ang(l) < ang_hi(j)
-      ! (do not build this mask with spread(): gfortran 13 -O3 miscompiles it)
+      ! (not with spread(): gfortran -O3 bug)
       do j = 1, N_bins
          N_bin_i(j,:) = matmul( merge(1.d0, 0.d0, ang >= ang_lo(j) .and. ang < ang_hi(j)), Ne_tot )
       end do

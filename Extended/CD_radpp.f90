@@ -16,17 +16,8 @@ contains
   !============================================================================
   ! CD_radpp_run
   !============================================================================
-  ! Intrinsic gamma-ray emission from pi0 decay (p-p) of one linear emitter,
-  ! using the proton distribution distp_<system>_<shock>.dat (Kelner et al. 2006):
-  !  - E_f > 10 GeV: Eq. 71, Phi(E_f) = c*n*int sigma(E_p) N(E_p) F(E_f/E_p,E_p) dE_p/E_p
-  !  - E_f < 10 GeV: delta-function approximation, Eqs. 77-78, written as an
-  !    integral over the proton energy (E_pi = K_pi*(E_p - mpc2), dE_pi = K_pi*dE_p):
-  !    Q(E_f) = 2*n~*c*n * int sigma(E_p) N(E_p) dE_p / sqrt(E_pi**2 - m_pi**2),
-  !    for E_pi > E_f + m_pi**2/(4*E_f)
-  ! In both ranges Q(l,E_f) = c*n_a(l)*z_pp * sum_j N(l,j)*dE(j)*Kern(E_f,j), with a
-  ! kernel that does not depend on the position: it is built once.
-  ! Output (output/): radpp_<shock>.dat with E_f [eV] and E_f*L_E [erg/s] (one
-  ! linear emitter) and radpp_tot_<shock>.dat with the total luminosity (x n_emit).
+  ! p-p gamma-ray emission of one linear emitter (Kelner et al. 2006):
+  ! Eq. 71 for E_f > 10 GeV, delta-function approximation (Eqs. 77-78) below
   !============================================================================
 
   subroutine CD_radpp_run(shock)
@@ -57,8 +48,7 @@ contains
       n_a = rho/mp/mu_ISM
     end if
 
-    ! Number of protons at r(l) with energy E_p(i): N_ptot(l,i)
-    ! (one block of mE_p lines per position, separated by a blank line)
+    ! Proton distribution N_ptot(l,i)
     open(newunit=iu, file=output_file('distp_'//system//'_'//shock//'.dat'))
     do l = 1, m_theta
       read(iu,*) (dummy, E_p(i), N_ptot(l,i), i=1,mE_p)
@@ -123,8 +113,7 @@ contains
   !========================================
 
   elemental function F_gamma(x, L)
-    ! Gamma-ray spectrum of a single p-p interaction, Kelner et al. (2006), Eq. 58;
-    ! x = E_f/E_p, L = ln(E_p/1 TeV)
+    ! Kelner et al. (2006), Eq. 58; x = E_f/E_p, L = ln(E_p/1 TeV)
     real(dp), intent(in) :: x, L
     real(dp) :: F_gamma, Bg, beta, kg, xb
     Bg   = 1.30d0 + 0.14d0*L + 0.011d0*L**2

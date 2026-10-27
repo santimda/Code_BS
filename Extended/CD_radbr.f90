@@ -12,14 +12,8 @@ contains
    !============================================================================
    ! CD_radbr_run
    !============================================================================
-   ! Intrinsic relativistic bremsstrahlung emission of one linear emitter,
-   ! using the electron distribution diste_<system>_<shock>.dat.
-   ! screened = .true.: screened nuclei; .false.: unscreened nuclei.
-   ! Emission rate per unit photon energy:
-   !   dN/dt/dE_f = n_a * c * int N(E) dsigma/dE_f dE,
-   !   E_f*dsigma/dE_f = 4*alpha*re**2*Zq**2*z_br*Phi(u,gamma), u = E_f/E,
-   ! with n_a = rho/(mu*mp) and z_br from Padovani et al. (2018).
-   ! Output (output/): radbr_<shock>.dat with E_f [eV] and E_f*L_E [erg/s]
+   ! Relativistic bremsstrahlung of one linear emitter (Blumenthal & Gould 1970),
+   ! screened or unscreened nuclei; z_br from Padovani et al. (2018)
    !============================================================================
 
    subroutine CD_radbr_run(screened, shock)
@@ -53,8 +47,7 @@ contains
          cte_sigma = 4.d0*alfa*re**2*Zq_ISM**2*z_br
       end if
 
-      ! Number of electrons at r(l) with energy E_e(i): N_etot(l,i)
-      ! (one block of mE_e lines per position, separated by a blank line)
+      ! Electron distribution N_etot(l,i)
       open(newunit=iu, file=output_file('diste_'//system//'_'//shock//'.dat'))
       do l = 1, m_theta
          read(iu,*) (dummy, E_e(i), N_etot(l,i), i=1,mE_e)
@@ -70,9 +63,7 @@ contains
       call vector_log(1.d3*eV, E_e(mE_e), Ef_int, Ef)
 
       !===========================================================
-      ! Relativistic bremsstrahlung spectrum.
-      ! Phi depends only on (E_f, E_e), not on the position, so:
-      !   L_E(l,i) = n_a(l)*c*cte_sigma * sum_j N(l,j)*dE(j)*Phi(i,j)   [erg/s/erg]
+      ! Relativistic bremsstrahlung spectrum, L_E [erg/s/erg]
 
       Phi = Phi_Br( spread(Ef,2,mE_e)/spread(E_e,1,mE_f), spread(gamma_e,1,mE_f), screened )
       Lbr = spread(n_a*c*cte_sigma, 2, mE_f) * matmul( N_etot*spread(dE_e,1,m_theta), transpose(Phi) )
@@ -95,9 +86,7 @@ contains
    !========================================
 
    elemental function Phi_Br(u,g_e,screened)
-      ! Phi function of the rel. Br. cross-section (Blumenthal & Gould 1970).
-      ! Zero for u >= 1 (E_f <= E_e from energy conservation) and where the
-      ! unscreened expression becomes negative (outside its range of validity).
+      ! Phi function of the rel. Br. cross-section (Blumenthal & Gould 1970); 0 for u >= 1
       real(dp) :: Phi_Br
       real(dp), intent(in) :: u,g_e
       logical, intent(in) :: screened

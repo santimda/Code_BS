@@ -8,51 +8,37 @@ module CD_abssyn
    public :: CD_abssyn_run
 
    !========================================================================
-   ! Regions crossed by a ray (see region below)
-   integer,  parameter :: REG_OUT  = 0     ! shocked wind, shocked ISM or unperturbed ISM: no absorption here
-   integer,  parameter :: REG_WIND = 1     ! unshocked stellar wind (inside the RS, or the open tail)
-   integer,  parameter :: REG_IL   = 2     ! isothermal (ionized) layer of the radiative FS
-   integer,  parameter :: n_bis = 40       ! bisection iterations to locate a boundary
-   integer,  parameter :: n_sub = 16       ! midpoint sub-steps for each crossing of the IL
+   ! Regions crossed by a ray
+   integer,  parameter :: REG_OUT  = 0     ! no absorption
+   integer,  parameter :: REG_WIND = 1     ! unshocked wind
+   integer,  parameter :: REG_IL   = 2     ! isothermal layer of the FS
+   integer,  parameter :: n_bis = 40       ! bisection iterations
+   integer,  parameter :: n_sub = 16       ! sub-steps in the IL
    integer,  parameter :: n_step_max = 10000000
-   real(dp), parameter :: tau_occ = 1.d3   ! optical depth of a photon occulted by the star
+   real(dp), parameter :: tau_occ = 1.d3   ! tau if the star occults the emitter
 
-   ! Geometry of the shell, set in CD_abssyn_run and only read inside the parallel loop
-   logical  :: IL                         ! the FS has an isothermal layer
-   integer  :: n_abs                      ! wind and IL absorption computed for nu(1:n_abs)
-   real(dp) :: th_min, th_max, dtheta     ! polar angle grid (measured from the apex, -x)
-   real(dp) :: ds_in                      ! integration step for r < R_far
-   real(dp) :: R_far                      ! largest radius of the shell [cm]
-   real(dp) :: r_stop                     ! the ray marching stops at r > r_stop [cm]
+   ! Shell geometry
+   logical  :: IL                         ! FS with isothermal layer
+   integer  :: n_abs                      ! nu < nu_max_ff
+   real(dp) :: th_min, th_max, dtheta     ! theta grid
+   real(dp) :: ds_in                      ! step for r < R_far
+   real(dp) :: R_far                      ! max radius of the shell [cm]
+   real(dp) :: r_stop                     ! [cm]
    real(dp), allocatable :: r_CD(:)       ! CD radius [cm]
-   real(dp), allocatable :: r_RS(:)       ! inner edge of the shocked wind (= RS) [cm]
+   real(dp), allocatable :: r_RS(:)       ! RS radius [cm]
    real(dp), allocatable :: r_ILo(:)      ! outer edge of the IL [cm]
-   real(dp), allocatable :: nnk_IL(:,:)   ! alpha_ff of the IL, (n_abs, m_theta) [1/cm]
+   real(dp), allocatable :: nnk_IL(:,:)   ! alpha_ff of the IL [1/cm]
 
 contains
 
    !========================================================================
    !        CD_abssyn_run
    !========================================================================
-   ! Free-free absorption of the synchrotron emission of the shock(s) for the
-   ! linear emitters at the current rotation angle phi (CDrot.dat).
-   ! Absorbers:
-   !  - unshocked stellar wind (tau_w). alpha_w(r,nu) = K_w(nu)/r**4, so the
-   !    integral along each straight segment of the ray is analytic (G_w).
-   !    The wind fills r < r_RS(theta) = r_CD - (radial width of the shocked
-   !    wind) and the open tail theta > theta(m_theta).
-   !  - isothermal layer of the radiative FS (tau_il), r_CD <= r < r_CD + eta_H*H
-   !    (radial width), with n_e*n_i and alpha_ff evaluated at T_IL(theta).
-   !    Used whenever the FS is radiative (T_IL_FS.dat exists), for any shock.
-   !  - Stromgren sphere (tau_str), radius from Stromgren.dat.
-   ! Wind and IL absorption are computed for nu < nu_max_ff (global.f90).
-   ! Photons whose ray crosses the star are occulted (tau = tau_occ).
-   ! The f-f absorption in the hot shocked gas is neglected given the large T.
-   !
-   ! Output (arguments): E_sy, photon energy [eV], and the SED summed over the
-   ! linear emitters, unabsorbed (Lsy_sum) and absorbed (Lsy_sum_abs), as
-   ! nu*L_nu [erg/s]. Files (output/): radio maps, average map, radsyn_abs*.dat
-   ! and, if verbose, CD_tauff*.dat.
+   ! f-f absorption of the synchrotron emission for the linear emitters at
+   ! the current phi. Absorbers: unshocked wind, isothermal layer of the FS
+   ! (if radiative) and Stromgren sphere. Wind and IL only for nu < nu_max_ff.
+   ! Returns E_sy [eV] and nu*L_nu [erg/s] summed over the emitters
+   ! (unabsorbed and absorbed). Also writes the radio maps.
    !========================================================================
 
    subroutine CD_abssyn_run(shock, radiative, E_sy, Lsy_sum, Lsy_sum_abs)
@@ -63,10 +49,10 @@ contains
    real(dp) :: log_nu_int, flux, convert, R_str, r_ff1, ne_ISM, ni_ISM, e_u(3)
    integer :: l, i, im, n_map, iu
    character(len=:), allocatable :: tag
-   integer,  allocatable :: i_nu(:)                       ! index of each map frequency in freq(:)
-   real(dp), allocatable :: pos(:,:)                      ! (x,y,z) of each linear emitter [cm]
-   real(dp), allocatable :: freq(:)                       ! frequency grid (nu.dat) [Hz]
-   real(dp), allocatable :: L_em(:,:)                     ! nu*L_nu of each linear emitter (position, nu)
+   integer,  allocatable :: i_nu(:)                       ! index of each map frequency
+   real(dp), allocatable :: pos(:,:)                      ! emitter positions [cm]
+   real(dp), allocatable :: freq(:)                       ! [Hz]
+   real(dp), allocatable :: L_em(:,:)                     ! nu*L_nu of each emitter
    !real(dp), allocatable :: L_FS(:,:)
    real(dp), allocatable :: tau_w(:,:), tau_il(:,:), tau_str(:), tau_tot(:,:)
    real(dp), allocatable :: gaunt(:), kappa_ISM(:), K_w(:)
@@ -86,7 +72,7 @@ contains
    ! Geometry and frequency grid
 
    open(newunit=iu, file=output_file('CDrot.dat'))
-   read(iu,*) pos                         ! one (x,y,z) per line, "up" and "down"
+   read(iu,*) pos                         ! "up" and "down"
    close(iu)
    pos = R0*pos
 
@@ -97,31 +83,30 @@ contains
    n_abs = count(freq < nu_max_ff)
 
    !======================================================
-   ! Wind: alpha_w(r,nu) = K_w(nu)/r**4 (opac_ff.f90). K_w from the first row
-   ! of the table (r_ff(1)), which is exact because T_wind is constant.
+   ! Wind: alpha_w = K_w(nu)/r**4
 
    open(newunit=iu, file=output_file('r_ff.dat'))
    read(iu,*) r_ff1
    close(iu)
    open(newunit=iu, file=output_file('windalphaff.dat'))
-   read(iu,*) K_w                         ! first row: alpha_w(r_ff(1),nu)
+   read(iu,*) K_w                         ! alpha_w at r_ff(1)
    close(iu)
    K_w = K_w*r_ff1**4
 
    !======================================================
-   ! Shell: CD, RS and IL (radial widths), alpha_ff of the IL
+   ! Shell boundaries and alpha_ff of the IL
 
    call shell_geometry(shock, radiative, freq)
 
    !======================================================
-   ! Opacities: stellar wind and IL (nu < nu_max_ff), Stromgren sphere
+   ! Opacities
 
    call tau_calc(shock, pos, K_w, tau_w, tau_il)
 
    open(newunit=iu, file=output_file('Stromgren.dat'))
    read(iu,*) R_str
    close(iu)
-   ne_ISM = rho_ISM/(mu_e*mp)            ! n_ISM: total particle density (rho_ISM = n_ISM*mu_ISM*mp)
+   ne_ISM = rho_ISM/(mu_e*mp)
    ni_ISM = rho_ISM/(mu_i*mp)
    call gaunt_ff_calc(freq, m_nu, T_ISM, Zq_ISM, gaunt)
    kappa_ISM = 3.7d8 * Zq_ISM**2/sqrt(T_ISM) * (1.d0-exp(-h*freq/(k*T_ISM)))/freq**3 * gaunt
@@ -142,24 +127,23 @@ contains
    end if
 
    !/////////////////////////////////////////////////////////////////////
-   ! Synchrotron emission of each linear emitter: emisyn_*.dat has
-   ! E [eV] and nu*L_nu [erg/s] (already multiplied by E)
+   ! Synchrotron emission of each linear emitter, nu*L_nu [erg/s]
 
    select case (shock)
    case ('RS', 'FS')
       call read_emisyn(shock, E_sy, L_em)
    case ('BOTH')
       call read_emisyn('RS', E_sy, L_em)
-      ! FS synchrotron emission (disabled; emisyn_FS.dat only exists for an adiabatic FS):
+      ! FS synchrotron emission (disabled):
       !allocate( L_FS(m_l,m_nu) )
       !call read_emisyn('FS', E_sy, L_FS)
       !L_em = L_em + L_FS
       !deallocate( L_FS )
    end select
-   L_em(m_theta+1:m_l,:) = L_em(1:m_theta,:)       ! symmetry ("down" side)
+   L_em(m_theta+1:m_l,:) = L_em(1:m_theta,:)       ! symmetry
 
    !-----------------------------------------------------------------------
-   ! Total unabsorbed and absorbed emission (sum over linear emitters)
+   ! Total unabsorbed and absorbed emission
 
    Lsy_sum     = sum(L_em, dim=1)
    Lsy_sum_abs = sum(L_em*exp(-tau_tot), dim=1)
@@ -173,9 +157,7 @@ contains
    close(iu)
 
    !-----------------------------------------------------------------------
-   ! Emission maps at the frequencies selected in controls (maps(:)),
-   ! projected in the plane of the sky: u along e_u = (cos i, sin i, 0) and
-   ! v along z, both perpendicular to the LOS e_obs = (-sin i, cos i, 0)
+   ! Emission maps at the frequencies of maps(:), in the plane of the sky
 
    n_map = size(maps)
    allocate( i_nu(n_map), u_map(m_l), v_map(m_l), emis(m_l,max(n_map,1)), emis_abs(m_l,max(n_map,1)) )
@@ -195,14 +177,13 @@ contains
    end do
 
    !------------------------------------------------------------
-   ! Average flux between nu_av_min and nu_av_max. In the log grid
-   ! dnu = nu*(nu(2)/nu(1)-1), so (L_em/nu)*flux*dnu = L_em*flux*(nu(2)/nu(1)-1)
+   ! Average flux between nu_av_min and nu_av_max
 
    allocate( w_avg(m_nu) )
    w_avg = merge(flux*(freq(2)/freq(1)-1.d0)/(nu_av_max-nu_av_min), 0.d0, &
                  (freq >= nu_av_min) .and. (freq <= nu_av_max))
 
-   emis(:,1)     = matmul(L_em, w_avg)                  ! reuse emis(:,1) for the average map
+   emis(:,1)     = matmul(L_em, w_avg)                  ! average map
    emis_abs(:,1) = matmul(L_em*exp(-tau_tot), w_avg)
 
    open(newunit=iu, file=output_file('CD_sync_radiomap_avg'//tag//'.dat'))
@@ -219,8 +200,7 @@ contains
    !========================================================================
    !        read_emisyn
    !========================================================================
-   ! nu*L_nu [erg/s] of each position of the upper half (CD_radsyn.f90):
-   ! one block of m_nu lines (l, E [eV], nu*L_nu) per position + a blank line
+   ! Reads emisyn_<shock>.dat (CD_radsyn.f90)
 
    subroutine read_emisyn(sh, E, Lv)
    character(LEN=*), intent(in) :: sh
@@ -239,14 +219,8 @@ contains
    !========================================================================
    !        shell_geometry
    !========================================================================
-   ! Radial positions of the boundaries of the shell as a function of theta.
-   ! H (H_<shock>.dat) is the width normal to the CD; the radial width is
-   ! H*sqrt(1 + (dln r/dtheta)**2), since tan(psi) = (dr/dtheta)/r is the
-   ! angle between the normal and the radial direction.
-   !  - r_RS = r_CD - (radial width of the shocked wind), H_RS.dat
-   !  - r_ILo = r_CD + eta_H*(radial width of the IL), H_FS.dat, radiative FS
-   ! alpha_ff of the IL: n_e*n_i = (rho_IL/(mu_e*mp))*(rho_IL/(mu_i*mp)),
-   ! at T_IL(theta) (T_IL_FS.dat) and Zq_ISM.
+   ! Radii of the RS and of the outer edge of the IL, and alpha_ff of the IL.
+   ! H is normal to the CD: radial width = H*sqrt(1 + (dln r/dtheta)**2)
    !========================================================================
 
    subroutine shell_geometry(shock, radiative, freq)
@@ -345,12 +319,8 @@ contains
    !========================================================================
    !        tau_calc
    !========================================================================
-   ! Optical depth of the wind (tau_w) and of the IL (tau_il) for a photon
-   ! emitted at pos(:,l) towards the observer (e_obs, global.f90), for
-   ! nu(1:n_abs). The ray geometry does not depend on nu: each ray is followed
-   ! once (trace_ray) and the wind gives a single geometric integral I_w.
-   ! RS emitters start at the CD; FS emitters at the outer edge of the IL
-   ! (the FS emission comes from outside the IL).
+   ! tau of the wind and of the IL along the LOS for each emitter.
+   ! FS emitters start at the outer edge of the IL.
    !========================================================================
 
    subroutine tau_calc(shock, pos, K_w, tau_w, tau_il)
@@ -390,20 +360,15 @@ contains
    !========================================================================
    !        trace_ray
    !========================================================================
-   ! Follows the ray p0 + s*e_obs (s >= 0). The ray is divided into segments
-   ! of constant region; each boundary is located by bisection between two
-   ! consecutive steps (ds_in for r < R_far, 2% of r beyond). For each segment:
-   !  - wind: I_w += int ds/r**4 = G_w(u_a) - G_w(u_b), u = s - s_c
-   !  - IL:   tl  += int alpha_IL ds (midpoint rule, n_sub sub-steps)
-   ! At r > r_stop (moving outwards) the march stops; if the photon is still
-   ! in the wind (open tail) the wind integral is extended to infinity.
+   ! Ray p0 + s*e_obs, split in segments of constant region (boundaries by
+   ! bisection). Wind: I_w = int ds/r**4 (analytic); IL: midpoint rule.
    !========================================================================
 
    subroutine trace_ray(p0, I_w, tl, occ)
    real(dp), intent(in)  :: p0(3)
-   real(dp), intent(out) :: I_w          ! int ds/r**4 over the wind [cm^-3]
-   real(dp), intent(out) :: tl(:)        ! tau of the IL, nu(1:n_abs)
-   logical,  intent(out) :: occ          ! the ray crosses the star
+   real(dp), intent(out) :: I_w          ! int ds/r**4 [cm^-3]
+   real(dp), intent(out) :: tl(:)        ! tau of the IL
+   logical,  intent(out) :: occ          ! occulted by the star
    real(dp) :: s_c, b_imp, s, s_a, s_new, lo, hi, mid, q(3), rq
    integer  :: reg_a, reg_new, n, j
 
@@ -431,7 +396,7 @@ contains
       if (reg_new == reg_a) then
          s = s_new
       else
-         ! boundary between s (reg_a) and s_new (not reg_a)
+         ! boundary
          lo = s
          hi = s_new
          do j = 1, n_bis
@@ -444,7 +409,7 @@ contains
          end do
          call add_segment(reg_a, s_a, hi)
          s_a   = hi
-         s     = hi                       ! continue from the boundary (another one may follow)
+         s     = hi
          reg_a = region(p0 + hi*e_obs)
       end if
    end do
@@ -478,7 +443,7 @@ contains
    END subroutine trace_ray
 
    !========================================================================
-   ! Region of the point q (see REG_* above)
+   ! Region of the point q
 
    pure integer function region(q)
    real(dp), intent(in) :: q(3)
@@ -487,7 +452,7 @@ contains
 
    th = theta_of(q)
    if (th > th_max) then
-      region = REG_WIND                   ! open tail: the shell is not modelled beyond theta(m_theta)
+      region = REG_WIND                   ! open tail
       return
    end if
 
@@ -529,13 +494,7 @@ contains
    end subroutine theta_interp
 
    !========================================================================
-   ! G_w(u,b) = int_u^infinity du'/(u'**2 + b**2)**2, i.e. int ds/r**4 from
-   ! the point at distance u (along the ray) from the closest approach to the
-   ! star, with impact parameter b:
-   !   G_w(u) = [atan(b/u) - u*b/(u**2+b**2)]/(2*b**3)    for u > 0
-   !   G_w(u) = pi/(2*b**3) - G_w(|u|)                    for u < 0
-   ! For b << u the series (1/3 - 2t**2/5 + 3t**4/7)/u**3, t = b/u, avoids the
-   ! cancellation (b -> 0: rays aligned with the star, e.g. the apex at i = 90 deg).
+   ! int_u^inf du/(u**2+b**2)**2 (u: distance to the closest approach, b: impact parameter)
 
    pure real(dp) function G_w(ub, bb)
    real(dp), intent(in) :: ub, bb
