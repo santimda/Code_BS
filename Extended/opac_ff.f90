@@ -1,18 +1,8 @@
 module opac_ff
   !=========================================================================
-  ! Free-free absorption and emission of the unshocked stellar wind and of
-  ! the ionized ISM (Stromgren sphere).
-  ! Outputs (in output/):
-  !  r_ff.dat               radial grid of the wind opacity table [cm]
-  !  windalphaff.dat        alpha_ff(r,nu) of the wind [1/cm], one row per r
-  !  windemiff.dat          nu [Hz], wind flux density [mJy] (Wright & Barlow 1975)
-  !  S_ff_map_<label>.dat   wind radio maps at the frequencies of maps(:)
-  !  gaunt_ISM.dat, radff.dat, flux_ISM.dat   f-f emission of the ionized ISM
-  !  Stromgren.dat          R_str [cm] and volume of the HII region outside the BS [cm3]
-  ! Densities: wind  -> n_i = rho/(mu_w*mp), n_e = gamma_w*n_i, with mu_w the
-  !                     mean mass per ion (Leitherer et al. 1995, Eq. 2)
-  !            ISM   -> n_ISM is the total particle density (rho_ISM = n_ISM*mu_ISM*mp):
-  !                     n_e = rho/(mu_e*mp), n_i = rho/(mu_i*mp), n_H = X*rho/mp
+  ! f-f absorption and emission of the unshocked stellar wind and of the
+  ! ionized ISM (Stromgren sphere).
+  ! Wind: n_e = gamma_w*n_i (Leitherer et al. 1995). ISM: n_ISM = total particle density.
   !=========================================================================
   use global
   use numerical_utils, only: vector_log
@@ -76,8 +66,7 @@ contains
 
     call gaunt_ff_calc(nu, mE_ff, T_wind, Zq_w, g_ff_w)    ! T_wind: constant T in the wind
 
-    ! Opacity alpha_ff(r,nu) [1/cm] (Rybicki & Lightman, Eq. 5.18b), with
-    ! n_i = A_ff/r**2 and n_e = gamma_w*n_i
+    ! Opacity alpha_ff(r,nu) [1/cm] (Rybicki & Lightman, Eq. 5.18b)
     Mdot_eff = Mdot/sqrt(filling)              ! effective mass-loss rate (clumping)
     A_ff = Mdot_eff/(4.d0*pi*v_w*mu_w*mp)      ! r >> R_st: v_w = v_infty
     cte_alpha = 3.7d8*Zq_w**2*gamma_w*(A_ff/r_ff**2)**2/sqrt(T_wind)
@@ -90,8 +79,7 @@ contains
     close(iu)
     deallocate( alphaff )                      ! not needed anymore (largest array)
 
-    ! Total radio flux density of the wind: Eq. 8 of Wright & Barlow (1975),
-    ! Eq. 1 of Leitherer et al. (1995): Mdot [M_sun/yr], v [km/s], d [kpc] -> S [Jy]
+    ! Radio flux density of the wind [Jy] (Wright & Barlow 1975, Eq. 8)
     S = 23.2d0/(distance/kpc)**2 * ( ((Mdot_eff/M_sun_yr)/(v_w/1.d5)/mu_w)**2 &
         * nu*gamma_w*g_ff_w*Zq_w**2 )**(2.d0/3.d0)
     S = S*merge(exp(-h*nu/(k*T_wind)), 1.d0, nu > 1.d-3*k*T_wind/h)   ! ad hoc high-frequency cutoff
@@ -109,7 +97,6 @@ contains
     do im = 1, size(maps)
        i_nu = nu_index(maps(im)%nu, nu(1), log_nu_int, mE_ff)
        nu_S = nu(i_nu)
-       ! Rayleigh-Jeans intensity over d**2 [mJy/cm**2] and optical depth along the LOS
        B_ff_D2 = 2.d0*nu_S**2*k*T_wind/c**2/distance**2*1.d26
        cte_Tau = 3.7d8*h*Zq_w**2*g_ff_w(i_nu)/(k*T_wind**1.5d0*nu_S**2) * gamma_w*A_ff**2*pi/2.d0
 
@@ -131,8 +118,7 @@ contains
 
     print*, 'Calculate the emission from the ionized unshocked ISM'
 
-    ! Ionizing photon rate of the star: Q_ion = int_{13.6 eV} L_N dE,
-    ! with L_N = 4*pi*R_st**2*c*nBB [photons/s/erg] (see nBB in global.f90)
+    ! Ionizing photon rate of the star (E > 13.6 eV)
     E_st_0 = 2.7d0*k*T_st
     call vector_log(13.6d0*eV, 20.d0*E_st_0, E_st_int, E_st)
     Q_ion = 4.d0*pi*R_st**2*c*(E_st_int-1.d0) * sum([( nBB(E_st(i),T_st)*E_st(i), i=1,mE_ph )])
@@ -142,7 +128,7 @@ contains
     ni_ISM = rho_ISM/(mu_i*mp)
     nH_ISM = X_ab*rho_ISM/mp
 
-    ! Stromgren radius: Q_ion = (4pi/3)*R_str**3*n_e*n_H*alpha_B (case B)
+    ! Stromgren radius (case B)
     alpha_B = 2.56d-13*(T_ISM/1.d4)**(-0.83d0)
     R_str = ( 3.d0*Q_ion/(4.d0*pi*ne_ISM*nH_ISM*alpha_B) )**(1.d0/3.d0)
     write(*,'(a, Es10.2)') ' Q_ion(ph/s) = ', Q_ion
@@ -158,7 +144,7 @@ contains
     ! Optical depth through the center of the sphere (Olnon 1975, Eqs. 4 and 10)
     p_ff = 2.d0*ne_ISM*ni_ISM*(R_str/pc) * 8.235d-2*T_ISM**(-1.35d0)*(nu_ISM/1.d9)**(-2.1d0)
 
-    ! Eq. 11 of Olnon (1975) for a sphere; for p << 1 it tends to 2p/3
+    ! Olnon (1975), Eq. 11
     where (p_ff > 1.d-4)
        factor_opac = 1.d0 - (2.d0/p_ff**2)*(1.d0-(p_ff+1.d0)*exp(-p_ff))
     elsewhere
@@ -190,8 +176,7 @@ contains
 
     !----------------------------------------------------------
     ! Velocity transferred to the ISM by the stellar radiation
-    ! V = P/m, with P = F*t (extreme case p_ff = 1), F = L_st/c, t = R_str/v_st
-    ! and m the ISM mass inside the Stromgren sphere
+    ! V = F*t/m, F = L_st/c, t = R_str/v_st (extreme case)
 
     P_trans = (L_st/c)*(R_str/v_st)
     M_tot = rho_ISM*(4.d0/3.d0)*pi*R_str**3
@@ -206,9 +191,7 @@ contains
   END subroutine opac_ff_run
 
   !=========================================================================
-  ! S_ff_map: brightness of the wind at impact parameter r_map, divided by
-  ! d**2 [mJy/cm**2] (Wright & Barlow 1975, Eq. 5): S = B*(1-exp(-tau)),
-  ! tau = cte_Tau/p**3, corrected for the occultation by the star for p < R_c
+  ! Brightness of the wind at impact parameter r_map (Wright & Barlow 1975, Eq. 5)
   !=========================================================================
 
   subroutine S_ff_map(B_ff_D2, cte_Tau, r_i, r_f, S_ff_cm2, r_map)

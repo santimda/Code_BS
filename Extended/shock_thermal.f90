@@ -1,15 +1,8 @@
 module shock_thermal
   !==========================================================================
-  ! Thermal (free-free) emission of the shocks (Martinez et al. 2023, Sect. 3.2.2)
-  !  - RS (adiabatic, radiative = .false.): shocked wind, volume dV_ring
-  !  - FS (radiative = .true.):
-  !      hot layer (HL): spectral shape at T_HL, normalized at each cell to the
-  !                      radiated f-f power (Eq. 14)
-  !      isothermal layer (IL): at T_IL(theta) (CD_termo), volume eta_H*dV_ring (Eq. 15)
-  ! Emissivity (Rybicki & Lightman, Eq. 5.14b):
-  !   j_nu = 6.8e-38 Z**2 n_e n_i T**(-1/2) exp(-h nu/kT) g_ff  [erg/s/cm3/Hz]
-  ! with n_e = rho/(mu_e*mp), n_i = rho/(mu_i*mp).
-  ! Frequency grid: nu.dat (common to the synchrotron and the f-f absorption).
+  ! Thermal (f-f) emission of the shocks (Martinez et al. 2023, Sect. 3.2.2):
+  ! RS, and hot (Eq. 14) and isothermal (Eq. 15) layers of a radiative FS.
+  ! Emissivity: Rybicki & Lightman, Eq. 5.14b
   !==========================================================================
   use global
   use gaunt_factor, only: gaunt_ff_calc
@@ -68,7 +61,6 @@ contains
 
     !------------------------------------------------------------
     ! Shock position, volume, injected power and thermodynamics
-    ! (each read takes all the columns of the file)
 
     open(newunit=iu, file=output_file('CD.dat'))
     read(iu,*) (theta(l), dummy, dummy, dummy, dummy, l=1,m_theta)
@@ -184,8 +176,7 @@ contains
                  ' larger than the injected power; the shock is not adiabatic'
 
     !------------------------------------------------------------
-    ! Emission maps at the frequencies of maps(:): flux of each linear
-    ! emitter (n_emit per ring), the same in both halves [mJy]
+    ! Emission maps at the frequencies of maps(:) [mJy]
 
     if (radiative) then
       S_map(1:m_theta,:) = nuL_HL(:,i_map)/n_emit * spread(flux/nu_th(i_map), 1, m_theta)
@@ -205,8 +196,7 @@ contains
       close(iu)
     end do
 
-    ! Average flux between nu_av_min and nu_av_max:
-    ! sum (nu*L_nu/nu)*flux*dnu/(nu_av_max-nu_av_min), dnu = nu*(nu_int-1)
+    ! Average flux between nu_av_min and nu_av_max
     w_avg = merge(flux*(nu_int-1.d0)/(nu_av_max-nu_av_min), 0.d0, &
                   nu_th >= nu_av_min .and. nu_th <= nu_av_max) / n_emit
 

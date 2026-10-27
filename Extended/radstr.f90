@@ -14,23 +14,8 @@ contains
    !========================================================================
    !        radstr_run
    !========================================================================
-   ! Order-of-magnitude estimate of the p-p and relativistic bremsstrahlung
-   ! luminosities of the particles that escape from the BS into the HII
-   ! region (Stromgren sphere). Only particles with E = E_break are considered.
-   !  - Escape time from the HII region: 1/t_esc = 1/t_adv + 1/t_diff, with
-   !    t_adv = R_str/v_st and t_diff = R_str**2/(6*D(E_break, B_str)).
-   !  - Power injected into the HII region = power injected in the BS minus
-   !    the power radiated in the BS:
-   !      protons:   L_inj_p_HII = L_inj_p - L_pp
-   !      electrons: L_inj_e_HII = L_inj_e - (L_br + L_IC,st + L_sy)
-   !  - Fraction radiated before escaping: f = t_esc/(t_esc + t_loss)
-   !    (-> t_esc/t_loss for t_esc << t_loss, and <= 1).
-   ! Input files (output/): Stromgren.dat, L_inj_p_/L_inj_e_<shock>.dat (one
-   ! linear emitter), radpp_tot_<shock>.dat, radbr_<shock>.dat (one linear
-   ! emitter), rad_IC_st_tot_<shock>.dat and radsyn_tot_<shock>.dat (totals).
-   ! Missing radiation files are taken as zero losses (with a warning).
-   ! Output (output/): rad_pp_str_<shock>.dat and rad_Br_str_<shock>.dat,
-   ! E [eV] and E*L_E [erg/s].
+   ! Estimate of the p-p and NT bremsstrahlung luminosities of the particles
+   ! (E = E_break) that escape from the BS into the HII region.
    !========================================================================
 
    subroutine radstr_run(shock)
@@ -85,8 +70,7 @@ contains
 
    t_pp = 1.d15/n_i                              ! p-p cooling time (order of magnitude)
 
-   ! We estimate that approx 0.1*L_pp is radiated by E_break; protons with
-   ! E = E_break radiate mostly at ~0.1*E_break
+   ! approx 0.1*L_pp is radiated by E_break, mostly at ~0.1*E_break
    L_pp_Etran = 0.1d0*t_esc/(t_esc + t_pp)*L_inj_p
    write(*,80) 'L_pp(0.1 E_break) =', L_pp_Etran
 
@@ -101,7 +85,7 @@ contains
    read(iu,*) L_inj_e_BS                         ! one linear emitter
    close(iu)
 
-   ! Bremsstrahlung of one linear emitter: E [eV], E*L_E [erg/s] in a log grid
+   ! Bremsstrahlung of one linear emitter
    Lbr_sh = 0.d0
    if (file_ok('radbr_'//shock//'.dat')) then
       allocate( E_br(mE_f), EL_br(mE_f) )
@@ -135,14 +119,13 @@ contains
 
    contains
 
-      ! The file exists in output/ (warning otherwise)
       logical function file_ok(name)
       character(len=*), intent(in) :: name
       inquire(file=output_file(name), exist=file_ok)
       if (.not. file_ok) print *, 'WARNING (radstr): '//name//' not found; that loss is taken as 0'
       end function file_ok
 
-      ! First value of a file (0 if it does not exist)
+      ! First value of a file (0 if missing)
       real(dp) function read_total(name)
       character(len=*), intent(in) :: name
       integer :: iu2

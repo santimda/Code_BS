@@ -1,8 +1,6 @@
 module rad_H_alpha
    !============================================================================
-   ! H-alpha recombination emission of the isothermal (ionized) layer of a
-   ! radiative FS: map projected in the plane of the sky and its convolution
-   ! with a Gaussian beam.
+   ! H-alpha emission map of the isothermal layer of the FS
    !============================================================================
    use global
    use controls, only: verbose
@@ -19,16 +17,7 @@ contains
    !============================================================================
    !        project_H_alpha_map
    !============================================================================
-   ! H-alpha flux of each linear emitter at the rotation angle phi (CDrot.dat),
-   ! for an optically thin IL:
-   !   S = kappa_alpha * n_e*n_p * V_cell * convert**2   [erg/s/cm2]
-   ! kappa_alpha = 2.85e-33*T**(-0.9) [erg/s/cm3/arcsec2 per n_e*n_p], with
-   ! T = T_IL(theta) (T_IL_FS.dat), n_e = rho_IL/(mu_e*mp), n_p = X*rho_IL/mp,
-   ! and V_cell = eta_H*dV_ring/n_emit: the n_emit = 4*(mphi-1) distinct
-   ! azimuths of the map (phi = 0, ..., pi/2, + up/down and the mirror in
-   ! main.f90) cover the ring once. S does not depend on phi; only the
-   ! projected position does.
-   ! Output (output/): S_alpha_proj_<shock>.dat with u ["], v ["], S.
+   ! H-alpha flux [erg/s/cm2] of each linear emitter at the current phi
    !============================================================================
 
    subroutine project_H_alpha_map(shock)
@@ -49,7 +38,7 @@ contains
       allocate( pos(3,m_l), rhoIL(m_theta), T_IL(m_theta), dV_ring(m_theta), S_alpha(m_l) )
 
       !-----------------------------------------
-      ! IL: density, temperature and volume of each ring (CD_termo.f90)
+      ! IL: density, temperature and volume of each ring
 
       open(newunit=iu, file=output_file('termo_'//shock//'.dat'))
       do l = 1, m_theta
@@ -70,15 +59,14 @@ contains
       close(iu)
 
       !-----------------------------------------
-      ! Flux of each linear emitter (same for the "up" and "down" sides)
+      ! Flux of each linear emitter
 
       S_alpha(1:m_theta) = 2.85d-33*T_IL**(-0.9d0) * (rhoIL/(mu_e*mp))*(X_ab*rhoIL/mp) &
                          * frac_H*dV_ring/n_emit * convert**2
       S_alpha(m_theta+1:m_l) = S_alpha(1:m_theta)
 
       !-----------------------------------------
-      ! Projection in the plane of the sky (as in CD_abssyn): u along
-      ! e_u = (cos i, sin i, 0), v along z; both perpendicular to e_obs
+      ! Projection in the plane of the sky
 
       open(newunit=iu, file=output_file('CDrot.dat'))
       read(iu,*) pos
@@ -97,16 +85,7 @@ contains
    !============================================================================
    !        rad_H_alpha_run
    !============================================================================
-   ! Convolution of the H-alpha map (S_alpha_map_<shock>.dat, written in
-   ! main.f90 for all phi) with a Gaussian beam of widths sigma_x, sigma_y.
-   ! The map is read as (u, v, S); the convolution grid uses x = v (symmetric
-   ! with respect to the axis) and y = u (along the projected axis).
-   ! Surface brightness [R] = sum_l S_l/R_factor * exp(-d2) / (2*pi*sigma_x*sigma_y),
-   ! d2 = (x_l-x_c)**2/(2*sigma_x**2) + (y_l-y_c)**2/(2*sigma_y**2), computed
-   ! row by row in conv_rows. The grid covers the data plus n_sig_margin*sigma
-   ! on each side (x symmetric with respect to the axis), spacing f_Ny*sigma.
-   ! Output (output/): R0_proj_<system>.dat and S_alpha_convmap_<system>.dat
-   ! (x ["], y ["], brightness [R]; one block per x).
+   ! Convolution of the H-alpha map with a Gaussian beam; brightness in R
    !============================================================================
 
    subroutine rad_H_alpha_run(shock)
@@ -125,7 +104,7 @@ contains
       close(iu)
 
       !------------------------------------------------------
-      ! Map: u -> y_map, v -> x_map; flux from cgs to R*arcsec2
+      ! Map (u -> y_map, v -> x_map), in R*arcsec2
 
       allocate( x_map(m_tot), y_map(m_tot), F_alpha(m_tot) )
       open(newunit=iu, file=output_file('S_alpha_map_'//shock//'.dat'))
@@ -134,8 +113,7 @@ contains
       F_alpha = F_alpha/R_factor
 
       !-------------------------------------------------------
-      ! Convolution grid ["]: the data plus n_sig_margin*sigma on each side
-      ! (x symmetric with respect to the axis), spacing f_Ny*sigma
+      ! Convolution grid ["]
 
       D_x = f_Ny*sigma_x
       D_y = f_Ny*sigma_y
@@ -150,7 +128,7 @@ contains
       y_c   = y_min + ([(real(j,dp), j=1,m_y)] - 0.5d0)*D_y
 
       !------------------------------------------
-      ! Convolve (see conv_rows)
+      ! Convolve
 
       w_x = 2.d0*sigma_x**2
       w_y = 2.d0*sigma_y**2
@@ -176,8 +154,7 @@ contains
 
 
    !============================================================================
-   ! F(i,j) = sum_l S_l*exp(-(x_l-x_c(i))**2/w_x)*EY(l,j), EY(l,j) = exp(-dy2).
-   ! Row by row (OpenMP), using only the points with dx2 < 40 (exp(-40) ~ 4e-18).
+   ! Gaussian convolution, row by row
 
    subroutine conv_rows(x_map, S, x_c, w_x, EY, F)
       real(dp), intent(in)  :: x_map(:), S(:), x_c(:), w_x, EY(:,:)

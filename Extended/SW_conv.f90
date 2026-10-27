@@ -1,7 +1,6 @@
 module SW_conv
    !============================================================================
-   ! Convolution of the radio emission maps (plane of the sky) with the
-   ! instrument response (Gaussian beam), and spectral index maps.
+   ! Convolution of the radio maps with the instrument response
    !============================================================================
    use global
    use controls, only: verbose
@@ -17,21 +16,8 @@ contains
    !============================================================================
    !        SW_conv_run
    !============================================================================
-   ! Convolved map of the synchrotron emission of the shock(s) (absorbed) plus
-   ! the thermal emission of the RS and FS and of the hot layer of the FS
-   ! (maps written in main.f90 for all phi). mf = one entry of maps(:)
-   ! (map_freqs.f90) or map_avg (controls.f90): file-name label (mf%label) and
-   ! beam widths (mf%sigma) ["].
-   ! The map is read as (u, v, S_unabs, S_abs); the convolution grid uses
-   ! x = v and y = u. The grid covers the data plus n_sig_margin*sigma on each
-   ! side (x symmetric with respect to the axis), with spacing f_Ny*sigma.
-   ! Convolved flux [mJy/beam]: F(x_c,y_c) = sum_l S_l*exp(-d2), with
-   ! d2 = (x_l-x_c)**2/(2*sigma_x**2) + (y_l-y_c)**2/(2*sigma_y**2). Since
-   ! exp(-d2) = exp(-dx2)*exp(-dy2), each row of F is a vector-matrix product
-   ! (conv_rows): F(i,:) = matmul(S*exp(-dx2(i)), EY), EY(l,j) = exp(-dy2).
-   ! Check: sum F*A_cell/A_beam = sum S (if the grid covers the whole map).
-   ! Output (output/): SW_conv_<label>abs_<system>.dat (x ["], y ["], F [mJy/beam];
-   ! one block per x) and R0_proj_<system>.dat.
+   ! Convolved map [mJy/beam] of the absorbed synchrotron + thermal (RS, FS
+   ! and hot layer) emission. mf: map frequency (label and beam ["]).
    !============================================================================
 
    subroutine SW_conv_run(shock, mf)
@@ -64,7 +50,7 @@ contains
       close(iu)
 
       !------------------------------------------------------
-      ! Maps: synchrotron (u -> y_map, v -> x_map), thermal and hot layer
+      ! Maps (u -> y_map, v -> x_map)
 
       m_tot = count_records('sync_radiomap_'//tag//freq//'.dat')
       allocate( x_map(m_tot), y_map(m_tot), F_un(m_tot), F_abs(m_tot), S_th(m_tot), S_hot(m_tot) )
@@ -117,7 +103,7 @@ contains
       deallocate( EY )
 
       !------------------------------------------
-      ! Save + consistency check (mJy/beam -> mJy with A_cell/A_beam)
+      ! Save
 
       open(newunit=iu, file=output_file('SW_conv_'//freq//'abs_'//system//'.dat'))
       do i = 1, m_x
@@ -136,11 +122,7 @@ contains
    !============================================================================
    !        SW_spex_run
    !============================================================================
-   ! Spectral index map between two convolved maps (SW_conv_run) mf1 and mf2,
-   ! alpha = ln(F2/F1)/ln(nu2/nu1), where F1 > F1_min and F2 > F2_min.
-   ! Both maps must have the same beam, and therefore the same grid.
-   ! Output (output/): SW_spex_<label1>_<label2>_<system>.dat (x, y, alpha;
-   ! one block per x).
+   ! Spectral index map between two convolved maps (same beam)
    !============================================================================
 
    subroutine SW_spex_run(mf1, mf2)
@@ -187,8 +169,7 @@ contains
 
 
    !============================================================================
-   ! F(i,j) = sum_l S_l*exp(-(x_l-x_c(i))**2/w_x)*EY(l,j), EY(l,j) = exp(-dy2).
-   ! Row by row (OpenMP), using only the points with dx2 < 40 (exp(-40) ~ 4e-18).
+   ! Gaussian convolution, row by row
 
    subroutine conv_rows(x_map, S, x_c, w_x, EY, F)
       real(dp), intent(in)  :: x_map(:), S(:), x_c(:), w_x, EY(:,:)
@@ -212,7 +193,7 @@ contains
    end subroutine conv_rows
 
    !============================================================================
-   ! Number of non-empty records of a file in output/
+   ! Number of non-empty lines of a file
 
    integer function count_records(name)
       character(len=*), intent(in) :: name
