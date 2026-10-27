@@ -56,7 +56,6 @@ contains
    !========================================================================
 
    subroutine CD_abssyn_run(shock, radiative, E_sy, Lsy_sum, Lsy_sum_abs)
-   !$ use omp_lib
    character(LEN=*), intent(in) :: shock
    logical, intent(in) :: radiative
    real(dp), intent(out) :: E_sy(m_nu), Lsy_sum(m_nu), Lsy_sum_abs(m_nu)
@@ -68,7 +67,7 @@ contains
    real(dp), allocatable :: pos(:,:)                      ! (x,y,z) of each linear emitter [cm]
    real(dp), allocatable :: freq(:)                       ! frequency grid (nu.dat) [Hz]
    real(dp), allocatable :: L_em(:,:)                     ! nu*L_nu of each linear emitter (position, nu)
-   real(dp), allocatable :: L_FS(:,:)
+   !real(dp), allocatable :: L_FS(:,:)
    real(dp), allocatable :: tau_w(:,:), tau_il(:,:), tau_str(:), tau_tot(:,:)
    real(dp), allocatable :: gaunt(:), kappa_ISM(:), K_w(:)
    real(dp), allocatable :: u_map(:), v_map(:), emis(:,:), emis_abs(:,:), w_avg(:)
@@ -77,13 +76,11 @@ contains
    allocate( gaunt(m_nu), kappa_ISM(m_nu), K_w(m_nu) )
    allocate( tau_w(m_l,m_nu), tau_il(m_l,m_nu), tau_str(m_nu), tau_tot(m_l,m_nu) )
 
-   call validate_shock(shock, 'CD_abssyn_run')
+   call validate_shock(shock, 'CD_abssyn_run', allow_both=.true.)
    if (verbose) print *, 'Calculate the f-f absorption of the synchrotron emission'
 
    convert = 206265/distance             ! image to angular size ["]
    flux = 1.d26/(4.d0*pi*(distance)**2)  ! luminosity to flux in mJy
-   ! set omp threads number
-   !$ call omp_set_num_threads(nth)
 
    !======================================================
    ! Geometry and frequency grid
@@ -153,10 +150,11 @@ contains
       call read_emisyn(shock, E_sy, L_em)
    case ('BOTH')
       call read_emisyn('RS', E_sy, L_em)
-      allocate( L_FS(m_l,m_nu) )
-      call read_emisyn('FS', E_sy, L_FS)
-      !L_em = L_em + L_FS                         ! FS synchrotron emission (disabled)
-      deallocate( L_FS )
+      ! FS synchrotron emission (disabled; emisyn_FS.dat only exists for an adiabatic FS):
+      !allocate( L_FS(m_l,m_nu) )
+      !call read_emisyn('FS', E_sy, L_FS)
+      !L_em = L_em + L_FS
+      !deallocate( L_FS )
    end select
    L_em(m_theta+1:m_l,:) = L_em(1:m_theta,:)       ! symmetry ("down" side)
 
@@ -229,7 +227,7 @@ contains
    real(dp), intent(out) :: E(:), Lv(:,:)
    integer :: l, i, iu
 
-   open(newunit=iu, file=output_file('emisyn_'//sh//'.dat'))
+   open(newunit=iu, file=output_file('emisyn_'//sh//'.dat'), status='old')
    do l = 1, m_theta
       read(iu,*) (dummy, E(i), Lv(l,i), i=1,m_nu)
       read(iu,*)

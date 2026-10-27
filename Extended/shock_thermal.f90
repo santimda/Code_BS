@@ -132,8 +132,8 @@ contains
       end do
       nuL_HL = exp(-h*spread(nu_th,1,m_theta)/(k*spread(T_sh,2,m_nu))) * g_HL * spread(nu_th,1,m_theta)
       integ = matmul(nuL_HL, dnu/nu_th)                     ! int j_nu dnu (up to a constant)
-      P_rad = merge( lambda_ff(T_sh)/lambda_cool(T_sh)*(1.d0-T_min/T_sh)*L_inj*4.d0*mphi, &
-                     0.d0, T_sh > T_min )                   ! whole ring: 4*mphi linear emitters
+      P_rad = merge( lambda_ff(T_sh)/lambda_cool(T_sh)*(1.d0-T_min/T_sh)*L_inj*n_emit, &
+                     0.d0, T_sh > T_min )                   ! whole ring: n_emit linear emitters
       nuL_HL = nuL_HL*spread(P_rad/integ, 2, m_nu)
     end if
     nuL_HL_tot = sum(nuL_HL, dim=1)
@@ -168,7 +168,7 @@ contains
         write(*,'(A,A,A,X,Es10.3)') ' S_', trim(maps(im)%label), '[mJy]=', nuL_HL_tot(i_map(im))/nu_th(i_map(im))*flux
       end do
       write(*,'(A,X,Es10.2)') ' L_HL_tot =', L_HL_tot
-      write(*,'(A,X,Es10.2)') ' L_inj*(1-T_IL/T_HL)/L_HL_tot =', sum(L_inj*(1.d0-T_min/T_sh))*4.d0*mphi/L_HL_tot
+      write(*,'(A,X,Es10.2)') ' L_inj*(1-T_IL/T_HL)/L_HL_tot =', sum(L_inj*(1.d0-T_min/T_sh))*n_emit/L_HL_tot
       print*, '\n f-f emission from the isothermal layer:'
     else
       print*, '\n f-f emission from the '//shock//':'
@@ -179,16 +179,16 @@ contains
     write(*,'(A,X,Es10.2)') ' L_ion_tot =', L_v_tot
 
     ! In an adiabatic shock the thermal emission must be a small fraction of the injected power
-    if (.not. radiative .and. L_v_tot > sum(L_inj)*4.d0*mphi) &
+    if (.not. radiative .and. L_v_tot > sum(L_inj)*n_emit) &
       write(*,*) 'WARNING (shock_thermal): thermal luminosity of the '//shock// &
                  ' larger than the injected power; the shock is not adiabatic'
 
     !------------------------------------------------------------
     ! Emission maps at the frequencies of maps(:): flux of each linear
-    ! emitter (4*mphi per ring), the same in both halves [mJy]
+    ! emitter (n_emit per ring), the same in both halves [mJy]
 
     if (radiative) then
-      S_map(1:m_theta,:) = nuL_HL(:,i_map)/(4.d0*mphi) * spread(flux/nu_th(i_map), 1, m_theta)
+      S_map(1:m_theta,:) = nuL_HL(:,i_map)/n_emit * spread(flux/nu_th(i_map), 1, m_theta)
       S_map(m_theta+1:,:) = S_map(1:m_theta,:)
       do im = 1, n_map
         open(newunit=iu, file=output_file('CD_hot_layer_'//trim(maps(im)%label)//'.dat'))
@@ -197,7 +197,7 @@ contains
       end do
     end if
 
-    S_map(1:m_theta,:) = nuL_v(:,i_map)/(4.d0*mphi) * spread(flux/nu_th(i_map), 1, m_theta)
+    S_map(1:m_theta,:) = nuL_v(:,i_map)/n_emit * spread(flux/nu_th(i_map), 1, m_theta)
     S_map(m_theta+1:,:) = S_map(1:m_theta,:)
     do im = 1, n_map
       open(newunit=iu, file=output_file('CD_th_'//shock//'_'//trim(maps(im)%label)//'.dat'))
@@ -208,7 +208,7 @@ contains
     ! Average flux between nu_av_min and nu_av_max:
     ! sum (nu*L_nu/nu)*flux*dnu/(nu_av_max-nu_av_min), dnu = nu*(nu_int-1)
     w_avg = merge(flux*(nu_int-1.d0)/(nu_av_max-nu_av_min), 0.d0, &
-                  nu_th >= nu_av_min .and. nu_th <= nu_av_max) / (4.d0*mphi)
+                  nu_th >= nu_av_min .and. nu_th <= nu_av_max) / n_emit
 
     if (radiative) then
       S_avg = matmul(nuL_HL, w_avg)

@@ -31,7 +31,6 @@ contains
   !============================================================================
 
   subroutine CD_radsyn_run(shock)
-    !$ use omp_lib
     character(LEN=*), intent(in) :: shock
     integer  :: l, i, im, iu, j_max
     real(dp) :: Eps_int, Eint, sum_sy, nuc_max, ne, nu_RT
@@ -48,8 +47,6 @@ contains
     call validate_shock(shock, 'CD_radsyn_run')
     if (verbose) print *, 'Calculate the (unabsorbed) synchrotron emission in the '//shock
 
-    ! set omp threads number
-    !$ call omp_set_num_threads(nth)
 
     !////////////////////////////////////////////////////////////////////////
     !
@@ -115,9 +112,9 @@ contains
 
     Lsy_tot = Eps*sum(Lsy, dim=1)                                  ! [erg/s]
     sum_sy  = sum(matmul(Lsy, dEps))
-    S_nu    = Lsy_tot*(mphi*4.)/(4.*pi*distance**2*nu)*1.d26      ! mphi emitters, 4 quadrants [mJy]
+    S_nu    = Lsy_tot*n_emit/(4.*pi*distance**2*nu)*1.d26      ! mphi emitters, 4 quadrants [mJy]
 
-    write(*,'(A19,X,Es10.3)') 'L_syn(unabsorbed)=',sum_sy*(mphi*4.) ! mphi emitters, 4 quadrants
+    write(*,'(A19,X,Es10.3)') 'L_syn(unabsorbed)=',sum_sy*n_emit ! mphi emitters, 4 quadrants
 
     ! Fluxes at the radio-map frequencies (controls.f90)
     i_map = nu_index(maps%nu, nu(1), log(nu(2)/nu(1)), m_nu)
@@ -130,7 +127,7 @@ contains
     !   Save data
 
     open(newunit=iu, file=output_file('radsyn_tot_'//shock//'.dat'))
-    write(iu,'(es17.8e3)') sum_sy*(mphi*4.)
+    write(iu,'(es17.8e3)') sum_sy*n_emit
     close(iu)
 
     ! Total SED (one linear emitter): E [eV], nu*L_nu [erg/s], L_E [1/s]

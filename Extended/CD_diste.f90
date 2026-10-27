@@ -24,7 +24,6 @@ module CD_diste
    !============================================================================
 
    subroutine CD_diste_run(shock)
-      !$ use omp_lib
       character(LEN=*), intent(in) :: shock
       integer  :: l, i, l2, l_min, l_cut, m_theta_inj_max, n_E, iu
       integer  :: index1, index2, n_count, steps
@@ -59,8 +58,6 @@ module CD_diste
       call validate_shock(shock, 'CD_diste_run')
       if (verbose) print *, 'Calculate the non-thermal electron distribution in the '//shock
 
-      ! set omp threads number
-      !$ call omp_set_num_threads(nth)
 
       !---------------------------------------------------------------------------------
       !  Read the cell size, injected luminosity, thermodynamical quantities, shock
@@ -287,7 +284,7 @@ module CD_diste
       close(iu)
 
       ! Non-thermal energy in each BS "ring" (4 quadrants), its density and ratio to U_B
-      E_NT = matmul(N_etot, E_e*dE) * 4.d0*mphi
+      E_NT = matmul(N_etot, E_e*dE) * n_emit
       U_NT = E_NT/dV_ring
       U_B  = B**2/(8.d0*pi)
       open(newunit=iu, file=output_file('ENTe_'//shock//'.dat'))
@@ -330,7 +327,6 @@ module CD_diste
    !============================================================================
 
    subroutine CD_diste_approx_run(shock)
-      !$ use omp_lib
       character(LEN=*), intent(in) :: shock
       integer  :: l, i, l_min, n_E, iu
       real(dp) :: Eint, integral
@@ -348,8 +344,6 @@ module CD_diste
 
       if (verbose) print *, 'Calculate the non-thermal electron distribution in the '//shock//' (no energy losses)'
 
-      ! set omp threads number
-      !$ call omp_set_num_threads(nth)
 
       call read_shock(shock, theta, rho, T, B, v_t, n_a, L_inj_e, dR, H_theta, R_acel, dV_ring, &
                       efi_ac_sh, alpha_sh, t_adv)
@@ -393,7 +387,7 @@ module CD_diste
       end do
       close(iu)
 
-      E_NT = matmul(N_etot, E_e*dE) * 4.d0*mphi      ! Total NT energy in each BS "ring"
+      E_NT = matmul(N_etot, E_e*dE) * n_emit      ! Total NT energy in each BS "ring"
       U_NT = E_NT/dV_ring
       U_B  = B**2/(8.d0*pi)
       open(newunit=iu, file=output_file('ENTe_approx_'//shock//'.dat'))
@@ -401,7 +395,7 @@ module CD_diste
       close(iu)
 
       open(newunit=iu, file=output_file('diste_approx_'//shock//'_total.dat'))
-      write(iu,'(2es17.8e3)') (E_e(i)/eV, sum(N_etot(:,i))*mphi*1.d0, i=1,mE_e) ! Total distribution for 1 of the 4 quadrants
+      write(iu,'(2es17.8e3)') (E_e(i)/eV, sum(N_etot(:,i))*n_emit/4.d0, i=1,mE_e) ! Total distribution for 1 of the 4 quadrants
       close(iu)
 
       deallocate( theta, rho, T, B, v_t, n_a, L_inj_e, dR, H_theta, R_acel, dV_ring )
@@ -482,12 +476,12 @@ module CD_diste
       end do
 
       open(newunit=iu, file=output_file('diste_'//shock//'_'//system//'_total.dat'))
-      write(iu,'(2es17.8e3)') (Ee(i)/eV, sum(Ne_tot(:,i))*mphi*1.d0, i=1,mE_e) ! Total distribution for 1 of the 4 quadrants
+      write(iu,'(2es17.8e3)') (Ee(i)/eV, sum(Ne_tot(:,i))*n_emit/4.d0, i=1,mE_e) ! Total distribution for 1 of the 4 quadrants
       close(iu)
 
       open(newunit=iu, file=output_file('diste_'//shock//'_'//system//'_bin.dat'))
       do j = 1, N_bins
-         write(iu,'(i3,2es17.8e3)') (j, Ee(i)/eV, N_bin_i(j,i)*mphi*1.d0, i=1,mE_e)
+         write(iu,'(i3,2es17.8e3)') (j, Ee(i)/eV, N_bin_i(j,i)*n_emit/4.d0, i=1,mE_e)
          write(iu,*)
       end do
       close(iu)
