@@ -115,7 +115,7 @@ contains
 
        call S_ff_map(B_ff_D2, cte_Tau, R_st, R0, S_ff_cm2, r_map)
        Delta_r = r_map(2)-r_map(1)
-       S_map = S_ff_cm2*r_map*Delta_r*d_phi          ! flux of each cell [mJy]
+       S_map = S_ff_cm2*r_map*Delta_r*0.5d0*pi/mphi          ! flux of each cell [mJy]
 
        open(newunit=iu, file=output_file('S_ff_map_'//trim(maps(im)%label)//'.dat'))
        write(iu,'(3es17.8e3)') ((r_map(i)*cos(phi_map(j))*convert, r_map(i)*sin(phi_map(j))*convert, &

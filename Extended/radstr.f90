@@ -74,10 +74,10 @@ contains
    read(iu,*) L_inj_p_BS                         ! one linear emitter
    close(iu)
 
-   Lpp_sh = read_total('radpp_tot_'//shock//'.dat')   ! already x 4*mphi
+   Lpp_sh = read_total('radpp_tot_'//shock//'.dat')   ! already x n_emit
 
-   L_inj_p = 4.d0*mphi*L_inj_p_BS - Lpp_sh
-   write(*,81) 'L_inj_p_HII =', L_inj_p, '  (L_inj_p =', 4.d0*mphi*L_inj_p_BS, ')'
+   L_inj_p = n_emit*L_inj_p_BS - Lpp_sh
+   write(*,81) 'L_inj_p_HII =', L_inj_p, '  (L_inj_p =', n_emit*L_inj_p_BS, ')'
    if (L_inj_p < 0.d0) then
       print *, 'WARNING (radstr): L_pp in the BS > L_inj_p; L_inj_p_HII set to 0'
       L_inj_p = 0.d0
@@ -108,15 +108,15 @@ contains
       open(newunit=iu, file=output_file('radbr_'//shock//'.dat'))
       read(iu,*) (E_br(j), EL_br(j), j=1,mE_f)
       close(iu)
-      Lbr_sh = 4.d0*mphi * sum(EL_br)*log(E_br(2)/E_br(1))   ! int L_E dE = int E*L_E dlnE
+      Lbr_sh = n_emit* sum(EL_br)*log(E_br(2)/E_br(1))   ! int L_E dE = int E*L_E dlnE
       deallocate( E_br, EL_br )
    end if
 
    LIC_sh = read_total('rad_IC_st_tot_'//shock//'.dat')   ! total (both halves, all phi)
-   Lsy_sh = read_total('radsyn_tot_'//shock//'.dat')      ! already x 4*mphi
+   Lsy_sh = read_total('radsyn_tot_'//shock//'.dat')      ! already x n_emit
 
-   L_inj_e = 4.d0*mphi*L_inj_e_BS - (Lbr_sh + LIC_sh + Lsy_sh)
-   write(*,81) 'L_inj_e_HII =', L_inj_e, '  (L_inj_e =', 4.d0*mphi*L_inj_e_BS, ')'
+   L_inj_e = n_emit*L_inj_e_BS - (Lbr_sh + LIC_sh + Lsy_sh)
+   write(*,81) 'L_inj_e_HII =', L_inj_e, '  (L_inj_e =', n_emit*L_inj_e_BS, ')'
    if (L_inj_e < 0.d0) then
       print *, 'WARNING (radstr): radiated power in the BS > L_inj_e; L_inj_e_HII set to 0'
       L_inj_e = 0.d0

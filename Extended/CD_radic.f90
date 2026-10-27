@@ -31,7 +31,6 @@ contains
   !============================================================================
 
   subroutine CD_radic_st_run(LIC_int, shock)
-    !$ use omp_lib
     character(LEN=*), intent(in) :: shock
     real(dp), intent(out) :: LIC_int
     integer,  parameter :: m_l = 2*m_theta  ! CD positions, both sides
@@ -45,8 +44,6 @@ contains
 
     if (verbose) print *, 'Calculate the IC(st) emission'
 
-    ! set omp threads number
-    !$ call omp_set_num_threads(nth)
 
     !------------------------------------------------------------------------
     !  Read the rotated CD positions and the electron distribution
@@ -113,7 +110,6 @@ contains
   !============================================================================
 
   subroutine CD_radic_IR_run(shock)
-    !$ use omp_lib
     character(LEN=*), intent(in) :: shock
     integer  :: l, i, iu
     real(dp) :: L_unabs, L_unabs_tot, Ef_int
@@ -124,8 +120,6 @@ contains
 
     if (verbose) print *, 'Calculate the IC(IR) emission'
 
-    ! set omp threads number
-    !$ call omp_set_num_threads(nth)
 
     !------------------------------------------------------------------------
     !  Read the IR field and the electron distribution
@@ -156,7 +150,7 @@ contains
     ENDDO
     !$omp end parallel do
 
-    write(*,'(A9,X,Es10.2)') 'L_IC_IR =', L_unabs_tot*mphi*4.d0   ! isotropic: mphi emitters, 4 quadrants
+    write(*,'(A9,X,Es10.2)') 'L_IC_IR =', L_unabs_tot*n_emit   ! isotropic: whole ring
 
     open(newunit=iu, file=output_file('radic_ir_'//shock//'.dat'))
     write(iu,'(2es17.8e3)') (Ef(i)/eV, Ef(i)*LIC_tot(i), i=1,mE_f)

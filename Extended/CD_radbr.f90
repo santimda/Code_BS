@@ -79,7 +79,7 @@ contains
       Lbr_tot = sum(Lbr, dim=1)
       sum_br  = sum(Lbr_tot*Ef)*(Ef_int-1.d0)
 
-      write(*,'(A7,X,Es10.2)') 'L_Brem=', sum_br*mphi*4.d0   ! mphi emitters, 4 quadrants
+      write(*,'(A7,X,Es10.2)') 'L_Brem=', sum_br*n_emit   ! mphi emitters, 4 quadrants
 
       !---------------------------------------
       !   Save data (one linear emitter)

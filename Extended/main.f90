@@ -6,27 +6,39 @@ PROGRAM main
    use BB, only: BB_run
    use opac_ff, only: opac_ff_run
    use map_freqs, only: maps_init
+   !$ use omp_lib
    implicit none
-   
+
+   logical, parameter :: radiative_FS = .true.
+   integer :: st
+
    interface
-      subroutine calculate(shock, radiative) 
+      subroutine calculate(shock, radiative)
          character(LEN=*), intent(in) :: shock
          logical, intent(in) :: radiative
       end subroutine calculate
-   end interface
-   
-   interface
-      subroutine abs_maps(shock)
+      subroutine abs_maps(shock, radiative)
          character(LEN=*), intent(in) :: shock
+         logical, intent(in) :: radiative
       end subroutine abs_maps
+      subroutine H_alpha_map(shock)
+         character(LEN=*), intent(in) :: shock
+      end subroutine H_alpha_map
    end interface
 
    print *, '\n ============================'
    print *, ' START'
    print *, '============================\n '
 
-   ! Initialize vectors   
-   if (verbose) print *, '\n Allocate vectors'    
+   call create_output_dir()           ! before anything is written to output/
+
+   ! Number of OpenMP threads: OMP_NUM_THREADS if it is set, nth (global.f90) otherwise
+   call get_environment_variable('OMP_NUM_THREADS', status=st)
+   !$ if (st /= 0) call omp_set_num_threads(nth)
+   !$ if (verbose) write(*,'(a,i0,a)') ' Using OpenMP with ', omp_get_max_threads(), ' threads'
+
+   ! Initialize vectors
+   if (verbose) print *, '\n Allocate vectors'
    call initialize_allocate()
    call maps_init()
 
@@ -36,114 +48,115 @@ PROGRAM main
 
    if (opacff_calc) call opac_ff_run
 
-   if (RS) then 
+   if (RS) then
       print *, '\n----------------------------'
       print *, ' Reverse Shock'
       print *, '----------------------------'
       call calculate('RS', radiative=.false.)
-      if (maps_calc) then
-         if (.not. BOTH) then
-            print *, '\n--------------------------------------'
-            print *, ' Calculate absorption and emission maps'
-            print *, '----------------------------------------'
-            call abs_maps('RS')
-         end if
-      end if
-   endif
-
-   if (FS) then 
-      print *, '\n----------------------------'
-      print *, ' Forward shock'
-      print *, '----------------------------'
-      call calculate('FS', radiative=.true.)
-      if (maps_calc) then
-         if (.not. BOTH) then
-            print *, '\n--------------------------------------'
-            print *, ' Calculate absorption and emission maps'
-            print *, '----------------------------------------'
-            call abs_maps('FS')
-         end if
-      end if  
-   endif
-
-   if (maps_calc) then
-      if (BOTH) then
+      if (maps_calc .and. .not. BOTH) then
          print *, '\n--------------------------------------'
          print *, ' Calculate absorption and emission maps'
          print *, '----------------------------------------'
-         call abs_maps('BOTH')
+         call abs_maps('RS', radiative_FS)
+      end if
+   endif
+
+   if (FS) then
+      print *, '\n----------------------------'
+      print *, ' Forward shock'
+      print *, '----------------------------'
+      call calculate('FS', radiative=radiative_FS)
+      if (maps_calc .and. .not. BOTH) then
+         print *, '\n--------------------------------------'
+         print *, ' Calculate absorption and emission maps'
+         print *, '----------------------------------------'
+         call abs_maps('FS', radiative_FS)
+      end if
+   endif
+
+   if (maps_calc .and. BOTH) then
+      print *, '\n--------------------------------------'
+      print *, ' Calculate absorption and emission maps'
+      print *, '----------------------------------------'
+      call abs_maps('BOTH', radiative_FS)
+   end if
+
+   if (rad_alpha .and. FS) then
+      if (radiative_FS) then
+         call H_alpha_map('FS')
+      else
+         print *, 'WARNING (main): the H-alpha map needs a radiative FS'
       end if
    end if
 
-   if (rad_alpha .and. FS) call H_alpha_map('FS')
-      
    if (verbose) print *, '\n Deallocate vectors'
-
-   call create_output_dir()  
    call initialize_deallocate()
 
    print *, '\n ======================================'
    print *, '         END'
    print *, '======================================'
 
-   
- END PROGRAM main
+END PROGRAM main
 
 
- !============================================================================
+!============================================================================
+! Weight of the two linear emitters (phi and phi + pi) of the i_phi-th rotation angle in the sums over phi 
+!(quantities that depend on the orientation: IC with the stellar photons, absorbed synchrotron SED, maps).
+! The angles phi = 0, ..., pi/2 (step delta_phi) plus their mirror images (z -> -z) give n_emit = 4*(mphi-1) distinct azimuths,
+!each one a wedge d_phi = delta_phi (global.f90).
+! The mirror of phi = 0 and phi = pi/2 is the same set of positions, so they count once; the other angles count twice.
+!============================================================================
 
- Subroutine calculate(shock,radiative)
+pure real(kind(1.d0)) function phi_weight(i_phi, mphi)
+   integer, intent(in) :: i_phi, mphi
+   phi_weight = 1.d0
+   if (i_phi /= 1 .and. i_phi /= mphi) phi_weight = 2.d0
+end function phi_weight
+
+
+!============================================================================
+
+Subroutine calculate(shock,radiative)
    use global
    use controls
-   use BB, only: BB_run
    use CD_termo, only: CD_termo_run
    use shock_thermal, only: shock_thermal_run
    use CD_diste, only: CD_diste_run
    use CD_distp, only: CD_distp_run
    use CD_radsyn, only: CD_radsyn_run
    use CD_radbr, only: CD_radbr_run
-   use CD_radic, only: CD_radic_st_run,CD_radic_IR_run
+   use CD_radic, only: CD_radic_st_run, CD_radic_IR_run
    use CD_radpp, only: CD_radpp_run
    use CD_rot, only: CD_rot_run
    use radstr, only: radstr_run
-   
    implicit none
-   80 format(A9,X,Es10.2)
 
    character(LEN=*), intent(in) :: shock
    logical, intent(in) :: radiative
-   real(dp) :: Lsy_one,Lbr_one,Lpp_one, LIC_one,LIC_all,LIC_int,L_X_int,L_syn_E_one
-   real(dp) :: E_IC_st(mE_f),E_IC_IR(mE_f),LIC_st_tot(mE_f),LIC_IR_tot(mE_f)
-   real(dp) :: E_sy(m_nu),Lsy_sh_tot(m_nu),L_syn_E_tot(m_nu)
-   real(dp) :: Lsy_sh_abs(m_nu), Lsy_sh_unabs(m_nu), Lsy_unabs, Lsy_abs
-   real(dp) :: Lff_tot(mE_ph), E_ff(mE_ph), dE_ff(mE_ph)
-   real(dp) :: E_br(mE_f),Lbr_sh_tot(mE_f)
-   real(dp) :: E_pp(mE_f),Lpp_sh_tot(mE_f)
-   real(dp) :: Eph_min, Eph_max
-   real(dp) :: dE_sy(m_nu),dE_IC_IR(mE_f),dE_IC_st(mE_f)
-   real(dp) :: u_proj,v_proj,emi,emi_abs
-   real(dp) :: phi
-   integer :: i_phi,i_E, iu 
+   interface
+      pure real(kind(1.d0)) function phi_weight(i_phi, mphi)
+         integer, intent(in) :: i_phi, mphi
+      end function phi_weight
+   end interface
+   real(dp) :: LIC_int, LIC_all, w, phi
+   integer  :: i_phi, i_E, iu, iu2
+   real(dp), allocatable :: E_IC_st(:), LIC_one(:), LIC_st_tot(:), E_IC_IR(:), LIC_IR_tot(:)
+   real(dp), allocatable :: E_sy(:), Lsy_sh_tot(:), L_syn_E_tot(:), E_br(:), Lbr_sh_tot(:)
+   real(dp), allocatable :: E_pp(:), Lpp_sh_tot(:)
 
+   80 format(A,X,Es10.2)
+
+   allocate( E_IC_st(mE_f), LIC_one(mE_f), LIC_st_tot(mE_f), E_IC_IR(mE_f), LIC_IR_tot(mE_f) )
+   allocate( E_sy(m_nu), Lsy_sh_tot(m_nu), L_syn_E_tot(m_nu), E_br(mE_f), Lbr_sh_tot(mE_f) )
+   allocate( E_pp(mE_f), Lpp_sh_tot(mE_f) )
    LIC_st_tot = 0.d0
-   Lbr_sh_tot = 0.d0
-   Lsy_sh_abs = 0.d0
-   Lsy_sh_unabs = 0.d0
-   Lsy_sh_tot = 0.d0
-   Lpp_sh_tot = 0.d0
- 
-   if (termo_calc) then
-      if (shock == 'RS') then
-         call CD_termo_run(shock, radiative =.false.)
-      else if (shock == 'FS') then
-         call CD_termo_run(shock, radiative =.true.)
-      end if
-   end if
+
+   if (termo_calc) call CD_termo_run(shock, radiative)
 
    if (Xrad_calc) call shock_thermal_run(shock, radiative)
 
    !===============================================================!
-   !                                                               ! 
+   !                                                               !
    !                      Electrons                                !
    !                                                               !
    !===============================================================!
@@ -151,246 +164,173 @@ PROGRAM main
    IF (electrons .and. (.not. radiative)) then
       print *, '\n ELECTRONS:'
 
-      ! -----------------------------------------------------------------------------
+      if (diste_calc) call CD_diste_run(shock)
 
-      if (diste_calc) call CD_diste_run(shock) 
+      if (radsyn_sw_calc) call CD_radsyn_run(shock)       ! Just one linear emitter
 
-      if (radsyn_sw_calc) call CD_radsyn_run(shock)       ! Just one linear emitter      
+      if (radbr_sw_calc) call CD_radbr_run(unscr,shock)   ! Just one linear emitter
 
-      if (radbr_sw_calc) call CD_radbr_run(unscr,shock)  ! Just one linear emitter  
+      if (radic_ir_calc) call CD_radic_ir_run(shock)      ! Just one linear emitter
 
-      if (radic_ir_calc) call CD_radic_ir_run(shock)      !(phi)
-
-      ! IC-star emission, g-g and f-f absorption depend on the 3D position, so we make
-      ! linear-emitters for different phi-values.      
+      ! IC-star emission depends on the 3D position: linear emitters for
+      ! different phi-values, weighted with phi_weight
       phi = 0.d0
       LIC_all = 0.d0
-      if (rotate) then
+      if (rotate .and. radic_st_calc) then
          DO i_phi = 1, mphi
             print *, 'i(phi)=',i_phi,'/',mphi
-            !     print *, 'phi(deg)=', phi*180_dp/pi
 
-            call CD_rot_run(phi)   
+            call CD_rot_run(phi)
 
-            if (radic_st_calc) then
-               print *, 'Calculate the IC(star) emission'
-               call CD_radic_st_run(LIC_int,shock) 
-               open (35,file=output_file('radic_st_'//shock//'.dat'))
-               do i_E = 1,mE_f    ! SED --> sum emission from different phi
-                  read(35,*) E_IC_st(i_E),LIC_one
-                  ! LIC_one is for linear emitters with 0 <= phi <= pi/2; I later multiply by 2
-                  LIC_st_tot(i_E) = LIC_st_tot(i_E) + LIC_one
-               end do
-               close(35)
-               LIC_all = LIC_all + LIC_int
-               open(newunit=iu, file=output_file('rad_IC_st_tot_'//shock//'.dat'))
-                  write(iu,'(es17.8e3)') 2.d0*LIC_all   ! total: x2 for the mirror (z -> -z)
-               close(iu)
-            endif
+            print *, 'Calculate the IC(star) emission'
+            call CD_radic_st_run(LIC_int,shock)
+            open(newunit=iu, file=output_file('radic_st_'//shock//'.dat'))
+            read(iu,*) (E_IC_st(i_E), LIC_one(i_E), i_E=1,mE_f)
+            close(iu)
 
-            ! -----------------------------------------------------------------------------
-            !------------------------------------------------------------------------------
+            w = phi_weight(i_phi, mphi)
+            LIC_st_tot = LIC_st_tot + w*LIC_one
+            LIC_all    = LIC_all    + w*LIC_int
 
-            phi = phi + delta_phi           
+            phi = phi + delta_phi
          end do
 
-         if (radic_ir_calc) then
-            print *, 'The total L_IC_st is:'
-            write(*,80) 'L_IC_st = ', 2.d0*LIC_all ! 
-            print *, ''
-         endif
-
+         write(*,80) 'L_IC_st =', LIC_all
+         open(newunit=iu, file=output_file('rad_IC_st_tot_'//shock//'.dat'))
+         write(iu,'(es17.8e3)') LIC_all                 ! total (whole BS)
+         close(iu)
       endif
 
       !=============================================================
-      !   
-      !  Save for the total linear-emitters 
-      !  
+      !  Save the totals (whole BS)
+
       if (escribir_e) then
 
-         if (radic_st_calc) then       ! This has the full 3D geometry in the abs
-            open (31,file='radic_st_'//system//'_'//shock//'_tot.dat')
-            do i_E = 1,mE_f
-               ! Multiply by a factor 2 because of the axial symmetry in the SW
-               ! (this one already considers "mirroring" for y < 0 in the calculation)
-               write(31,*) E_IC_st(i_E),2.d0*LIC_st_tot(i_E)
-            end do
-            close(31)
+         if (radic_st_calc .and. rotate) then           ! this has the full 3D geometry
+            open(newunit=iu, file=output_file('radic_st_'//system//'_'//shock//'_tot.dat'))
+            write(iu,'(2es17.8e3)') (E_IC_st(i_E), LIC_st_tot(i_E), i_E=1,mE_f)
+            close(iu)
          endif
 
          if (radic_ir_calc) then
-            open (32,file=output_file('radic_ir_'//shock//'.dat'))     ! One linear-emitter
-            open (33,file='radic_ir_'//system//'_'//shock//'_tot.dat') ! The total emission IC(dust) in the SW
-            do i_E = 1,mE_f
-               read(32,*) E_IC_IR(i_E),LIC_one
-               LIC_IR_tot(i_E) = LIC_one*mphi *4.d0
-               ! Multiply by a factor 2 because of the axial symmetry in the SW
-               ! and "mirroring" for y < 0
-               write(33,*) E_IC_IR(i_E),LIC_IR_tot(i_E) 
-            end do
-            close(32)
-            close(33)
+            open(newunit=iu, file=output_file('radic_ir_'//shock//'.dat'))     ! One linear emitter
+            read(iu,*) (E_IC_IR(i_E), LIC_IR_tot(i_E), i_E=1,mE_f)
+            close(iu)
+            LIC_IR_tot = LIC_IR_tot*n_emit                                    ! whole ring
+            open(newunit=iu, file=output_file('radic_ir_'//system//'_'//shock//'_tot.dat'))
+            write(iu,'(2es17.8e3)') (E_IC_IR(i_E), LIC_IR_tot(i_E), i_E=1,mE_f)
+            close(iu)
          endif
 
-         !       if ( radic_ir_calc .eqv. yes ) then       ! This has the full 3D geometry in the abs
-         !          open (32,file='radic_ir_tot.dat')
-         !          do i_E = 1,mE_f
-         !             ! Multiply by a factor 2 because of the axial symmetry in the SW
-         !             write(32,*) E_IC_IR(i_E),2.d0*LIC_IR_tot(i_E)
-         !          end do
-         !          close(32)
-         !       endif
-
-         if (radsyn_sw_calc) then   ! NOT VERY USEFUL
-            open (51,file='radsyn_'//system//'_'//shock//'_tot.dat')
-            open (41,file=output_file('radsyn_'//shock//'.dat'))
-            do i_E = 1,m_nu
-               read(41,*) E_sy(i_E),Lsy_one,L_syn_E_one
-               Lsy_sh_tot(i_E) = Lsy_one*mphi * 4.d0
-               L_syn_E_tot(i_E) = L_syn_E_one*mphi * 4.d0
-               ! Multiply by a factor 4 because of the axial symmetry in the SW 
-               ! and "mirroring" for y < 0
-               write(51,*) E_sy(i_E),Lsy_sh_tot(i_E),L_syn_E_tot(i_E)
-            end do
-            close(41)
-            close(51)
+         if (radsyn_sw_calc) then
+            open(newunit=iu, file=output_file('radsyn_'//shock//'.dat'))        ! One linear emitter
+            read(iu,*) (E_sy(i_E), Lsy_sh_tot(i_E), L_syn_E_tot(i_E), i_E=1,m_nu)
+            close(iu)
+            Lsy_sh_tot  = Lsy_sh_tot*n_emit
+            L_syn_E_tot = L_syn_E_tot*n_emit
+            open(newunit=iu, file=output_file('radsyn_'//system//'_'//shock//'_tot.dat'))
+            write(iu,'(3es17.8e3)') (E_sy(i_E), Lsy_sh_tot(i_E), L_syn_E_tot(i_E), i_E=1,m_nu)
+            close(iu)
          endif
-
 
          if (radbr_sw_calc) then
-            open (42,file=output_file('radbr_'//shock//'.dat'))     ! One linear-emitter
-            open (52,file='radbr_'//system//'_'//shock//'_tot.dat') ! The total SW
-            do i_E = 1,mE_f
-               read(42,*) E_br(i_E),Lbr_one
-               Lbr_sh_tot(i_E) = Lbr_one*mphi *4.d0
-
-               ! Multiply by a factor 2 because of the axial symmetry in the SW
-               ! and "mirroring" for y < 0
-               write(52,*) E_br(i_E),Lbr_sh_tot(i_E)
-            end do
-            close(42)
-            close(52)
+            open(newunit=iu, file=output_file('radbr_'//shock//'.dat'))         ! One linear emitter
+            read(iu,*) (E_br(i_E), Lbr_sh_tot(i_E), i_E=1,mE_f)
+            close(iu)
+            Lbr_sh_tot = Lbr_sh_tot*n_emit
+            open(newunit=iu, file=output_file('radbr_'//system//'_'//shock//'_tot.dat'))
+            write(iu,'(2es17.8e3)') (E_br(i_E), Lbr_sh_tot(i_E), i_E=1,mE_f)
+            close(iu)
          endif
 
-
-         if ( (radic_st_calc) .and. (radic_ir_calc) .and. (radsyn_sw_calc) .and. (Xrad_calc) ) then
-            ! Calculates the X-ray luminosity
-            L_X_int = 0.d0
-            if (system == 'BD+43') then
-               Eph_min = 0.4d3 ! 0.4 keV
-               Eph_max = 4.d3 ! 4 keV
-            else if (system == 'Lambda_Cep') then
-               Eph_min = 2.d3 ! 2 keV
-               Eph_max = 10.d3 ! 10 keV
-            else
-               Eph_min = 1.d3 ! 1 keV
-               Eph_max = 10.d3 ! 10 keV
-            end if               
-            
-            open (31,file='radic_st_'//system//'_RS_tot.dat')
-            do i_E = 1, mE_f
-               read(31,*) E_IC_st(i_E), LIC_st_tot(i_E)
-               dE_IC_st(i_E) = (E_IC_st(2)/E_IC_st(1) - 1.d0)
-               if ( E_IC_st(i_E) >= Eph_min .and. E_IC_st(i_E) <= Eph_max ) then
-                  L_X_int = L_X_int + 2.d0*LIC_st_tot(i_E)*dE_IC_st(i_E) ! Multiply by 2 because of axial symmetry
-               end if
-            end do
-            close(31)
-
-            open (33,file='radic_ir_'//system//'_RS_tot.dat')
-            do i_E = 1, mE_f
-               read(33,*) E_IC_IR(i_E),LIC_IR_tot(i_E)
-               dE_IC_IR(i_E) = (E_IC_IR(2)/E_IC_IR(1) - 1.d0)
-               if ( E_IC_IR(i_E) >= Eph_min .and. E_IC_IR(i_E) <= Eph_max ) then
-                  L_X_int = L_X_int + LIC_IR_tot(i_E)*dE_IC_IR(i_E)
-                end if
-            end do
-            close(33)
-
-            open (51,file='radsyn_'//system//'_RS_tot.dat')
-            do i_E = 1, m_nu
-               read(51,*) E_sy(i_E), Lsy_sh_tot(i_E)
-               dE_sy(i_E) = (E_sy(2)/E_sy(1) - 1.d0)
-               if ( E_sy(i_E) >= Eph_min .and. E_sy(i_E) <= Eph_max ) then
-                  L_X_int = L_X_int + Lsy_sh_tot(i_E)*dE_sy(i_E)
-               end if
-            end do
-            close(51)
-
-            open (52,file=output_file('ionized_ff_'//system//'_RS.dat'))
-            do i_E = 1, mE_ph
-               read(52,*) E_ff(i_E), Lff_tot(i_E)
-               dE_ff(i_E) = (E_ff(2)/E_ff(1) - 1.d0)
-               if ( E_ff(i_E) >= Eph_min .and. E_ff(i_E) <= Eph_max ) then
-                  L_X_int = L_X_int + Lff_tot(i_E)*dE_ff(i_E)
-               end if
-            end do
-            close(52)
-
-            if (system == 'BD+43') then
-               print *, 'Calculate the luminosity btw 0.4-4 keV'
-               write(*,80) 'L_X= ', L_X_int
-               if (L_X_int > 10.**(30.878384)) print*, 'R-X luminosity is to high'  ! Toalá+ 2016
-            else if (system == 'Lambda_Cep') then
-               print *, 'Calculate the luminosity btw 2-10 keV'
-               write(*,80) 'L_X= ', L_X_int
-               if (L_X_int > 3.37d30) print*, 'R-X luminosity is to high'
-            else
-               print *, 'Calculate the luminosity btw 1-10 keV'
-                write(*,80) 'L_X= ', L_X_int
-            end if
-            print *, ''
+         if (radic_st_calc .and. rotate .and. radic_ir_calc .and. radsyn_sw_calc .and. Xrad_calc) then
+            call X_ray_luminosity()
          end if
 
       endif
 
-
    ENDIF
 
-   ! -----------------------------------------------------------------------------
-   !------------------------------------------------------------------------------  
-
-   ! -----------------------------------------------------------------------------
-   !------------------------------------------------------------------------------
-   !--------------------------------
+   !===============================================================!
+   !                                                               !
+   !                      Protons                                  !
+   !                                                               !
+   !===============================================================!
 
    IF (protons .and. (.not. radiative)) then
       print *, '\n PROTONS:'
 
-      if (distp_calc) call CD_distp_run(shock) 
+      if (distp_calc) call CD_distp_run(shock)
 
-      if (radpp_calc) call CD_radpp_run(shock) 
+      if (radpp_calc) call CD_radpp_run(shock)
 
-      !=============================================================
-      !   
-      !  Save for the total linear-emitters 
-      !  
-      if (escribir_p) then
-
-         if (radpp_calc) then
-            open (43,file=output_file('radpp_'//shock//'.dat'))     ! One linear-emitter
-            open (53,file='radpp_'//system//'_'//shock//'_tot.dat')
-            do i_E = 1,mE_f
-               read(43,*) E_pp(i_E),Lpp_one       
-               Lpp_sh_tot(i_E) = Lpp_one*mphi *4.d0   ! mphi emitters, 4 quadrants
-               write(53,*) E_pp(i_E),Lpp_sh_tot(i_E) 
-            end do
-            close(43)
-            close(53)
-         endif
-
+      if (escribir_p .and. radpp_calc) then
+         open(newunit=iu, file=output_file('radpp_'//shock//'.dat'))            ! One linear emitter
+         read(iu,*) (E_pp(i_E), Lpp_sh_tot(i_E), i_E=1,mE_f)
+         close(iu)
+         Lpp_sh_tot = Lpp_sh_tot*n_emit                                        ! whole ring
+         open(newunit=iu2, file=output_file('radpp_'//system//'_'//shock//'_tot.dat'))
+         write(iu2,'(2es17.8e3)') (E_pp(i_E), Lpp_sh_tot(i_E), i_E=1,mE_f)
+         close(iu2)
       endif
 
    ENDIF
 
    !================================================================
-   
+
    if (stromgren .and. electrons .and. protons .and. (.not. radiative)) then
       print*, '\n Calculate the NT emission from the H II region:'
       call radstr_run(shock)
    end if
-   
-   !================================================================
+
+   deallocate( E_IC_st, LIC_one, LIC_st_tot, E_IC_IR, LIC_IR_tot )
+   deallocate( E_sy, Lsy_sh_tot, L_syn_E_tot, E_br, Lbr_sh_tot, E_pp, Lpp_sh_tot )
+
+contains
+
+   !-------------------------------------------------------------------------
+   ! X-ray luminosity of the shock in the band [Eph_min, Eph_max]: IC (star
+   ! and dust), synchrotron and thermal emission
+   !-------------------------------------------------------------------------
+   subroutine X_ray_luminosity()
+      real(dp) :: Eph_min, Eph_max, L_X_int, L_X_max
+      real(dp), allocatable :: E_ff(:), Lff_tot(:)
+
+      if (system == 'BD+43') then
+         Eph_min = 0.4d3              ! 0.4 keV
+         Eph_max = 4.d3               ! 4 keV
+         L_X_max = 10.d0**30.878384d0 ! Toala+ 2016
+      else if (system == 'Lambda_Cep') then
+         Eph_min = 2.d3               ! 2 keV
+         Eph_max = 10.d3              ! 10 keV
+         L_X_max = 3.37d30
+      else
+         Eph_min = 1.d3               ! 1 keV
+         Eph_max = 10.d3              ! 10 keV
+         L_X_max = huge(1.d0)
+      end if
+
+      allocate( E_ff(m_nu), Lff_tot(m_nu) )
+      open(newunit=iu, file=output_file('ionized_ff_'//system//'_'//shock//'.dat'))
+      read(iu,*) (E_ff(i_E), Lff_tot(i_E), dummy, i_E=1,m_nu)
+      close(iu)
+
+      L_X_int = band(E_IC_st, LIC_st_tot, Eph_min, Eph_max) + band(E_IC_IR, LIC_IR_tot, Eph_min, Eph_max) &
+              + band(E_sy, Lsy_sh_tot, Eph_min, Eph_max)    + band(E_ff, Lff_tot, Eph_min, Eph_max)
+
+      write(*,'(a,f5.1,a,f5.1,a)') ' Luminosity between ', Eph_min/1.d3, ' and ', Eph_max/1.d3, ' keV'
+      write(*,'(A,X,Es10.2)') 'L_X =', L_X_int
+      if (L_X_int > L_X_max) print *, 'X-ray luminosity is too high'
+      print *, ''
+
+      deallocate( E_ff, Lff_tot )
+   end subroutine X_ray_luminosity
+
+   ! int_{emin}^{emax} L_E dE for E*L_E in a log grid E [eV]
+   real(dp) function band(E, EL, emin, emax)
+      real(dp), intent(in) :: E(:), EL(:), emin, emax
+      band = sum(EL, mask = (E >= emin) .and. (E <= emax)) * log(E(2)/E(1))
+   end function band
 
 End Subroutine Calculate
 
@@ -400,69 +340,72 @@ End Subroutine Calculate
 Subroutine H_alpha_map(shock)
    use global
    use controls
-   use rad_H_alpha, only: rad_H_alpha_run, project_H_alpha_map   
+   use rad_H_alpha, only: rad_H_alpha_run, project_H_alpha_map
    use CD_rot, only: CD_rot_run
    implicit none
 
    character(LEN=*), intent(in) :: shock
-   real(dp) :: S_H_alpha
-   real(dp) :: u_proj, v_proj
    real(dp) :: phi
-   integer :: i_phi,i_l, iu, iu_map
+   integer  :: i_phi, il, iu, iu_map
+   real(dp), allocatable :: uvS(:,:)      ! u, v, S of each linear emitter
 
+   ! S of each emitter already has the weight of its azimuth (rad_H_alpha.f90):
+   ! phi = 0 and pi/2 are written once and the rest twice (mirror v -> -v)
+   allocate( uvS(3,2*m_theta) )
    open(newunit=iu_map, file=output_file('S_alpha_map_'//shock//'.dat'))
    phi = 0.d0
-   do i_phi = 1,mphi
+   do i_phi = 1, mphi
       print *, 'i(phi)=',i_phi,'/',mphi
       call CD_rot_run(phi)
       call project_H_alpha_map(shock)       ! This projects the H_alpha map in u,v
       open(newunit=iu, file=output_file('S_alpha_proj_'//shock//'.dat'))
-      do i_l = 1,2*m_theta
-         read(iu,*) u_proj,v_proj,S_H_alpha
-         write(iu_map,*) u_proj,v_proj,S_H_alpha
-         if (i_phi /= 1 .and. i_phi /= mphi) then
-            write(iu_map,*) u_proj,-v_proj,S_H_alpha
-         endif
-      end do
+      read(iu,*) uvS
       close(iu)
+      if (i_phi == 1 .or. i_phi == mphi) then
+         write(iu_map,'(3es17.8e3)') uvS
+      else
+         write(iu_map,'(3es17.8e3)') (uvS(:,il), uvS(1,il), -uvS(2,il), uvS(3,il), il=1,2*m_theta)
+      end if
       phi = phi + delta_phi
    end do
    close(iu_map)
+   deallocate( uvS )
 
-   if (convolution_alpha) then
-      call rad_H_alpha_run(shock)
-   end if
+   if (convolution_alpha) call rad_H_alpha_run(shock)
 
-   End Subroutine H_alpha_map
-
+End Subroutine H_alpha_map
 
 !============================================================================
 !============================================================================
 
-Subroutine abs_maps(shock)
+Subroutine abs_maps(shock, radiative)
    use global
    use controls
    use map_freqs, only: maps
    use CD_abssyn, only: CD_abssyn_run
    use CD_rot, only: CD_rot_run
    use SW_conv, only: SW_conv_run
-
    implicit none
 
    character(LEN=*), intent(in) :: shock
+   logical, intent(in) :: radiative            ! radiative FS (isothermal layer)
+   interface
+      pure real(kind(1.d0)) function phi_weight(i_phi, mphi)
+         integer, intent(in) :: i_phi, mphi
+      end function phi_weight
+   end interface
    integer, parameter :: m_l = 2*m_theta     ! CD position, both sides
-   real(dp) :: Lsy_sh_abs(m_nu), Lsy_sh_unabs(m_nu)   ! SED summed over phi
-   real(dp) :: Lsy_phi(m_nu), Lsy_phi_abs(m_nu)       ! SED at one phi (CD_abssyn_run)
-   real(dp) :: E_sy(m_nu), nu_E
-   real(dp) :: phi
-   integer :: i_phi, i_E, im, n_map
-   integer :: iu_syn_avg, iu_th_avg, iu_hot_avg
+   real(dp) :: phi, w
+   integer  :: i_phi, i_E, im, n_map, iu
+   integer  :: iu_syn_avg, iu_th_avg, iu_hot_avg
    integer, allocatable :: iu_syn(:), iu_th(:), iu_hot(:)   ! one output file per map frequency
    character(len=:), allocatable :: tag_cd, tag_out
    logical :: hot
+   real(dp), allocatable :: E_sy(:), nu_E(:), Lsy_phi(:), Lsy_phi_abs(:), Lsy_sh_unabs(:), Lsy_sh_abs(:)
 
+   allocate( E_sy(m_nu), nu_E(m_nu), Lsy_phi(m_nu), Lsy_phi_abs(m_nu), Lsy_sh_unabs(m_nu), Lsy_sh_abs(m_nu) )
    Lsy_sh_unabs = 0.d0
-   Lsy_sh_abs = 0.d0
+   Lsy_sh_abs   = 0.d0
 
    n_map = size(maps)
    allocate( iu_syn(n_map), iu_th(n_map), iu_hot(n_map) )
@@ -496,32 +439,33 @@ Subroutine abs_maps(shock)
       DO i_phi = 1, mphi
          print *, 'i(phi)=',i_phi,'/',mphi
 
-         call CD_rot_run(phi)   
+         call CD_rot_run(phi)
 
          if (abssyn_calc) then
             print *, 'Calculate the free-free synchrotron absorption'
-            call CD_abssyn_run(shock, radiative=.true., E_sy=E_sy, Lsy_sum=Lsy_phi, Lsy_sum_abs=Lsy_phi_abs)
-            Lsy_sh_unabs = Lsy_sh_unabs + Lsy_phi        ! SED --> sum emission from different phi
-            Lsy_sh_abs   = Lsy_sh_abs   + Lsy_phi_abs
+            call CD_abssyn_run(shock, radiative=radiative, E_sy=E_sy, Lsy_sum=Lsy_phi, Lsy_sum_abs=Lsy_phi_abs)
+            w = phi_weight(i_phi, mphi)
+            Lsy_sh_unabs = Lsy_sh_unabs + w*Lsy_phi        ! SED --> sum emission from different phi
+            Lsy_sh_abs   = Lsy_sh_abs   + w*Lsy_phi_abs
          endif
 
-         if (maps_calc) then           
+         if (maps_calc) then
             print *, 'Save synthetic radio emission maps'
             do im = 1, n_map
                call merge_map('CD_sync_radiomap_'//tag_cd//trim(maps(im)%label)//'.dat', &
-                            output_file('CD_th_RS_'//trim(maps(im)%label)//'.dat'),      &
-                            output_file('CD_th_FS_'//trim(maps(im)%label)//'.dat'),      &
-                            output_file('CD_hot_layer_'//trim(maps(im)%label)//'.dat'),  &
-                            iu_syn(im), iu_th(im), iu_hot(im))
+                              'CD_th_RS_'//trim(maps(im)%label)//'.dat',                   &
+                              'CD_th_FS_'//trim(maps(im)%label)//'.dat',                   &
+                              'CD_hot_layer_'//trim(maps(im)%label)//'.dat',               &
+                              iu_syn(im), iu_th(im), iu_hot(im))
             end do
-            call merge_map('CD_sync_radiomap_avg'//tag_cd//'.dat',   &
-                           output_file('CD_th_radiomap_avg_RS.dat'), &
-                           output_file('CD_th_radiomap_avg_FS.dat'), &
-                           output_file('CD_hot_radiomap_avg.dat'),   &
+            call merge_map('CD_sync_radiomap_avg'//tag_cd//'.dat', &
+                           'CD_th_radiomap_avg_RS.dat',            &
+                           'CD_th_radiomap_avg_FS.dat',            &
+                           'CD_hot_radiomap_avg.dat',              &
                            iu_syn_avg, iu_th_avg, iu_hot_avg)
          endif
 
-         phi = phi + delta_phi           
+         phi = phi + delta_phi
       end do
    end if
 
@@ -534,19 +478,15 @@ Subroutine abs_maps(shock)
    close(iu_th_avg)
    if (hot) close(iu_hot_avg)
 
-   if (abssyn_calc) then       ! This has the full 3D geometry in the abs
-      open (51,file='radsynabs_'//shock//'_tot.dat')
-      open (52,file='S_syn_abs_'//system//'_'//shock//'.dat')   ! nu [Hz], S_unabs [mJy], S_abs [mJy]
-      do i_E = 1,m_nu
-         ! Multiply by a factor 2 because of the axial symmetry in the SW
-         ! (this one already considers "mirroring" for y < 0 in the calculation)
-         write(51,*) E_sy(i_E),2.d0*Lsy_sh_unabs(i_E),2.d0*Lsy_sh_abs(i_E)
-         nu_E = E_sy(i_E)*eV/h
-         write(52,*) nu_E, 2.d0*Lsy_sh_unabs(i_E)/(4.d0*pi*distance**2*nu_E)*1.d26, &
-                           2.d0*Lsy_sh_abs(i_E)  /(4.d0*pi*distance**2*nu_E)*1.d26
-      end do
-      close(51)
-      close(52)
+   if (abssyn_calc .and. rotate) then       ! This has the full 3D geometry in the abs
+      nu_E = E_sy*eV/h
+      open(newunit=iu, file=output_file('radsynabs_'//shock//'_tot.dat'))      ! E [eV], nu*L_nu unabs, abs [erg/s]
+      write(iu,'(3es17.8e3)') (E_sy(i_E), Lsy_sh_unabs(i_E), Lsy_sh_abs(i_E), i_E=1,m_nu)
+      close(iu)
+      open(newunit=iu, file=output_file('S_syn_abs_'//system//'_'//shock//'.dat'))   ! nu [Hz], S_unabs, S_abs [mJy]
+      write(iu,'(3es17.8e3)') (nu_E(i_E), Lsy_sh_unabs(i_E)/(4.d0*pi*distance**2*nu_E(i_E))*1.d26, &
+                                          Lsy_sh_abs(i_E)  /(4.d0*pi*distance**2*nu_E(i_E))*1.d26, i_E=1,m_nu)
+      close(iu)
    endif
 
    if (convolution) then
@@ -558,28 +498,30 @@ Subroutine abs_maps(shock)
    endif
 
    deallocate( iu_syn, iu_th, iu_hot )
+   deallocate( E_sy, nu_E, Lsy_phi, Lsy_phi_abs, Lsy_sh_unabs, Lsy_sh_abs )
 
 contains
 
-!-------------------------------------------------------------------------
-! Reads the maps of one frequency for the current phi (synchrotron from
-! CD_abssyn, thermal RS + FS and hot layer from shock_thermal) and appends
-! them to the output files. For i_phi > 1 it also writes the mirror image
-! (v -> -v), line by line as before.
-!-------------------------------------------------------------------------
-subroutine merge_map(f_syn, f_th_RS, f_th_FS, f_hot, iu_s, iu_t, iu_h)
+   !-------------------------------------------------------------------------
+   ! Reads the maps of one frequency for the current phi (synchrotron from
+   ! CD_abssyn, thermal RS + FS and hot layer from shock_thermal) and appends
+   ! them to the output files. Except for phi = 0 and
+   ! pi/2, it also writes the mirror image (v -> -v).
+   !-------------------------------------------------------------------------
+   subroutine merge_map(f_syn, f_th_RS, f_th_FS, f_hot, iu_s, iu_t, iu_h)
       character(len=*), intent(in) :: f_syn, f_th_RS, f_th_FS, f_hot
       integer, intent(in) :: iu_s, iu_t, iu_h
       real(dp) :: uve(4,m_l)     ! u_proj, v_proj, emi, emi_abs
       real(dp) :: S_RS(m_l), S_FS(m_l), S_th(m_l), S_hot(m_l)
-      integer :: iu, il
+      integer :: iu1, il
 
-      open(newunit=iu, file=output_file(f_syn));   read(iu,*) uve;  close(iu)
-      open(newunit=iu, file=f_th_RS); read(iu,*) S_RS; close(iu)
-      open(newunit=iu, file=f_th_FS); read(iu,*) S_FS; close(iu)
+      open(newunit=iu1, file=output_file(f_syn));   read(iu1,*) uve;  close(iu1)
+      open(newunit=iu1, file=output_file(f_th_RS)); read(iu1,*) S_RS; close(iu1)
+      open(newunit=iu1, file=output_file(f_th_FS)); read(iu1,*) S_FS; close(iu1)
       S_th = S_RS + S_FS
+      S_hot = 0.d0
       if (hot) then
-         open(newunit=iu, file=f_hot); read(iu,*) S_hot; close(iu)
+         open(newunit=iu1, file=output_file(f_hot)); read(iu1,*) S_hot; close(iu1)
       end if
 
       if (i_phi == 1 .or. i_phi == mphi) then

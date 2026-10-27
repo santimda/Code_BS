@@ -26,7 +26,7 @@ contains
   ! In both ranges Q(l,E_f) = c*n_a(l)*z_pp * sum_j N(l,j)*dE(j)*Kern(E_f,j), with a
   ! kernel that does not depend on the position: it is built once.
   ! Output (output/): radpp_<shock>.dat with E_f [eV] and E_f*L_E [erg/s] (one
-  ! linear emitter) and radpp_tot_<shock>.dat with the total luminosity.
+  ! linear emitter) and radpp_tot_<shock>.dat with the total luminosity (x n_emit).
   !============================================================================
 
   subroutine CD_radpp_run(shock)
@@ -103,13 +103,13 @@ contains
     Lpp_tot = sum(Lpp, dim=1)
     sum_pp  = sum(Lpp_tot*Ef)*(Ef_int-1.d0)
 
-    write(*,'(A5,X,Es10.2)') 'L_pp=', sum_pp*mphi*4.d0     ! mphi emitters, 4 quadrants
+    write(*,'(A5,X,Es10.2)') 'L_pp=', sum_pp*n_emit     ! whole ring
 
     !---------------------------------------
     !   Save data
 
     open(newunit=iu, file=output_file('radpp_tot_'//shock//'.dat'))
-    write(iu,'(es17.8e3)') sum_pp*mphi*4.d0
+    write(iu,'(es17.8e3)') sum_pp*n_emit
     close(iu)
 
     open(newunit=iu, file=output_file('radpp_'//shock//'.dat'))     ! one linear emitter

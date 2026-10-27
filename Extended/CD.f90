@@ -46,7 +46,6 @@ contains
       80  format(A12,X,F5.2)
       90  format(A8,X,Es10.2)
       100 format(A17,X,F5.2,X,A12)
-      110 format(A21,X,F5.2)
 
       ! Angular grid, from theta_0 to theta_max
       dtheta = (theta_max-theta_0)/real(m_theta-1,dp)
@@ -92,7 +91,7 @@ contains
       write(iu,'(2es25.16e3)') (-r_aprox(l)*cos(theta(l)), r_aprox(l)*sin(theta(l)), l=1,m_theta)
       close(iu)
 
-      write(*,110) 'Length_proj[arcsec] =', (sqrt((x(m_theta)*R0+R0)**2+y(m_theta)**2)/AU)/(distance/pc)/abs(cos(incli))
+      write(*,'(A,X,F8.1)') 'Length[arcsec] =', sqrt((x(m_theta)+1.d0)**2 + y(m_theta)**2)*R0/distance*206265.d0   ! apex to the end of the CD, not projected
 
       deallocate( x, y )
       deallocate( dR, Length, R_acel, r_aprox )

@@ -170,6 +170,7 @@ module CD_termo
       v_ARH(1) = B_RH(1) / sqrt(4.d0*pi*rho_RH(1)) ! Alfven speed
 
       transition = .true.
+      l_crit = 1
       do l = 2, m_theta                                ! Upper half
          if (shock == 'RS') then
             rho_med(l) = Mdot/(4.d0*pi*R_theta(l)**2*v_w)
@@ -357,19 +358,19 @@ module CD_termo
       L_cum = [( sum(L_inj(1:l)), l=1,m_theta )]
 
       open(newunit=iu, file=output_file('Linj_'//shock//'.dat'))
-      write(iu,'(5es17.8e3)') (theta(l), r_norm(l), L_inj(l), dR(l)/R0, L_cum(l)*(mphi*4.)/L_sh, l=1,m_theta)
+      write(iu,'(5es17.8e3)') (theta(l), r_norm(l), L_inj(l), dR(l)/R0, L_cum(l)*n_emit/L_sh, l=1,m_theta)
       close(iu)
 
       if (shock == 'RS') then
          write(*,80) 'L_inj_w =', L_sh
       end if
-      write(*,80) 'L_inj('//shock//') =', L_inj_tot*(mphi*4.) ! It was just 1 quadrant
-      write(*,80) 'L_NT_('//shock//') =',  frac_NT*(L_inj_tot*mphi*4.)
-      write(*,81) 'L_NT/L_sh('//shock//') [%] =', frac_NT*(L_inj_tot*mphi*4.)/L_sh*100.d0
+      write(*,80) 'L_inj('//shock//') =', L_inj_tot*n_emit ! It was just 1 quadrant
+      write(*,80) 'L_NT_('//shock//') =',  frac_NT*(L_inj_tot*n_emit)
+      write(*,81) 'L_NT/L_sh('//shock//') [%] =', frac_NT*(L_inj_tot*n_emit)/L_sh*100.d0
       if (shock == 'RS') then
-         write(*,82) 'L_inj(RS)/L_w =', L_inj_tot*(mphi*4.)/L_sh
+         write(*,82) 'L_inj(RS)/L_w =', L_inj_tot*(n_emit)/L_sh
       else
-         write(*,83) 'L_inj(FS)/L_ISM =', L_inj_tot*(mphi*4.)/L_sh
+         write(*,83) 'L_inj(FS)/L_ISM =', L_inj_tot*(n_emit)/L_sh
       end if
 
       !------------------------------

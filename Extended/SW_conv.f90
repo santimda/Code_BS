@@ -27,8 +27,8 @@ contains
    ! side (x symmetric with respect to the axis), with spacing f_Ny*sigma.
    ! Convolved flux [mJy/beam]: F(x_c,y_c) = sum_l S_l*exp(-d2), with
    ! d2 = (x_l-x_c)**2/(2*sigma_x**2) + (y_l-y_c)**2/(2*sigma_y**2). Since
-   ! exp(-d2) = exp(-dx2)*exp(-dy2), the double sum is a matrix product:
-   ! F = matmul(transpose(EX), EY), EX(l,i) = S_l*exp(-dx2), EY(l,j) = exp(-dy2).
+   ! exp(-d2) = exp(-dx2)*exp(-dy2), each row of F is a vector-matrix product
+   ! (conv_rows): F(i,:) = matmul(S*exp(-dx2(i)), EY), EY(l,j) = exp(-dy2).
    ! Check: sum F*A_cell/A_beam = sum S (if the grid covers the whole map).
    ! Output (output/): SW_conv_<label>abs_<system>.dat (x ["], y ["], F [mJy/beam];
    ! one block per x) and R0_proj_<system>.dat.
@@ -42,7 +42,7 @@ contains
       integer  :: i, j, l, m_tot, m_x, m_y, iu
       logical  :: hot
       real(dp), allocatable :: x_map(:), y_map(:), F_un(:), F_abs(:), S_th(:), S_hot(:)
-      real(dp), allocatable :: x_c(:), y_c(:), F_map_abs(:,:), EX(:,:), EY(:,:)
+      real(dp), allocatable :: x_c(:), y_c(:), F_map_abs(:,:), EY(:,:)
 
       80 format(A,X,Es10.2,X,A)
 
@@ -111,18 +111,17 @@ contains
       w_x = 2.d0*sigma_x**2
       w_y = 2.d0*sigma_y**2
 
-      allocate( EX(m_tot,m_x), EY(m_tot,m_y), F_map_abs(m_x,m_y) )
-      EX = spread(F_abs + S_th + S_hot, 2, m_x) * exp( -(spread(x_map,2,m_x) - spread(x_c,1,m_tot))**2/w_x )
+      allocate( EY(m_tot,m_y), F_map_abs(m_x,m_y) )
       EY = exp( -(spread(y_map,2,m_y) - spread(y_c,1,m_tot))**2/w_y )
-      F_map_abs = matmul(transpose(EX), EY)
-      deallocate( EX, EY )
+      call conv_rows(x_map, F_abs + S_th + S_hot, x_c, w_x, EY, F_map_abs)
+      deallocate( EY )
 
       !------------------------------------------
       ! Save + consistency check (mJy/beam -> mJy with A_cell/A_beam)
 
       open(newunit=iu, file=output_file('SW_conv_'//freq//'abs_'//system//'.dat'))
       do i = 1, m_x
-         write(iu,'(F11.4,X,F11.4,X,E11.4)') (x_c(i), y_c(j), F_map_abs(i,j), j=1,m_y)
+         write(iu,'(F11.4,X,F11.4,X,ES12.4E3)') (x_c(i), y_c(j), F_map_abs(i,j), j=1,m_y)
          write(iu,*)
       end do
       close(iu)
@@ -154,7 +153,7 @@ contains
 
       file1 = 'SW_conv_'//trim(mf1%label)//'abs_'//system//'.dat'
       file2 = 'SW_conv_'//trim(mf2%label)//'abs_'//system//'.dat'
-      if (any(mf1%sigma /= mf2%sigma)) then
+      if (any(abs(mf1%sigma - mf2%sigma) > 1.d-6*mf1%sigma)) then
          print *, 'WARNING (SW_spex_run): different beams for '//trim(mf1%label)//' and '//trim(mf2%label)//'; no map'
          return
       end if
@@ -178,13 +177,39 @@ contains
             print *, 'WARNING (SW_spex_run): the grids of '//file1//' and '//file2//' differ'
             exit
          end if
-         if (F1 > F1_min .and. F2 > F2_min) write(iu3,'(F11.4,X,F11.4,X,E11.4)') x1, y1, log(F2/F1)/lognu2nu1
+         if (F1 > F1_min .and. F2 > F2_min) write(iu3,'(F11.4,X,F11.4,X,ES12.4E3)') x1, y1, log(F2/F1)/lognu2nu1
       end do
       close(iu1)
       close(iu2)
       close(iu3)
 
    END subroutine SW_spex_run
+
+
+   !============================================================================
+   ! F(i,j) = sum_l S_l*exp(-(x_l-x_c(i))**2/w_x)*EY(l,j), EY(l,j) = exp(-dy2).
+   ! Row by row (OpenMP), using only the points with dx2 < 40 (exp(-40) ~ 4e-18).
+
+   subroutine conv_rows(x_map, S, x_c, w_x, EY, F)
+      real(dp), intent(in)  :: x_map(:), S(:), x_c(:), w_x, EY(:,:)
+      real(dp), intent(out) :: F(:,:)
+      real(dp), allocatable :: dx2(:)
+      integer,  allocatable :: idx(:)
+      integer :: i, l
+
+      !$omp parallel do default(shared) schedule(dynamic) private(i, dx2, idx)
+      do i = 1, size(x_c)
+         dx2 = (x_map - x_c(i))**2/w_x
+         idx = pack([(l, l=1,size(x_map))], dx2 < 40.d0)
+         if (size(idx) == 0) then
+            F(i,:) = 0.d0
+         else
+            F(i,:) = matmul(S(idx)*exp(-dx2(idx)), EY(idx,:))
+         end if
+      end do
+      !$omp end parallel do
+
+   end subroutine conv_rows
 
    !============================================================================
    ! Number of non-empty records of a file in output/
