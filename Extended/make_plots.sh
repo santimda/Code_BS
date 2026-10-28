@@ -41,38 +41,38 @@ make
 sleep 0.01
 
 # Make plots with gnuplot, rename them, and move them to scenario folder.
-cd gnuplot_scripts
+#cd gnuplot_scripts
 
 # First make a list (an array) with all of the gnuplot scripts to run:
-declare -a script_list
-script_list=(plot_termo_RS.gp plot_termo_FS.gp)  
-script_list+=(plot_Linj_FS.gp plot_Linj_RS.gp)
-script_list+=(plot_radadi_FS.gp plot_radadi_RS.gp)
-script_list+=(plot_tiempos_e_FS.gp plot_tiempos_e_RS.gp)
-script_list+=(plot_tiempos_e_FS_90.gp plot_tiempos_e_RS_90.gp)
-script_list+=(plot_tiempos_e_FS_165.gp plot_tiempos_e_RS_165.gp)
-script_list+=(plot_tiempos_p_RS.gp plot_tiempos_p_FS.gp)
-script_list+=(plot_Emaxe_RS.gp plot_Emaxe_FS.gp)
-script_list+=(plot_Emaxp_RS.gp plot_Emaxp_FS.gp)
-script_list+=(plot_diste_RS.gp plot_diste_FS.gp plot_diste_RS_bin.gp plot_diste_FS_bin.gp)
-script_list+=(plot_distp_RS.gp plot_distp_FS.gp plot_distp_RS_bin.gp plot_distp_FS_bin.gp)
-script_list+=(plot_SED_th_NT.gp)
+#declare -a script_list
+#script_list=(plot_termo_RS.gp plot_termo_FS.gp)  
+#script_list+=(plot_Linj_FS.gp plot_Linj_RS.gp)
+#script_list+=(plot_radadi_FS.gp plot_radadi_RS.gp)
+#script_list+=(plot_tiempos_e_FS.gp plot_tiempos_e_RS.gp)
+#script_list+=(plot_tiempos_e_FS_90.gp plot_tiempos_e_RS_90.gp)
+#script_list+=(plot_tiempos_e_FS_165.gp plot_tiempos_e_RS_165.gp)
+#script_list+=(plot_tiempos_p_RS.gp plot_tiempos_p_FS.gp)
+#script_list+=(plot_Emaxe_RS.gp plot_Emaxe_FS.gp)
+#script_list+=(plot_Emaxp_RS.gp plot_Emaxp_FS.gp)
+#script_list+=(plot_diste_RS.gp plot_diste_FS.gp plot_diste_RS_bin.gp plot_diste_FS_bin.gp)
+#script_list+=(plot_distp_RS.gp plot_distp_FS.gp plot_distp_RS_bin.gp plot_distp_FS_bin.gp)
+#script_list+=(plot_SED_th_NT.gp)
 
 # For each gnuplot script we create a temporary file to rename the name tag
-for script in "${script_list[@]}"
-do
-	sed "s/NAME/${name}/g" $script > temp.gp
-	gnuplot temp.gp
-done
+#for script in "${script_list[@]}"
+#do
+#	sed "s/NAME/${name}/g" $script > temp.gp
+#	gnuplot temp.gp
+#done
 
 # Add the scenario name in the filenames
-rename "s/.pdf/_${name}.pdf/" *.pdf
+#rename "s/.pdf/_${name}.pdf/" *.pdf
 
-rename "s/.eps/_${name}.eps/" *.eps
+#rename "s/.eps/_${name}.eps/" *.eps
 
-mv *.pdf ../Results/"$name"/
+#mv *.pdf ../Results/"$name"/
 
-mv *.eps ../Results/"$name"/
+#mv *.eps ../Results/"$name"/
 
 cd ..
 
