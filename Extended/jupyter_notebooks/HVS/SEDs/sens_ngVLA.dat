@@ -1,0 +1,7 @@
+# nu [GHz] 		S_nu [muJy/beam] 1000 mas configuration https://ngvla.nrao.edu/page/performance
+2.4 			0.32
+8. 				0.21
+16.				0.28
+27.				0.36
+41.				0.57
+93.				2.02

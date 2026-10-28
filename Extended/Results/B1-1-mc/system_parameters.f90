@@ -7,7 +7,7 @@ module system_parameters
    !====================================================================
    ! This module contains the parameters of the specific system modelled
    !====================================================================
-
+   character(len=*), parameter :: system = 'B1-1-mc'
    real(dp), parameter :: distance = 1.d0*kpc           ! source distance (Gaia)
    real(dp), parameter :: inclination = 60.d0*pi/180.d0  ! angle between the star motion and the LOS in rad   
    ! i = 0° is face-on, i = 90° corresponds to BS in front of the star, i = -90° is BS behind the star
@@ -16,6 +16,10 @@ module system_parameters
    !real(dp), parameter :: R0_proj = 5.d0*60.d3          ! projected BS distance to the star (5') in mas  
    !real(dp), parameter :: R0 = R0_proj*(distance/kpc)*UA/abs(cos(incli)) ! linear distance to the BS stagnation point
    real(dp), parameter :: theta_max = (170.d0/180.d0)*pi ! ~ extension of the BS modelled ~ pi/2
+
+   ! Relative abundances (for solar composition)
+   real(dp), parameter :: X_ab = 0.73d0, Y_ab = 0.25d0
+   real(dp), parameter :: Z_ab = 1.d0 - X_ab - Y_ab ! X + Y + Z = 1
 
    !--------------------------------------------------------------------------------------
    ! Star
@@ -29,7 +33,10 @@ module system_parameters
    real(dp), parameter :: L_wind = 0.5d0*(Mdot*v_w**2) ! Wind kinetic power
    real(dp), parameter :: T_wind = 0.3*T_st        ! Drew1990
    real(dp), parameter :: v_st_rot = 0.1d0*v_w     ! Rule-of-thumb
-   real(dp), parameter :: mu_w = 1.3_dp            ! Leitherer 1995 / solar abundance (?)
+   real(dp), parameter :: mu = 4.d0/(3.d0 + 5.d0*X_ab - Z_ab) ! mean atomic weight = 4/(3+5X-Z) for complete ionization
+   real(dp), parameter :: mu_e = 2.d0/(1.d0 + X_ab)    ! mu_e = 2/(1+X) only for Z=0; mu_e > mu! 
+   real(dp), parameter :: mu_i = 1.d0/(1.d0/mu - 1.d0/mu_e)
+   real(dp), parameter :: mu_w = 1.5_dp            ! Leitherer 1995 
    real(dp), parameter :: Zq_w = 1.0_dp            ! Z = rms ionic charge
    real(dp), parameter :: gamma_w = 1.0_dp         ! Leitherer 1995
    real(dp), parameter :: filling = 1.d-1          ! ..... 10% ?
@@ -79,7 +86,13 @@ module system_parameters
    real(dp), parameter :: frac_sh = sqrt(0.1_dp) ! fraction sqrt(UB_sh/UB_equipartition_sh)
    real(dp), parameter :: frac_NT = 1.d-1
    real(dp), parameter :: inj_e = frac_NT*0.05d0   ! Fraction L_NT_e/L_iny_perp
-   real(dp), parameter :: inj_p = frac_NT-inj_e    ! Fraction L_NT_p/L_iny_perp 
+   real(dp), parameter :: inj_p = frac_NT-inj_e    ! Fraction L_NT_p/L_iny_perp
+   real(dp), parameter :: alpha_1 = 2.
+   real(dp), parameter :: lambda_diff = 1.d0
+
+   !--------------------------------------------------------------------------------------
+   ! Isothermal shock width parameter
+   real(dp), parameter :: frac_H = 0.15d0 
 
 
    !============================================================================

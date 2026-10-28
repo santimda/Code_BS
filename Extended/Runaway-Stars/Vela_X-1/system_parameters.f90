@@ -85,7 +85,7 @@ module system_parameters
    real(dp), parameter :: frac_sh = sqrt(0.2)      ! fraction sqrt(UB_sw/UB_equipartition_sw), f_NT=1 used value
    !real(dp), parameter :: frac_sh = sqrt(0.001)
    real(dp), parameter :: alpha_1 = -1.d0
-   real(dp), parameter :: frac_NT = 0.11_dp          ! Fraction L_NT/L_inj_perp, alpha=0.35, eta_B=0.1 used value
+   real(dp), parameter :: frac_NT = 0.13_dp          ! Fraction L_NT/L_inj_perp, alpha=0.35, eta_B=0.1 used value
    !real(dp), parameter :: frac_NT = 0.002_dp
    real(dp), parameter :: inj_e = frac_NT*0.1d0   ! Fraction L_NT_e/L_iny_perp 
    real(dp), parameter :: inj_p = frac_NT-inj_e    ! Fraction L_NT_p/L_iny_perp
@@ -95,8 +95,8 @@ module system_parameters
 
    !--------------------------------------------------------------------------------------
    ! Isothermal shock width parameter
-   !real(dp), parameter :: frac_H = 0.92d0
    real(dp), parameter :: frac_H = 0.1d0
+   !real(dp), parameter :: frac_H = 1.d0
 
    !============================================================================
 
