@@ -107,5 +107,5 @@ When modeling a different system, normally only `system_parameters.f90` needs to
 If you use this code in your research, please cite the relevant papers:
 
 - **Model description:** [del Palacio et al. (2018), A&A, 617, A13](https://ui.adsabs.harvard.edu/abs/2018A%26A...617A..13D/abstract)
-- **Model update: adiabatic FS modelling:** [Martinez et al. (2022), A&A, 661, A102](https://ui.adsabs.harvard.edu/abs/2022A%26A...661A.102M/abstract)
+- **Model update: adiabatic FS model:** [Martinez et al. (2022), A&A, 661, A102](https://ui.adsabs.harvard.edu/abs/2022A%26A...661A.102M/abstract)
 - **Model update: Radiative double-layer FS model:** [Martinez et al. (2023), A&A, 680, A99](https://ui.adsabs.harvard.edu/abs/2023A%26A...680A..99M/abstract)
