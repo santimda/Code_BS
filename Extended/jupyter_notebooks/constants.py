@@ -28,6 +28,7 @@ Rsun = 6.957e10             # Solar radius
 Lsun = 3.828e33             # Solar luminosity
 AU = 1.495978707e13
 pc = 3.085677581e18
+kpc = 1e3*pc
 year = 3.15576e7
 
 Msun_yr = Msun / year
