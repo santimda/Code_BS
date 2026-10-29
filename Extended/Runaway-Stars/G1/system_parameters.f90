@@ -98,7 +98,7 @@ module system_parameters
    !real(dp), parameter :: inj_e = frac_NT*0.4d0   ! Fraction L_NT_e/L_iny_perp
    real(dp), parameter :: inj_e = frac_NT*0.1d0
    real(dp), parameter :: inj_p = frac_NT-inj_e    ! Fraction L_NT_p/L_iny_perp
-   character(len=*), parameter :: diff_regime = 'Bohm'      ! del Valle+2018
+   !character(len=*), parameter :: diff_regime = 'Bohm'      ! del Valle+2018
    real(dp), parameter :: lambda_diff = 1.d0
 
    !--------------------------------------------------------------------------------------
