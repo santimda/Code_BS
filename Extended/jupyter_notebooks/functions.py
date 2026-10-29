@@ -63,7 +63,7 @@ def load_gridded_data(path):
     Z[yi, xi] = flux
     
     X, Y = np.meshgrid(x_unique, y_unique)
-    return X, Y, Z
+    return X/60., Y/60., Z
  
 ####################################################################
 ####################################################################
@@ -74,7 +74,7 @@ def read_file(path):
     """
     datos = []
 
-    with open(ruta_archivo, 'r') as f:
+    with open(path, 'r') as f:
         for linea in f:
             linea = linea.strip()
             if not linea:
@@ -97,6 +97,17 @@ def safe_log10(x, replace_inf=True):
             result = np.where(np.isinf(result), 0, result)
             result = np.where(np.isnan(result), 0, result)
     return result
+
+####################################################################
+####################################################################
+def rotate(x, y, ang, sign=+1):
+    '''
+    '''
+    a = sign * ang + np.pi
+    c, s = np.cos(a), np.sin(a)
+    xr = x * c - y * s
+    yr = x * s + y * c
+    return xr, yr
 
 ####################################################################
 ####################################################################
