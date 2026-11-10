@@ -406,7 +406,7 @@ Subroutine abs_maps(shock, radiative)
    allocate( iu_syn(n_map), iu_th(n_map), iu_hot(n_map) )
    iu_hot = -1
    iu_hot_avg = -1
-   hot = (shock == 'BOTH') .or. (shock == 'FS')   ! the hot layer only exists in the FS
+   hot = radiative .and. ((shock == 'BOTH') .or. (shock == 'FS'))   ! the hot layer only exists in the FS
 
    ! File-name tags:
    !   tag_cd : files written by CD_abssyn   ('CD_sync_radiomap_RS110MHz.dat')
@@ -487,9 +487,9 @@ Subroutine abs_maps(shock, radiative)
    if (convolution) then
       print *, 'Convolution of the emission map with the instrument response'
       do im = 1, n_map
-         call SW_conv_run(shock, maps(im))
+         call SW_conv_run(shock, maps(im), radiative)
       end do
-      if (map_avg%on) call SW_conv_run(shock, map_avg)
+      if (map_avg%on) call SW_conv_run(shock, map_avg, radiative)
    endif
 
    deallocate( iu_syn, iu_th, iu_hot )

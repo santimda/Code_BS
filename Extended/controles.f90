@@ -34,9 +34,9 @@ logical, parameter :: radsyn_sw_calc = yes
 logical, parameter :: radbr_sw_calc = yes
 logical, parameter :: radic_st_calc = yes
 logical, parameter :: radic_IR_calc = yes
-logical, parameter :: abssyn_calc = yes !needs maps = yes
-logical, parameter :: maps_calc = yes
-logical, parameter :: convolution = yes! no
+logical, parameter :: abssyn_calc = no !needs maps = yes
+logical, parameter :: maps_calc = no
+logical, parameter :: convolution = no! no
 ! Radio-map frequencies
 ! nu: freq in Hz
 ! label: str
@@ -74,8 +74,8 @@ logical, parameter :: escribir_p = yes
 logical, parameter :: stromgren = yes
 
 !----------
-logical, parameter :: rad_alpha = yes
-logical, parameter :: convolution_alpha = yes
+logical, parameter :: rad_alpha = no
+logical, parameter :: convolution_alpha = no
 
 !===================================================
 

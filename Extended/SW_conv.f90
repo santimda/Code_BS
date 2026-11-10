@@ -20,8 +20,9 @@ contains
    ! and hot layer) emission. mf: map frequency (label and beam ["]).
    !============================================================================
 
-   subroutine SW_conv_run(shock, mf)
+   subroutine SW_conv_run(shock, mf, radiative)
       character(LEN=*), intent(in) :: shock
+      logical, intent(in) :: radiative            ! radiative FS (hot layer)
       type(map_freq_t), intent(in) :: mf
       character(len=:), allocatable :: freq, tag
       real(dp) :: sigma_x, sigma_y, A_beam, A_cell, D_x, D_y, w_x, w_y, half_x, y_min, y_max
@@ -32,12 +33,12 @@ contains
 
       80 format(A,X,Es10.2,X,A)
 
-      freq    = trim(mf%label)
+      freq = trim(mf%label)
       sigma_x = mf%sigma(1)
       sigma_y = mf%sigma(2)
-      A_beam  = 2.d0*pi*sigma_x*sigma_y     ! Gaussian normalization factor
-      A_cell  = f_Ny**2*sigma_x*sigma_y     ! cell sample size
-      hot     = (shock == 'BOTH') .or. (shock == 'FS')   ! the hot layer only exists in the FS
+      A_beam = 2.d0*pi*sigma_x*sigma_y     ! Gaussian normalization factor
+      A_cell = f_Ny**2*sigma_x*sigma_y     ! cell sample size
+      hot  = radiative .and. ((shock == 'BOTH') .or. (shock == 'FS'))   ! the hot layer only exists in the FS
 
       if (shock == 'BOTH') then
          tag = ''
@@ -81,13 +82,13 @@ contains
       D_y = f_Ny*sigma_y
 
       half_x = maxval(abs(x_map)) + n_sig_margin*sigma_x
-      m_x    = max( ceiling(2.d0*half_x/D_x), 1 )
-      x_c    = ([(real(i,dp), i=1,m_x)] - 0.5d0*(m_x+1))*D_x          ! symmetric with respect to x = 0
+      m_x = max( ceiling(2.d0*half_x/D_x), 1 )
+      x_c = ([(real(i,dp), i=1,m_x)] - 0.5d0*(m_x+1))*D_x          ! symmetric with respect to x = 0
 
       y_min = minval(y_map) - n_sig_margin*sigma_y
       y_max = maxval(y_map) + n_sig_margin*sigma_y
-      m_y   = max( ceiling((y_max - y_min)/D_y), 1 )
-      y_c   = y_min + ([(real(j,dp), j=1,m_y)] - 0.5d0)*D_y
+      m_y = max( ceiling((y_max - y_min)/D_y), 1 )
+      y_c = y_min + ([(real(j,dp), j=1,m_y)] - 0.5d0)*D_y
 
       if (verbose) write(*,'(a,i0,a,i0)') ' Convolution grid: m_x = ', m_x, ', m_y = ', m_y
 
