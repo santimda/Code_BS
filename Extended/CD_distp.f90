@@ -23,9 +23,9 @@ module CD_distp
       character(LEN=*), intent(in) :: shock
       integer  :: l, i, l2, l_min, l_cut, m_theta_inj_max, n_E, iu
       integer  :: index1, index2, n_count, steps
-      logical  :: new_count
+      logical  :: new_count, fast
       real(dp) :: Eint, L1, b_pp, D_diff, t_pp_l
-      real(dp) :: Ka, integral, Np, cool, dE_aprox, suma
+      real(dp) :: Ka, integral, Np, cool, dE_aprox, suma, flux, dt_bin
       real(dp) :: Q_E(mE_p)        ! private copy per OpenMP thread (small, on each thread's stack)
       ! Shock quantities (one value per position l)
       real(dp), allocatable :: theta(:), rho(:), B(:), v_t(:), n_a(:)
@@ -150,7 +150,7 @@ module CD_distp
 
       !$omp parallel do default(shared) schedule(dynamic) reduction(+:N_ptot) &
       !$omp private(l_min, n_E, Q_E, integral, Ka, i, Np, index1, index2, l, l2, &
-      !$omp         n_count, steps, new_count, cool, dE_aprox, suma)
+      !$omp         n_count, steps, new_count, cool, dE_aprox, suma, flux, dt_bin, fast)
       Do l_min = 1, m_theta_inj_max ! After m_theta_inj_max, particles are no longer accelerated
          ! Q = Ka*fQp(E). The normalization constant Ka is obtained by the condition:
          ! integral Q(E')*E'dE' = Linj. [Linj]=erg/s, [Ka]=erg/s, [Q]=1/erg/seg
@@ -166,16 +166,33 @@ module CD_distp
 
          do i = 1, n_E
             ! N(E) = Q(E)*dt, with dt = min(t_cell, t_cool) and diffusion treated
-            ! as an effective energy loss (as in CD_diste); [N(E)] = 1/erg
-            Np = Ka*Q_E(i) * min(t_cell(l_min), 1.d0/(1.d0/t_coolp(l_min,i) + 1.d0/t_diff(l_min,i)))
-            N_ptot(l_min,i) = N_ptot(l_min,i) + Np
+            ! as an effective energy loss; [N(E)] = 1/erg
+            index1 = i
+            if (dE(i)/E_dot(l_min,i) >= t_cell(l_min)) then
+               ! Slow cooling
+               Np = Ka*Q_E(i) * min(t_cell(l_min), 1.d0/(1.d0/t_coolp(l_min,i) + 1.d0/t_diff(l_min,i)))
+               N_ptot(l_min,i) = N_ptot(l_min,i) + Np
+               Np = Ka*Q_E(i) * min(t_cell(l_min), t_diff(l_min,i))   ! advected to the next cell
+            else
+               ! Fast cooling
+               flux = Ka*Q_E(i)*dE(i) * t_diff(l_min,i)/(t_diff(l_min,i) + t_coolp(l_min,i))
+               suma = 0.d0
+               index1 = i + 1
+               do while (suma < t_cell(l_min) .and. index1 > 1)
+                  index1 = index1 - 1
+                  dt_bin = dE(index1)/E_dot(l_min,index1)
+                  N_ptot(l_min,index1) = N_ptot(l_min,index1) + flux*min(dt_bin, t_cell(l_min)-suma)/dE(index1)
+                  suma = suma + dt_bin
+               end do
+               if (suma < t_cell(l_min)) cycle
+               Np = flux*t_cell(l_min)/dE(index1)        ! advected to the next cell
+            end if
 
             ! Evolved version of the injected distribution at each position "l":
-            ! N_l = N_l-1*(Edot_l-1/Edot_l)*(t_cell(l)/t_cell(l-1)), where the energy
+            ! N_l*dE_l = N_l-1*dE_l-1*(t_cell(l)/t_cell(l-1)), where the energy
             ! evolves as E0(l) given by t_cell(l) = int_E0^El dE/Edot
 
-            index1 = i            ! For the cell "l"
-            index2 = i            ! For the previous cell, "l-1"
+            index2 = index1       ! For the previous cell, "l-1"
             l = l_min + 1
             n_count = 0           ! Counter for when to change the index if losses are small
             cool = 0.d0
@@ -189,6 +206,7 @@ module CD_distp
                   cool = cool - t_cell(l-1)/t_coolp(l-1,index1)
                end if
                dE_aprox = (1.d0-t_cell(l)/t_coolp(l,index1))
+               fast = .false.
 
                if ( 1.d0-cool > 0.99d0/Eint ) then ! negligible cooling
                   continue
@@ -215,25 +233,31 @@ module CD_distp
                   end if
 
                elseif ( dE_aprox <= 1.d0/Eint ) then
+                  ! Fast cooling:
+                  fast = .true.
+                  flux = Np*dE(index2)/t_cell(l-1)
                   suma = 0.d0
                   do while (suma < t_cell(l) .and. index1 > 1)
                      index1 = index1 - 1
-                     suma = suma + dE(index1)/E_dot(l,index1)
+                     dt_bin = dE(index1)/E_dot(l,index1)
+                     N_ptot(l,index1) = N_ptot(l,index1) + flux*min(dt_bin, t_cell(l)-suma)/dE(index1)
+                     suma = suma + dt_bin
                   end do
+                  Np = flux*t_cell(l)/dE(index1)
                end if
 
-               ! The following takes into account energy losses and variable cell size and velocity
-               Np = Np * ( E_dot(l,index2)/E_dot(l,index1) ) * (t_cell(l)/t_cell(l-1))
-
-               N_ptot(l,index1) = N_ptot(l,index1) + Np  ! The energies match by construction
+               if (.not. fast) then
+                  Np = Np * ( dE(index2)/dE(index1) ) * (t_cell(l)/t_cell(l-1))
+                  N_ptot(l,index1) = N_ptot(l,index1) + Np  ! The energies match by construction
+               end if
 
                index2 = index1  ! index2 keeps the value of the previous step
 
                l = l + 1
-            end do              ! End loop in shock position (l)
-         end do                 ! End loop in proton starting energies (i)
+            end do              ! End loop in shock position
+         end do                 ! End loop in proton starting energies
 
-      end do                    ! End loop in starting position (l_min = # linear-emitters)
+      end do            
       !$omp end parallel do
 
       !----------------------------------------------------------------------

@@ -21,10 +21,10 @@ module CD_diste
       character(LEN=*), intent(in) :: shock
       integer  :: l, i, l2, l_min, l_cut, m_theta_inj_max, n_E, iu
       integer  :: index1, index2, n_count, steps
-      logical  :: new_count
+      logical  :: new_count, fast
       real(dp) :: Eint, cte_IC, C_ic_st, kC_ic_st, kC_ic_IR, cte_sy, gamm, D_diff
       real(dp) :: log_coul, cte_coul, gdot_coul, Kappa_st
-      real(dp) :: Ka, integral, Ne, cool, dE_aprox, suma
+      real(dp) :: Ka, integral, Ne, cool, dE_aprox, suma, flux, dt_bin
       real(dp) :: Q_E(mE_e)
       real(dp), allocatable :: theta(:), rho(:), T(:), B(:), v_t(:), n_a(:)
       real(dp), allocatable :: L_inj_e(:), dR(:), H_theta(:), R_acel(:), dV_ring(:)
@@ -175,7 +175,7 @@ module CD_diste
 
       !$omp parallel do default(shared) schedule(dynamic) reduction(+:N_etot) &
       !$omp private(l_min, n_E, Q_E, integral, Ka, i, Ne, index1, index2, l, l2, &
-      !$omp         n_count, steps, new_count, cool, dE_aprox, suma)
+      !$omp         n_count, steps, new_count, cool, dE_aprox, suma, flux, dt_bin, fast)
       Do l_min = 1, m_theta_inj_max ! After m_theta_inj_max, particles are no longer accelerated
          ! Q = Ka*fQ(E). The normalization constant Ka is obtained by the condition:
          ! integral Q(E')*E'dE' = Linj. [Linj]=erg/s, [Ka]=erg/s, [Q]=1/erg/seg
@@ -194,15 +194,36 @@ module CD_diste
             ! in [erg/seg], dt = min(t_cell,t_cool) so that [N(E)]=1/erg
 
             ! Treat diffusion as an effective energy loss
-            Ne = Ka*Q_E(i) * min(t_cell(l_min), 1.d0/(1.d0/t_coole(l_min,i) + 1.d0/t_diff(l_min,i)))
-            N_etot(l_min,i) = N_etot(l_min,i) + Ne
+            index1 = i
+            if (dE(i)/E_dot(l_min,i) >= t_cell(l_min)) then
+               ! Slow cooling: the particles stay in the bin i during t_cell
+               Ne = Ka*Q_E(i) * min(t_cell(l_min), 1.d0/(1.d0/t_coole(l_min,i) + 1.d0/t_diff(l_min,i)))
+               N_etot(l_min,i) = N_etot(l_min,i) + Ne
+               ! Particles advected to the next cell: those that do not escape by diffusion
+               Ne = Ka*Q_E(i) * min(t_cell(l_min), t_diff(l_min,i))
+            else
+               ! Fast cooling: the injected particles cross the bins i, i-1, ...
+               !staying dE/E_dot in each one (N = number flux/E_dot)
+               ! The fraction t_esc/t_cool escapes by diffusion
+               ! If they cool below Emin_e within the cell, they are removed
+               flux = Ka*Q_E(i)*dE(i) * t_diff(l_min,i)/(t_diff(l_min,i) + t_coole(l_min,i))
+               suma = 0.d0
+               index1 = i + 1
+               do while (suma < t_cell(l_min) .and. index1 > 1)
+                  index1 = index1 - 1
+                  dt_bin = dE(index1)/E_dot(l_min,index1)
+                  N_etot(l_min,index1) = N_etot(l_min,index1) + flux*min(dt_bin, t_cell(l_min)-suma)/dE(index1)
+                  suma = suma + dt_bin
+               end do
+               if (suma < t_cell(l_min)) cycle
+               Ne = flux*t_cell(l_min)/dE(index1)        ! packet advected to the next cell
+            end if
 
-            ! We calculate the evolved version of the injected electron distribution at each
-            ! position "l" as: N_l(l) = N_l-1* (Edot_l-1/Edot_l), where the energy also evolves
-            ! as E0(l) given by: t_cell(l) = int_E0^El Edot * dE
+            ! We calculate the evolved version of the injected electron distribution at each position "l" as:
+            ! N_l*dE_l = N_l-1*dE_l-1 * (t_cell(l)/t_cell(l-1))
+            !where the energy also evolves as E0(l) given by: t_cell(l) = int_E0^El Edot * dE
 
-            index1 = i            ! For the cell "l"
-            index2 = i            ! For the previous cell, "l-1"
+            index2 = index1       ! For the previous cell, l-1
             l = l_min + 1
             n_count = 0           ! Counter for when to change the index if losses are small
             cool = 0.d0
@@ -212,13 +233,14 @@ module CD_diste
                ! At the position l, the particle has E_e(index1) instead of E_e(i)
                ! We find index1 <= i according to the cooling time:
 
-               ! The cooling parameter "cool" determines whether particles cool efficiently or not
+               ! The cooling parameter cool determines whether particles cool efficiently or not
                if (l == l_min+1) then ! The total cooling parameter from l_min to m_theta
                   cool = sum( t_cell(l:m_theta)/t_coole(l:m_theta,index1) )
                else
                   cool = cool - t_cell(l-1)/t_coole(l-1,index1)
                end if
                dE_aprox = (1.d0-t_cell(l)/t_coole(l,index1))
+               fast = .false.
 
                if ( 1.d0-cool > 0.99d0/Eint ) then ! negligible cooling
                   continue
@@ -245,25 +267,34 @@ module CD_diste
                   end if
 
                elseif ( dE_aprox <= 1.d0/Eint ) then
+                  ! Fast cooling: within the cell the particles cross the bins index2-1, ..., index1
+                  ! staying dE/E_dot in each one (N = number flux/E_dot)
+                  !If they reach the lowest bin before t_cell(l), they cool below Emin_e and are removed
+                  fast = .true.
+                  flux = Ne*dE(index2)/t_cell(l-1)          ! particles per unit time
                   suma = 0.d0
                   do while (suma < t_cell(l) .and. index1 > 1)
                      index1 = index1 - 1
-                     suma = suma + dE(index1)/E_dot(l,index1)
+                     dt_bin = dE(index1)/E_dot(l,index1)
+                     N_etot(l,index1) = N_etot(l,index1) + flux*min(dt_bin, t_cell(l)-suma)/dE(index1)
+                     suma = suma + dt_bin
                   end do
+                  Ne = flux*t_cell(l)/dE(index1)            ! packet advected
                end if
 
-               ! The following takes into account energy losses and variable cell size and velocity
-               Ne = Ne * ( E_dot(l,index2)/E_dot(l,index1) ) * (t_cell(l)/t_cell(l-1))
-
-               N_etot(l,index1) = N_etot(l,index1) + Ne  ! The energies match by construction
+               if (.not. fast) then
+                  ! Number of particles conserved, N*dE
+                  Ne = Ne * ( dE(index2)/dE(index1) ) * (t_cell(l)/t_cell(l-1))
+                  N_etot(l,index1) = N_etot(l,index1) + Ne  ! The energies match by construction
+               end if
 
                index2 = index1  ! index2 keeps the value of the previous step
 
                l = l + 1
-            end do              ! End loop in shock position (l)
-         end do                 ! End loop in electron starting energies (i)
+            end do              ! End loop in shock position
+         end do                 ! End loop in electron starting energies
 
-      end do                    ! End loop in starting position (l_min = # linear-emitters)
+      end do                    ! End loop in starting position (l_min = # linear emitters)
       !$omp end parallel do
 
       !----------------------------------------------------------------------
