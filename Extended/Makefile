@@ -28,7 +28,7 @@ run.x: $(OBJECTS)
 	$(FC) -c $(FFLAGS) $<
 
 test:
-	sh test_set.sh
+	sh Tests/test_set.sh
 
 clean:
 	rm -f *.x *.o *.mod *.dat *.bin *.log *~

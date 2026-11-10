@@ -1,0 +1,18 @@
+{
+  "injected_power": [1.13e+37, 7.44e+36, 1.6e+35],
+  "magnetic_field_apex": [2.82e-05, 2.37e-05],
+  "temperature_apex": [132000000.0, 41200.0],
+  "density_apex": [0.0087, 19.7],
+  "free_free_RS": [2.79e+29],
+  "synchrotron_unabsorbed": [5.247e+31],
+  "bremsstrahlung": [5.5e+28],
+  "ic_dust": [1.06e+30],
+  "ic_stellar": [4.78e+31],
+  "x_rays": [1.06e+30],
+  "proton_proton": [3.55e+28],
+  "free_free_hot_layer": [2.67e+32],
+  "free_free_isothermal_layer": [1.01e+34],
+  "maps_synchrotron": [978.0, 907.0, 476.0, 253.0, 162.0, 128.0, 80.3, 114.0],
+  "maps_convolved": [1070.0, 992.0, 550.0, 321.0, 227.0, 192.0, 141.0, 179.0],
+  "synchrotron_radio_RS": [986.1, 909.0, 475.7, 253.0, 161.9, 128.4, 80.28]
+}
