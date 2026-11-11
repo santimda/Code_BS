@@ -20,7 +20,7 @@ Besides system-specific parameters, the model has two free parameters that have 
 
 For additional details of the model we refer to [del Palacio et al. (2018)](https://ui.adsabs.harvard.edu/abs/2018A%26A...617A..13D/abstract), [Martinez et al. (2022)](https://ui.adsabs.harvard.edu/abs/2022A%26A...661A.102M/abstract), and [Martinez et al. (2023)](https://ui.adsabs.harvard.edu/abs/2023A%26A...680A..99M/abstract).
 
-![Sketch (not to scale) of a BS of a runaway star. The FS and the RS are separated by the CD, represented by a solid black line. The immediate post-shock external medium, the shocked medium ionised by the star, and the shocked stellar wind are shown in red, orange, and blue, respectively. The solid lines with arrows indicate the shocked gas streamlines, from the injection position up to the tail of the BS.](docs/Radiative_BS.svg)
+![Sketch (not to scale) of a BS of a runaway star. The FS and the RS are separated by the CD, represented by a solid black line. The immediate post-shock external medium, the shocked medium ionised by the star, and the shocked stellar wind are shown in red, orange, and blue, respectively. The solid lines with arrows indicate the shocked gas streamlines, from the injection position up to the tail of the BS.](docs/Radiative_BS.jpg)
 
 ## Code usage
 
