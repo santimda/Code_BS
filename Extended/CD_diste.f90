@@ -279,10 +279,10 @@ module CD_diste
       E_NT = matmul(N_etot, E_e*dE) * n_emit
       U_NT = E_NT/dV_ring
       U_B  = B**2/(8.d0*pi)
-      open(newunit=iu, file=output_file('ENTe_'//shock//'.dat'))
+      open(newunit=iu, file=output_file('ENTe_'//system//'_'//shock//'.dat'))
       write(iu,'(4es17.8e3)') (theta(l), E_NT(l), U_NT(l), U_NT(l)/U_B(l), l=1,m_theta)
       close(iu)
-      open(newunit=iu, file=output_file('PNTe_'//shock//'.dat'))
+      open(newunit=iu, file=output_file('PNTe_'//system//'_'//shock//'.dat'))
       write(iu,'(2es17.8e3)') (theta(l), (U_NT(l)/3.d0)/U_B(l), l=1,m_theta)   ! Ratio P_e,rel/P_mag
       close(iu)
 
