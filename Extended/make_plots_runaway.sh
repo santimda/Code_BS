@@ -10,7 +10,7 @@ echo "6: IRAS-20321+4009"
 echo "7: RCW-49-S1"
 echo "8: G1"
 echo "9: Lambda_Cep"
-echo "10: O4"
+echo "10: LS_2355"
 echo "11: Vela_X-1"
 
 echo -n "Enter the integer value and press [ENTER]: " 
@@ -46,7 +46,7 @@ case $name_number in
 	name='Lambda_Cep'
 	;;
 	10)
-	name='O4'
+	name='LS_2355'
 	;;
 	11)
 	name='Vela_X-1'
@@ -63,38 +63,3 @@ cp Runaway-Stars/"$name"/system_parameters.f90 ./
 make
 ./run.x 
 sleep 0.01
-
-# Make plots with gnuplot, rename them, and move them to scenario folder.
-cd gnuplot_scripts
-
-# First make a list (an array) with all of the gnuplot scripts to run:
-declare -a script_list
-script_list+=(plot_termo_RS.gp)  
-script_list+=(plot_termo_radiative.gp)
-script_list+=(plot_Linj_RS.gp)
-script_list+=(plot_radadi_RS.gp)
-script_list+=(plot_tiempos_e_RS.gp)
-script_list+=(plot_tiempos_p_RS.gp)
-script_list+=(plot_Emaxe_RS.gp)
-script_list+=(plot_Emaxp_RS.gp)
-script_list+=(plot_diste_RS_bin.gp)
-script_list+=(plot_distp_RS_bin.gp)
-script_list+=(plot_SED_th_NT.gp)
-
-# For each gnuplot script we create a temporary file to rename the name tag
-for script in "${script_list[@]}"
-do
-	sed "s/NAME/${name}/g" $script > temp.gp
-	gnuplot temp.gp
-done
-
-# Add the scenario name in the filenames
-rename "s/.pdf/_${name}.pdf/" *.pdf
-
-rename "s/.eps/_${name}.eps/" *.eps
-
-mv *.pdf ../Runaway-Stars/"$name"/
-
-mv *.eps ../Runaway-Stars/"$name"/
-
-cd ..
