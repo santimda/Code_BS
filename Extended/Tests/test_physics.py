@@ -18,6 +18,8 @@ Test cases:
   dense_ISM   Very dense ISM (adiabatic FS): protons lose their energy by p-p.
   one_zone    BD+43 with the Extended and the One-Zone codes (same injection,
               alpha = 2): the luminosities must agree within an order of magnitude.
+  one_zone_HVS  Same comparison for the HVS B2-60-d (electrons only), where the
+              transport of the electrons matters (fast IC cooling).
   adiabatic_FS  BD+43 with an adiabatic FS (radiative_FS = .false.), coarse grids, all
               the modules: the run (maps and convolutions included) must finish.
   openmp      Coarse grids, all the modules: same results with 1 and several
@@ -402,6 +404,53 @@ def case_one_zone(c, args, results):
     check_numbers(c, w)
 
 
+# B2-60-d parameters in One-Zone/system_parameters.f90 (as Tests/cases/B2-60-d)
+ONE_ZONE_HVS = {"system_parameters.f90": dict(
+    distance="1.d0*kpc", inclination="60.d0*pi/180.d0", v_st="60000.d5", T_st="2.d4",
+    R_st="4.d0*R_sun", L_st="4.d0*pi*R_st**2*sigma*T_st**4", Mdot="1.d-10*M_sun_yr", v_w="1000.d5",
+    n_ISM="10.d0", T_ISM="1.d2", mu_ISM="1.28d0", frac_B="sqrt(0.1d0)", frac_NT="1.d-1",
+    inj_e="frac_NT", inj_p="0.d0", alpha_NT="2.d0",
+    T_IR="27.d0*(0.2d0)**(-1.d0/6.d0)*(L_st/1.d38)**(1.d0/6.d0)*(R0/pc)**(-1.d0/3.d0)")}
+
+
+def case_one_zone_HVS(c, args, results):
+    # HVS B2-60-d, where the electrons cool fast by IC with the stellar photons, so the
+    # transport (CD_diste) matters. Same injection in both codes (power law, index 2),
+    # adiabatic FS, only electrons (inj_p = 0).
+    # Not compared in the RS: L_syn and L_IC,IR, which differ by factors ~50 and ~20 with
+    # both transports (E_max and the IR photon field are computed differently); in the FS:
+    # IC (One-Zone uses R_eff_FS = 5 R0)
+    global SYSTEM
+    patches = bt.merge(PATCH_BD43, SEDS_ONLY, {"global.f90": dict(mphi="10"), "controles.f90": dict(stromgren="no"),
+                                               "main.f90": dict(radiative_FS=".false.")})
+    SYSTEM = "B2-60-d"
+    try:
+        w, out = build_and_run("one_zone_HVS_extended", patches, files=FILES_HVS,
+                               replace={"CD_termo.f90": [("alpha_sh = 3._dp", "alpha_sh = 2._dp")]})
+        ne = n_emit(patches)
+        t0 = time.time()
+        w1 = bt.build(BUILD / "one_zone_HVS", source=bt.ONE_ZONE, patches=ONE_ZONE_HVS)
+        out1 = bt.run(w1)
+        print(f"  (One-Zone compiled and run in {time.time() - t0:.0f} s: {w1})")
+        print(" Extended vs One-Zone (HVS): within a factor 10")
+        for shock, start, end in (("RS", " Reverse Shock\n", " Forward shock\n"), ("FS", " Forward shock\n", " END\n")):
+            L = luminosities(w, shock, ne)
+            oz = bt.section(out1, start, end)
+            syn = bt.load(w, f"S_syn_{SYSTEM}_{shock}.dat")
+            if shock == "FS":
+                c.same_order(L["syn"], bt.value(oz, "L_syn(unabs) ="), f"{shock}: L_syn")
+            c.same_order(float(bt.at_frequency(syn, 1.4e9)[1]), bt.value(bt.section(oz, "Unabsorbed:"), "S(1.4GHz)="),
+                         f"{shock}: S_syn(1.4 GHz)")
+            c.same_order(L["br"], bt.value(oz, "L_Br(tot)="), f"{shock}: L_br")
+            if shock == "RS":
+                c.same_order(L["IC_st"], bt.value(oz, "L_IC =", 1), f"{shock}: L_IC,st")
+            c.same_order(float(bt.load(w, f"termo_{shock}.dat")[0, 5]), bt.value(out1, f"B_{shock}[G]="),
+                         f"{shock}: B at the apex")
+        check_numbers(c, w)
+    finally:
+        SYSTEM = "BD+43"
+
+
 def case_adiabatic_FS(c, args, results):
     # With an adiabatic FS there is no hot layer: the maps and the convolutions must not
     # read its files (abs_maps in main.f90, SW_conv_run in SW_conv.f90)
@@ -464,7 +513,7 @@ def case_openmp(c, args, results):
 
 
 CASES = {"BD43": case_BD43, "termo_RH": case_termo_RH, "HVS": case_HVS, "HVS_IR": case_HVS_IR,
-         "dense_ISM": case_dense_ISM, "one_zone": case_one_zone, "adiabatic_FS": case_adiabatic_FS, "openmp": case_openmp}
+         "dense_ISM": case_dense_ISM, "one_zone": case_one_zone, "one_zone_HVS": case_one_zone_HVS, "adiabatic_FS": case_adiabatic_FS, "openmp": case_openmp}
 
 
 def main():
