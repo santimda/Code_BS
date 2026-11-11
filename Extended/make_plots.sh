@@ -33,7 +33,7 @@ case $name_number in
 esac
 
 # Copy the parameter file for this scenario
-cp Results/"$name"/system_parameters.f90 ./
+cp Hypervelocity_stars/"$name"/system_parameters.f90 ./
 
 # Compile and run the program. Sleeps gives a little bit of time to save and close files.
 make
