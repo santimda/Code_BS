@@ -45,3 +45,21 @@
 run.x
 
 token
+
+# Notebooks, gnuplot scripts and V/: kept locally, not in git
+Extended/jupyter_notebooks/
+Extended/gnuplot_scripts/
+Extended/V/
+.ipynb_checkpoints/
+__pycache__/
+
+# Run outputs
+fort.*
+Extended/output/
+
+# Archives and backups
+*.zip
+*.bundle
+
+# Observational data and sensitivity curves DO go to git (exception to *.dat)
+!Extended/data/**
