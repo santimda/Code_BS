@@ -39,3 +39,5 @@ cp Hypervelocity_stars/"$name"/system_parameters.f90 ./
 make
 ./run.x 
 sleep 0.01
+
+python3 plots/make_plots.py "$@"
