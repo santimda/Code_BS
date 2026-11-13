@@ -241,6 +241,11 @@ module CD_termo
          v_ARH(l) = B_RH(l) / sqrt(4.d0*pi*rho_RH(l)) ! Alfven speed
       end do
 
+      ! Apex cell: v_t ~ theta near the stagnation point (v_t(1) = 0 only exactly at theta = 0)
+      ! Just to avoid numerical errors
+      v_t_new(1) = v_t_new(2)*theta(1)/theta(2)
+      v_t_RH(1)  = v_t_RH(2)*theta(1)/theta(2)
+
       if (radiative) then
          rho    = rho_RH
          P      = P_RH
