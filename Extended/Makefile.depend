@@ -2,7 +2,11 @@ constants.o: constants.f90
 
 system_parameters.o: system_parameters.f90 constants.o
 
-global.o: global.f90 constants.o system_parameters.o
+common_parameters.o: common_parameters.f90 constants.o system_parameters.o
+
+global.o: global.f90 constants.o common_parameters.o
+
+diffusion.o: diffusion.f90 constants.o common_parameters.o
 
 numerical_utils.o: numerical_utils.f90 constants.o
 
@@ -25,8 +29,6 @@ CD.o: CD.f90 global.o
 CD_termo.o: CD_termo.f90 global.o
 
 shock_thermal.o: shock_thermal.f90 global.o gaunt_factor.o map_freqs.o
-
-diffusion.o: diffusion.f90 constants.o system_parameters.o
 
 CD_diste.o: CD_diste.f90 global.o controles.o numerical_utils.o diffusion.o
 

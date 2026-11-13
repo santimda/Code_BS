@@ -1,7 +1,7 @@
   module diffusion
 
   use constants
-  use system_parameters
+  use common_parameters
   implicit none
   public
 
