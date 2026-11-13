@@ -75,7 +75,7 @@ SYSTEMS = {
     "BD+60": dict(
         label=r"BD+60$^\circ$ 2522",
         sensitivities=[],
-        radio_sed=dict(xlim=(0.1, 11),
+        radio_sed=dict(xlim=(0.1, 11)),
         maps=dict(
             rot_deg=28., arrow_deg=28., cosdec=0.4819, inclination_deg=56.,
             R0=dict(v_w=2000e5, Mdot=1.3e-6, v_st=42e5, n_ISM=27., mu_ISM=0.615, T_ISM=8e3),
@@ -90,7 +90,7 @@ SYSTEMS = {
     "Vela_X-1": dict(
         label="Vela X-1",
         sensitivities=[],
-        radio_sed=dict(xlim=(0.1, 11),
+        radio_sed=dict(xlim=(0.1, 11)),
         maps=dict(
             rot_deg=4.6, arrow_deg=4.6, cosdec=0.759786128, inclination_deg=65.,
             R0=dict(v_w=700e5, Mdot=1e-6, v_st=90e5, n_ISM=2., mu_ISM=0.615, T_ISM=8e3),
