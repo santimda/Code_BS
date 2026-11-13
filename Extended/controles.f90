@@ -34,18 +34,18 @@ logical, parameter :: radsyn_sw_calc = yes
 logical, parameter :: radbr_sw_calc = yes
 logical, parameter :: radic_st_calc = yes
 logical, parameter :: radic_IR_calc = yes
-logical, parameter :: abssyn_calc = no !needs maps = yes
-logical, parameter :: maps_calc = no
-logical, parameter :: convolution = no! no
+logical, parameter :: abssyn_calc = yes !needs maps = yes
+logical, parameter :: maps_calc = yes
+logical, parameter :: convolution = yes! no
 ! Radio-map frequencies
 ! nu: freq in Hz
 ! label: str
 ! sigma: instrument resolution (x,y) ["]
 type(map_freq_t), parameter :: map_catalogue(*) = [ &
    !           nu [Hz]   label      sigma (x,y)      make maps?
-   map_freq_t( 1.10d8,  '110MHz', [ 4.0d0,  4.0d0], no ), &
+   map_freq_t( 1.10d8,  '110MHz', [ 4.0d0,  4.0d0], yes ), &
    map_freq_t( 1.50d8,  '150MHz', [25.0d0, 25.0d0], yes ), &
-   map_freq_t( 1.90d8,  '190MHz', [ 4.0d0,  4.0d0], no ), &
+   map_freq_t( 1.90d8,  '190MHz', [ 4.0d0,  4.0d0], yes ), &
    map_freq_t( 3.25d8,  '325MHz', [54.0d0, 77.0d0], yes ), &
    map_freq_t( 1.42d9,  '1GHz',   [20.2d0, 12.5d0], yes  ), &
    map_freq_t( 3.00d9,  '3GHz',   [20.2d0, 12.5d0], yes ), &
@@ -74,8 +74,8 @@ logical, parameter :: escribir_p = yes
 logical, parameter :: stromgren = yes
 
 !----------
-logical, parameter :: rad_alpha = no
-logical, parameter :: convolution_alpha = no
+logical, parameter :: rad_alpha = yes
+logical, parameter :: convolution_alpha = yes
 
 !===================================================
 

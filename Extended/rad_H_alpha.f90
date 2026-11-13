@@ -8,7 +8,7 @@ module rad_H_alpha
    private
    public :: rad_H_alpha_run, project_H_alpha_map
 
-   real(dp), parameter :: sigma_x = 2.d0, sigma_y = 2.d0   ! beam widths ["] (arbitrary)
+   real(dp), parameter :: sigma_x = 10.d0, sigma_y = 10.d0   ! beam widths ["] (arbitrary)
    real(dp), parameter :: R_factor = 5.66d-18              ! 1 Rayleigh at H-alpha [erg/s/cm2/arcsec2]
    real(dp), parameter :: n_sig_margin = 3.d0              ! margin of the convolution grid around the data [sigma]
 
