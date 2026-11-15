@@ -70,9 +70,10 @@ def main(argv=None):
 
     #-----------------------------------------------------------
     # Free-free of the shocks: RS, and hot and isothermal layers of the FS
-
     if run.flag("xrad_calc"):
-        th = [run.out.read(k, shock=s) for s in run.shocks() for k in ("th_ion", "th_HL")
+        keys = {"RS": ("th_ion",),
+                "FS": ("th_ion", "th_HL") if run.radiative_fs else ("th_ion",)}
+        th = [run.out.read(k, shock=s) for s in run.shocks() for k in keys[s]
               if run.out.exists(k, shock=s)]
         if th:
             E = th[0][:, 0]

@@ -135,7 +135,7 @@ contains
     ! SEDs and fluxes
 
     if (radiative) then
-      open(newunit=iu, file=output_file(shock//'_ff.dat'))
+      open(newunit=iu, file=output_file(shock//'_ff_'//system//'.dat'))
       write(iu,'(2es17.8e3)') (h*nu_th(i)/eV, nuL_HL_tot(i), i=1,m_nu)             ! E [eV], nu*L_nu [erg/s]
       close(iu)
       open(newunit=iu, file=output_file('S_ff_'//system//'_'//shock//'.dat'))

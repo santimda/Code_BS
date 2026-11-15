@@ -24,7 +24,7 @@ FILES = {
     "radbr": "radbr_{sys}_{shock}_tot.dat",
     "radpp": "radpp_{sys}_{shock}_tot.dat",
     "th_ion": "ionized_ff_{sys}_{shock}.dat", # RS: shocked wind; FS: isothermal layer
-    "th_HL": "{shock}_ff.dat", # hot layer (radiative FS)
+    "th_HL": "{shock}_ff_{sys}.dat", # hot layer (radiative FS)
     # Radio: nu [Hz], S [mJy]
     "S_syn": "S_syn_{sys}_{shock}.dat",
     "S_syn_abs": "S_syn_abs_{sys}_{shock}.dat", # nu, S_unabs, S_abs
