@@ -34,6 +34,10 @@ module system_parameters
    real(dp), parameter :: L_IR = L_st/206.d0 ! Dust luminosity: no measurement for this system, L_st/L_IR of BD+43 (Kobulnicky+2017) scaled to 1.72 kpc
 
    !--------------------------------------------------------------------------------------
+   ! FS: .true. = radiative (isothermal layer, no NT particles), .false. = adiabatic
+   logical, parameter :: radiative_FS = .false.
+
+   !--------------------------------------------------------------------------------------
    ! Non-thermal particles
    real(dp), parameter :: frac_sh = sqrt(0.1_dp) ! Magnetic field value
    ! Injection spectral index: Q_inj \propto E^-alpha

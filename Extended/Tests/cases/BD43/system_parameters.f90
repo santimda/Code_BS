@@ -35,6 +35,10 @@ module system_parameters
    real(dp), parameter :: L_IR = 4.d0*pi*distance**2*5.0d-8 ! Dust luminosity, F_IR = 5e-8 erg/s/cm2 (Kobulnicky+2017, Table 5)
 
    !--------------------------------------------------------------------------------------
+   ! FS: .true. = radiative (isothermal layer, no NT particles), .false. = adiabatic
+   logical, parameter :: radiative_FS = .true.
+
+   !--------------------------------------------------------------------------------------
    ! Non-thermal particles
    real(dp), parameter :: frac_sh = sqrt(0.2) ! Magnetic field value
    ! Injection spectral index: Q_inj \propto E^-alpha

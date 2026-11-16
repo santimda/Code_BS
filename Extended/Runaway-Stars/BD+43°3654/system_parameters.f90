@@ -36,6 +36,10 @@ module system_parameters
    !real(dp), parameter :: L_IR = L_st/350.d0 ! Old distance
 
    !--------------------------------------------------------------------------------------
+   ! FS: .true. = radiative (isothermal layer, no NT particles), .false. = adiabatic
+   logical, parameter :: radiative_FS = .true.
+
+   !--------------------------------------------------------------------------------------
    ! Non-thermal particles
    real(dp), parameter :: frac_sh = sqrt(0.2) ! Magnetic field value
    ! Injection spectral index: Q_inj \propto E^-alpha
