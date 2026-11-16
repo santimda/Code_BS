@@ -9,7 +9,7 @@ module system_parameters
    !====================================================================
 
    character(len=*), parameter :: system = 'B1-1-mc'
-   real(dp), parameter :: distance = 1.d0*kpc
+   real(dp), parameter :: distance = 5.d0*kpc
    real(dp), parameter :: inclination = 60.d0*pi/180.d0
    real(dp), parameter :: theta_max = (170.d0/180.d0)*pi ! extension of the BS modelled
 
