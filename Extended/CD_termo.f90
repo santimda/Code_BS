@@ -383,6 +383,7 @@ module CD_termo
 
       allocate( alpha_sh(m_theta) )
       alpha_sh = 3._dp
+      !alpha_sh = 2._dp
       !alpha_sh = 2.55_dp
       !alpha_sh = (r+2.d0)/(r-1.d0)
       open(newunit=iu, file=output_file('alpha_'//shock//'.dat'))
