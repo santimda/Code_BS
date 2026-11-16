@@ -9,8 +9,6 @@ PROGRAM main
    !$ use omp_lib
    implicit none
 
-   ! FS: .true. = radiative (isothermal layer, no NT particles), .false. = adiabatic
-   logical, parameter :: radiative_FS = .true.
    integer :: st
 
    interface
