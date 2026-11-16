@@ -3,8 +3,8 @@
 
 The code is copied to a temporary directory, with the frozen system_parameters.f90
 and controles.f90 of Tests/cases/BD43, the grid of global.f90 fixed (GRID) and a
-radiative FS (main.f90), and
-the values printed in the terminal are compared with reference_terminal_output.json.
+radiative FS (system_parameters.f90), and the values printed in the terminal are
+compared with reference_terminal_output.json.
 The sources in Extended/ are not modified.
 
   python3 Tests/test_terminal_output.py                     # compare
@@ -29,7 +29,7 @@ CONFIGURATION = pathlib.Path(__file__).parent / "cases" / "BD43"
 # global.f90 also contains code: only the grid is fixed, so that the reference
 # does not depend on the resolution used in Extended/
 GRID = {"m_theta": "300", "mE_e": "300", "mE_p": "300", "mE_f": "500", "mE_ph": "500", "mphi": "30"}
-# main.f90: the reference is for a radiative FS
+# system_parameters.f90: the reference is for a radiative FS
 RADIATIVE_FS = ".true."
 
 NUMBER = r"([0-9.]+E[+-]?[0-9]+)"
@@ -90,7 +90,7 @@ def fix_radiative_fs(path):
     pattern = re.compile(r"^(\s*logical\s*,\s*parameter\s*::\s*radiative_FS\s*=\s*)\.\w+\.", re.MULTILINE | re.IGNORECASE)
     text, n = pattern.subn(lambda m: m.group(1) + RADIATIVE_FS, text)
     if n != 1:
-        raise SystemExit(f"main.f90: radiative_FS found {n} times (expected 1)")
+        raise SystemExit(f"system_parameters.f90: radiative_FS found {n} times (expected 1)")
     path.write_text(text)
 
 
@@ -106,7 +106,7 @@ def main():
         for filename in ("controles.f90", "system_parameters.f90"):
             shutil.copy2(CONFIGURATION / filename, test_root / filename)
         fix_grid(test_root / "global.f90")
-        fix_radiative_fs(test_root / "main.f90")
+        fix_radiative_fs(test_root / "system_parameters.f90")
 
         jobs = str(max(1, min(8, os.cpu_count() or 1)))
         run_checked(["make", "-j", jobs, "LIBS=", "run.x"], test_root)   # lapack/blas are not used

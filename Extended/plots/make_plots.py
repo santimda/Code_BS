@@ -72,13 +72,13 @@ def main(argv=None):
         raise SystemExit(f"cannot find {args.controls}")
     code_dir = os.path.dirname(os.path.abspath(args.controls))
     flags = read_controls(args.controls)
-    main_f90 = os.path.join(code_dir, "main.f90")
-    rad_fs = read_controls(main_f90).get("radiative_fs") if os.path.isfile(main_f90) else None
-    system = read_string([os.path.join(code_dir, "system_parameters.f90")], "system", "")
+    sys_par = os.path.join(code_dir, "system_parameters.f90")
+    rad_fs = read_controls(sys_par).get("radiative_fs") if os.path.isfile(sys_par) else None
+    system = read_string([sys_par], "system", "")
 
     print(f"Controls: {args.controls}")
     if rad_fs is not None:
-        print(f"FS: {'radiative' if rad_fs else 'adiabatic'} (main.f90)")
+        print(f"FS: {'radiative' if rad_fs else 'adiabatic'} (system_parameters.f90)")
     print(f"System: {system or '(not found in system_parameters.f90)'}")
     print(f"Data: {args.data}")
     print(f"Figures: {args.figdir or default_figdir(system)}\n")

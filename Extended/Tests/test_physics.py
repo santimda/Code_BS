@@ -50,14 +50,13 @@ BUILD = pathlib.Path(tempfile.gettempdir()) / "code_bs_tests"      # changed wit
 CASE_BD43 = TESTS / "cases" / "BD43"
 SYSTEM = "BD+43"                      # 'system' of the case being checked
 
-# Frozen BD+43 case: system parameters and controls. global.f90 and main.f90
-# (which also contain code) are taken from the repository, with the grid and
-# the options below fixed, so that the results do not depend on local changes.
+# Frozen BD+43 case: system parameters (radiative FS) and controls. global.f90
+# (which also contains code) is taken from the repository, with the grid fixed,
+# so that the results do not depend on local changes.
 FILES_BD43 = {"system_parameters.f90": CASE_BD43 / "system_parameters.f90",
               "controles.f90": CASE_BD43 / "controles.f90"}
 PATCH_BD43 = {
     "global.f90": dict(m_theta="300", mE_e="300", mE_p="300", mE_f="500", mE_ph="500", mphi="30"),
-    "main.f90": dict(radiative_FS=".true."),
 }
 
 # Only the SEDs (no absorption, maps, convolutions or H-alpha)
@@ -292,7 +291,7 @@ FILES_HVS = {"system_parameters.f90": TESTS / "cases" / "B2-60-d" / "system_para
 def case_HVS(c, args, results):
     global SYSTEM
     patches = bt.merge(PATCH_BD43, SEDS_ONLY, {"global.f90": dict(mphi="10"), "controles.f90": dict(stromgren="no"),
-                                               "main.f90": dict(radiative_FS=".false.")})
+                                               "system_parameters.f90": dict(radiative_FS=".false.")})
     SYSTEM = "B2-60-d"
     try:
         w, out = build_and_run("HVS", patches, files=FILES_HVS)
@@ -337,8 +336,7 @@ def case_dense_ISM(c, args, results):
     # goes to gamma-rays (pi0). Note: L_inj,p includes the rest-mass energy of the protons
     patches = bt.merge(PATCH_BD43, SEDS_ONLY, {
         "controles.f90": dict(RS="no", BOTH="no", stromgren="no", opacff_calc="no", electrons="no"),
-        "global.f90": dict(mphi="4"), "main.f90": dict(radiative_FS=".false."),
-        "system_parameters.f90": dict(n_ISM="6.d6")})
+        "global.f90": dict(mphi="4"), "system_parameters.f90": dict(radiative_FS=".false.", n_ISM="6.d6")})
     w, out = build_and_run("dense_ISM", patches)
     ne, mt = n_emit(patches), m_theta(patches)
     L = luminosities(w, "FS", ne)
@@ -368,13 +366,11 @@ ONE_ZONE_BD43 = {"system_parameters.f90": dict(
 
 
 def case_one_zone(c, args, results):
-    # Same injection in both codes: single power law with index 2 (alpha_1 = 2 and, in the
-    # copy of CD_termo.f90 of the test build, alpha_sh = 2 above E_break)
+    # Same injection in both codes: single power law with index 2 (alpha_1 = alpha_2 = 2)
     patches = bt.merge(PATCH_BD43, SEDS_ONLY, {
-        "global.f90": dict(mphi="10"), "system_parameters.f90": dict(alpha_1="2.d0"),
-        "main.f90": dict(radiative_FS=".false.")})
-    w, out = build_and_run("one_zone_extended", patches,
-                           replace={"CD_termo.f90": [("alpha_sh = 3._dp", "alpha_sh = 2._dp")]})
+        "global.f90": dict(mphi="10"),
+        "system_parameters.f90": dict(alpha_1="2.d0", alpha_2="2.d0", radiative_FS=".false.")})
+    w, out = build_and_run("one_zone_extended", patches)
     ne, mt = n_emit(patches), m_theta(patches)
     t0 = time.time()
     w1 = bt.build(BUILD / "one_zone", source=bt.ONE_ZONE, patches=ONE_ZONE_BD43)
@@ -422,11 +418,10 @@ def case_one_zone_HVS(c, args, results):
     # IC (One-Zone uses R_eff_FS = 5 R0)
     global SYSTEM
     patches = bt.merge(PATCH_BD43, SEDS_ONLY, {"global.f90": dict(mphi="10"), "controles.f90": dict(stromgren="no"),
-                                               "main.f90": dict(radiative_FS=".false.")})
+                                               "system_parameters.f90": dict(alpha_2="2.d0", radiative_FS=".false.")})
     SYSTEM = "B2-60-d"
     try:
-        w, out = build_and_run("one_zone_HVS_extended", patches, files=FILES_HVS,
-                               replace={"CD_termo.f90": [("alpha_sh = 3._dp", "alpha_sh = 2._dp")]})
+        w, out = build_and_run("one_zone_HVS_extended", patches, files=FILES_HVS)
         ne = n_emit(patches)
         t0 = time.time()
         w1 = bt.build(BUILD / "one_zone_HVS", source=bt.ONE_ZONE, patches=ONE_ZONE_HVS)
@@ -456,7 +451,7 @@ def case_adiabatic_FS(c, args, results):
     # read its files (abs_maps in main.f90, SW_conv_run in SW_conv.f90)
     patches = bt.merge(PATCH_BD43, {"global.f90": dict(m_theta="100", mE_e="120", mE_p="120", mE_f="150",
                                                        mE_ph="150", mphi="4"),
-                                    "main.f90": dict(radiative_FS=".false.")})
+                                    "system_parameters.f90": dict(radiative_FS=".false.")})
     try:
         w, out = build_and_run("adiabatic_FS", patches)
     except bt.TestFailure as e:
