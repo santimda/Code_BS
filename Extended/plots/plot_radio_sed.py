@@ -7,10 +7,19 @@ of plot_config.py. The hot layer of the FS only enters the total.
 import os
 
 import numpy as np
+from matplotlib.colors import to_rgb
 from matplotlib.ticker import FuncFormatter, LogLocator, NullFormatter
 
 from bsplot import style
 from bsplot.common import Run, base_parser
+
+XLIM = (0.1, 11.) # [GHz], default range (radio_sed xlim in plot_config.py)
+MS = 4.5 # marker size of the observations [pt]
+
+
+def light(color, f=0.5):
+    # opaque mix with white: curves behind a marker do not change its colour
+    return tuple(1. - f*(1. - c) for c in to_rgb(color))
 
 
 def observations(run, o):
@@ -76,7 +85,8 @@ def main(argv=None):
         print("  nothing to plot")
         return
 
-    nu = np.geomspace(min(c[0].min() for c in parts), max(c[0].max() for c in parts), 400)
+    xlim = conf.get("xlim", XLIM)
+    nu = np.geomspace(*xlim, 400)
     S = sum(np.interp(nu, *c, left=0., right=0.) for c in parts)
     ax.plot(nu, S, color="darkred", lw=3, alpha=0.8, label="total")
     model = ax.get_legend_handles_labels()
@@ -86,21 +96,22 @@ def main(argv=None):
 
     obs = []
     for o in run.conf["radio_obs"]:
-        if "vline" in o: # flux range at one frequency (e.g. WENSS)
+        if "vline" in o: # flux range at one frequency: centre and half width
             nu0, (s0, s1) = o["vline"]
-            obs += ax.plot([nu0, nu0], [s0, s1], color=o["color"], lw=2, alpha=0.8,
-                           zorder=2, label=o["label"])
-            continue
-        d = observations(run, o)
+            d = (nu0, 0., 0.5*(s0 + s1), 0.5*(s1 - s0))
+        else:
+            d = observations(run, o)
         if d is not None:
-            obs.append(ax.errorbar(d[0], d[2], xerr=d[1], yerr=d[3], fmt="none",
-                                   ecolor=o["color"], alpha=o.get("alpha", 0.8),
-                                   lolims=o.get("lolims", False), zorder=2, label=o["label"]))
+            # Solid bars and marker edges, lighter marker face of the same colour
+            c = o["color"]
+            obs.append(ax.errorbar(d[0], d[2], xerr=d[1], yerr=d[3], fmt=o.get("marker", "o"), ms=MS,
+                                   color=c, mfc=light(c), mec=c, mew=1.2, elinewidth=1.2, capsize=2.,
+                                   capthick=1.2, lolims=o.get("lolims", False), zorder=3, label=o["label"]))
 
     #-----------------------------------------------------------
     # Axes
 
-    ax.set_xlim(*conf.get("xlim", (nu[0], nu[-1])))
+    ax.set_xlim(*xlim)
     ax.set_ylim(*conf.get("ylim", (S.max() / 30., 2. * S.max())))
     for axis, subs in ((ax.xaxis, (1.,)), (ax.yaxis, (1., 2.5, 5.))):
         axis.set_major_locator(LogLocator(subs=subs))

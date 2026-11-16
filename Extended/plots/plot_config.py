@@ -10,7 +10,7 @@ import os
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OBS_DIR = os.path.join(HERE, "..", "data", "radio")
-SENS_DIR = os.path.join(HERE, "..", "data", "sensitivities")
+SENS_DIR = os.path.join(HERE, "..", "sensitivities")
 
 MeV = 1.602176e-6 # erg
 
@@ -46,15 +46,15 @@ SYSTEMS = {
         # Radio observations. cols: columns of (nu [GHz], dnu, S [mJy], dS); dS can be
         # a relative error. scale: factor for S and dS; S_minus: column subtracted from S
         radio_obs=[
-            dict(vline=(0.325, (1000., 1500.)), label="WENSS", color="cyan"),
-            dict(file="Benaglia_2010.dat", cols=(0, 1, 2, 0.1), label="B2010",
-                 color="magenta", alpha=0.6, lolims=True),
+            dict(vline=(0.325, (1000., 1500.)), label="WENSS", color="darkcyan", marker="s"),
+            dict(file="Benaglia_2010.dat", cols=(0, 1, 2, 0.3), label="B2010",
+                 color="magenta", marker="^", lolims=True),
             dict(file="Benaglia_2021.dat", cols=(0, 2, 1, 3), scale=1e3, label="B2021-A",
-                 color="k", alpha=0.4),
+                 color="darkgray", marker="v"),
             dict(file="Benaglia_2021_B.dat", cols=(0, 2, 1, 3), scale=1e3, label="B2021-B",
-                 color="k", alpha=0.8),
+                 color="k", marker="v"),
             dict(file="Moutzouri_2022.dat", cols=(0, 1, 2, 0.05), dnu_half=True, S_minus=3,
-                 label="M2022", color="springgreen", alpha=0.9),
+                 label="M2022", color="green", marker="D"),
         ],
         radio_sed=dict(xlim=(0.1, 11), ylim=(80, 2500), yticks=[100, 250, 500, 1000, 2000]),
         # Maps: rotation to match the observed map, angle of the analytical R0 arrow,
@@ -85,6 +85,21 @@ SYSTEMS = {
                 "110MHz": dict(levels=[0.5, 1, 1.75], text="110 MHz"),
             },
         ),
+    ),
+
+    "G1": dict(
+        radio_obs=[
+            dict(file="G1.dat", cols=(0, 1, 2, 0.05), dnu_half=True, label="VdE2022",
+                 color="blue", marker="s"),
+        ],
+    ),
+
+    "G3": dict(
+        label="HD 319881",
+        radio_obs=[
+            dict(file="HD-319881.dat", cols=(0, 1, 2, 0.05), dnu_half=True, label="VdE2022",
+                 color="blue", marker="s"),
+        ],
     ),
 
     "Vela_X-1": dict(
