@@ -22,7 +22,7 @@ contains
       character(LEN=*), intent(in) :: shock
       real(dp) :: Eps(m_nu),dEps,Eps_int, gamma(mE_e)
       real(dp) :: factor,nuc,nuc_max,nuc_min,sum,sum_sy
-      real(dp) :: n_a,ne,nu_RT,x_sy,cte_Psy
+      real(dp) :: n_a,ne,nu_RT,x_sy,coef_Psy
       real(dp) :: log_nu_int,B,B_par
       allocate( N_e(mE_e),E_e(mE_e), nu(m_nu),L_sy(m_nu),L_sy_RT(m_nu) )
 
@@ -57,7 +57,7 @@ contains
 
 
       ne = n_a*mu_sw/mu_e_sw
-      nu_RT = 20.d0*ne/B  ! frecuencia característica para efecto R-T
+      nu_RT = 20.d0*ne/B  ! characteristic frequency of the Razin-Tsytovich effect
       write(*,80) 'nu_RT[GHz] =',nu_RT/1.d9  ! R-T characteristic frequency
 
       !------------------------------------------------------------
@@ -81,7 +81,7 @@ contains
       ! Calculate the synchrotron spectra
       ! L_sy(eps) = P(eps) = int_Emin^Emax N(E) P(E,eps) dE [erg/s/eps]
 
-      cte_Psy = 1.85*sqrt(3.)*qe**3*B_par/h/mec2 !4.39d-22*B_par/h
+      coef_Psy = 1.85*sqrt(3.)*qe**3*B_par/h/mec2 !4.39d-22*B_par/h
       sum_sy=0.d0
       do i = 1,m_nu           ! loop in emitted photon energies (Eps(i), nu(i))
          dEps = Eps(i)*(Eps_int-1.d0)
@@ -93,7 +93,7 @@ contains
             nuc = 4.22d6*B_par*gamma(j)**2
             x_sy = nu(i)/nuc
             if (x_sy <= 10.d0) then  
-               P_Eps = cte_Psy*x_sy**(1.d0/3.d0)*exp(-x_sy)  ![erg/s/erg]
+               P_Eps = coef_Psy*x_sy**(1.d0/3.d0)*exp(-x_sy)  ![erg/s/erg]
                dE_e = E_e(j)*(Eint_e - 1.d0)
                dP_Eps = N_e(j)*P_eps*dE_e
                sum = dP_Eps + sum

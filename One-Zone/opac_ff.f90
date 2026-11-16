@@ -21,7 +21,7 @@ contains
       implicit none
       real(dp) :: T_w,S(mE_ff),ne,ni,gffinter
       real(dp) :: alphaff(mr_ff,mE_ff),gamma2,dg,dmu
-      real(dp) :: r_ff(mr_ff),dr,A_ff,cte_alpha_ff
+      real(dp) :: r_ff(mr_ff),dr,A_ff,coef_alpha_ff
       integer :: j_mu,j_g
       integer, parameter :: nu_mu=146,nu_mga=81 ! # data in table gauntff.dat
       real(dp) :: gff(nu_mu,nu_mga),mu_ff(mE_ff)     
@@ -90,7 +90,7 @@ contains
       do l=1,mr_ff
          ni = A_ff/r_ff(l)**2/(gamma_w+1.d0)  ! mui = mu*(g_e+1)
          ne = gamma_w*ni      
-         cte_alpha_ff = 3.7d8*Zq_w**2*ne*ni/sqrt(T_w) ! For optimization
+         coef_alpha_ff = 3.7d8*Zq_w**2*ne*ni/sqrt(T_w) ! For optimization
          do i=1,mE_ff
             ! For gff: i = (value - table initial value) / (table step) + 1
             ! After obtaining the evaluation point, interpolate linearly (2-variables)
@@ -98,7 +98,7 @@ contains
             dmu = ((log10(mu_ff(i))+16.d0)/0.2d0+1.d0 - float(j_mu))*0.2d0
             call interpol(dg,dmu,gff(j_g,j_mu),gff(j_g+1,j_mu),gff(j_g,j_mu+1),gffinter)
             !gffinter = 9.77d0*(1.d0+0.13d0*log10(T_w**1.5d0/Zq_sw/nu(i))) ! approx
-            alphaff(l,i) = cte_alpha_ff*nu(i)**(-3.d0)*(1.d0-exp(-h*nu(i)/k/T_w))*gffinter !1/cm
+            alphaff(l,i) = coef_alpha_ff*nu(i)**(-3.d0)*(1.d0-exp(-h*nu(i)/k/T_w))*gffinter !1/cm
          end do
       end do
       !$omp end parallel do
@@ -119,7 +119,7 @@ contains
          j_mu = int((log10(mu_ff(i))+16.d0)/0.2d0) + 1
          dmu = ((log10(mu_ff(i))+16.d0)/0.2d0+1.d0 - float(j_mu))*0.2
          call interpol(dg,dmu,gff(j_g,j_mu),gff(j_g+1,j_mu),gff(j_g,j_mu+1),gffinter)    
-         !gffinter = 9.77d0*(1.d0+0.13d0*log10(T_w**1.5d0/Zq_w1/nu(i))) ! aprox          
+         !gffinter = 9.77d0*(1.d0+0.13d0*log10(T_w**1.5d0/Zq_w1/nu(i))) ! approx          
          S(i) = (23.2d0/distance**2) * ( ((Mdot_eff/M_sun_yr)/(v_w/1.d5)/mu_w)**2&
             *nu(i)*gamma_w*gffinter*Zq_w**2 )**(2.d0/3.d0) ! Jy = 1d-26 W/m/Hz
          if (nu(i) > 1.d-3*k*T_w/h) S(i) = S(i)*exp(-h*nu(i)/k/T_w)  ! artificial cutoff... 

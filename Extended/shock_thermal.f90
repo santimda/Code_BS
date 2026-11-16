@@ -78,7 +78,7 @@ contains
     read(iu,*) (dummy, dummy, L_inj(l), dummy, dummy, l=1,m_theta)    ! one linear emitter
     close(iu)
 
-    open(newunit=iu, file=output_file('termo_'//shock//'.dat'))
+    open(newunit=iu, file=output_file('thermo_'//shock//'.dat'))
     read(iu,*) (dummy, rho_sh(l), dummy, dummy, T_sh(l), dummy, dummy, dummy, dummy, dummy, dummy, &
                 rho_IL_s(l), l=1,m_theta)
     close(iu)
@@ -95,7 +95,7 @@ contains
     if (radiative) then
       ne_v = rho_IL_s/(mu_e*mp)
       ni_v = rho_IL_s/(mu_i*mp)
-      T_v  = T_min                             ! T of the IL (CD_termo)
+      T_v  = T_min                             ! T of the IL (CD_thermo)
       V_v  = frac_H*dV_ring                    ! IL width reduced by eta_H
     else
       ne_v = rho_sh/(mu_e*mp)

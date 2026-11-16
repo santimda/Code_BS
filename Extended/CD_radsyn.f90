@@ -43,7 +43,7 @@ contains
     !
     ! Read thermodynamical quantites at each position
 
-    open(newunit=iu, file=output_file('termo_'//shock//'.dat'))
+    open(newunit=iu, file=output_file('thermo_'//shock//'.dat'))
     read(iu,*) (dummy, rho(l), dummy, dummy, dummy, B(l), dummy, dummy, dummy, dummy, dummy, dummy, &
                 l=1,m_theta)    ! CGS, all the 12 columns
     close(iu)

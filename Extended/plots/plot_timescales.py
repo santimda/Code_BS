@@ -2,7 +2,7 @@
 """
 Timescales of electrons or protons at a few positions of the shock.
 One figure per shock and angle: t{e,p}_{RS,FS}_th{theta}. The cell of each
-angle is taken from termonorm_{shock}.dat (row l).
+angle is taken from thermonorm_{shock}.dat (row l).
 """
 import numpy as np
 
@@ -34,16 +34,16 @@ def main(argv=None):
     sp = run.args.species
 
     for shock in run.shocks_nt():
-        d, termo = run.out.read(f"tcool{sp}", shock=shock), run.out.read("termonorm", shock=shock)
-        if d is None or termo is None:
+        d, thermo = run.out.read(f"tcool{sp}", shock=shock), run.out.read("thermonorm", shock=shock)
+        if d is None or thermo is None:
             continue
         col = {name: d[:, i] for i, name in enumerate(COLS[sp])}
         if sp == "e":
             col["t_IC"] = 1. / (1. / col["t_IC_star"] + 1. / col["t_IC_IR"])
-        theta = np.degrees(termo[:, 0])
+        theta = np.degrees(thermo[:, 0])
 
         for th0 in run.args.thetas:
-            l = np.argmin(np.abs(theta - th0)) # row l of termonorm = cell l + 1
+            l = np.argmin(np.abs(theta - th0)) # row l of thermonorm = cell l + 1
             m = col["l"] == l + 1
             E = col["E"][m]
 

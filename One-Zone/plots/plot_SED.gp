@@ -8,7 +8,7 @@ set xlabel 'log_{10} ({/Symbol e} [eV])'
 set ylabel 'log_{10} ({/Symbol e} L({/Symbol e}) [erg s^{-1}])'
 set pointsize 1.5
 
-# 1 Jy = 10^-23 erg/cm2/s/Hz, nu en $1 est· en GHz y Sv en $2 en mJy
+# 1 Jy = 10^-23 erg/cm2/s/Hz, nu en $1 est√° en GHz y Sv en $2 en mJy
 #dist = 1.45*3.0856e21
 dist = 1.32*3.0856e21
 h = 6.6260755e-27

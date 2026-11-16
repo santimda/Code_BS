@@ -12,7 +12,7 @@ set label "NAME" at graph 0.8,0.95 font "Helvetica,18"
 set bmargin 0.05
 
 set terminal postscript color solid enhanced dl 2.5 lw 1.7 "Helvetica" 20
-set output 'tiempose_FS.eps'
+set output 'timescales_e_FS.eps'
 
 plot '../tcoole_FS.dat' u (log10($1)):(log10($13)) t 'Total' w l lw 3,\
       '../tcoole_FS.dat' u (log10($1)):(log10($9)) t 'IC,st' w l lw 2 lc "green",\
@@ -28,5 +28,5 @@ plot '../tcoole_FS.dat' u (log10($1)):(log10($13)) t 'Total' w l lw 3,\
 
      #'../tcoole_FS.dat' u (log10($1)):(log10($14)) t 'coul' w l lw 2 lc rgb "grey50",\
 
-!./fixbb tiempose_FS.eps
-!epstopdf tiempose_FS.eps
+!./fixbb timescales_e_FS.eps
+!epstopdf timescales_e_FS.eps

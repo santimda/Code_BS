@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Thermodynamics along the shocks (CD_termo):
-  termo_{RS,FS}: normalised quantities vs theta
+Thermodynamics along the shocks (CD_thermo):
+  thermo_{RS,FS}: normalised quantities vs theta
   rad_adi: log10(t_cool/t_adv) vs theta
-  termo_vs_RH_{RS,FS}: ratio to the Rankine-Hugoniot values
+  thermo_vs_RH_{RS,FS}: ratio to the Rankine-Hugoniot values
 """
 import numpy as np
 from matplotlib.ticker import AutoMinorLocator, MultipleLocator
@@ -13,7 +13,7 @@ from bsplot.common import Run, base_parser
 from bsplot.io import log10
 
 # column, label, colour, line style
-TERMO = [(1, r"$\rho$", "olive", "-"), (2, r"$P$", "royalblue", "-"),
+THERMO = [(1, r"$\rho$", "olive", "-"), (2, r"$P$", "royalblue", "-"),
          (4, r"$T$", "darkred", "-"), (5, r"$B$", "mediumorchid", "-"),
          (7, r"$c_s$", "grey", "--"), (3, r"$v_t$", "coral", "--"),
          (6, r"$v_\perp$", "springgreen", "--")]
@@ -64,13 +64,13 @@ def main(argv=None):
     adi = []
     for shock in run.shocks():
         label = f"{run.label}\n{shock}"
-        d = run.out.read("termonorm", shock=shock)
+        d = run.out.read("thermonorm", shock=shock)
         if d is not None:
-            plot(run, f"termo_{shock}", np.degrees(d[:, 0]),
-                 [(d[:, c], *rest) for c, *rest in TERMO], "normalized value", label, ylim=(0., 1.05))
+            plot(run, f"thermo_{shock}", np.degrees(d[:, 0]),
+                 [(d[:, c], *rest) for c, *rest in THERMO], "normalized value", label, ylim=(0., 1.05))
         d = run.out.read("vs_RH", shock=shock)
         if d is not None:
-            plot(run, f"termo_vs_RH_{shock}", np.degrees(d[:, 0]),
+            plot(run, f"thermo_vs_RH_{shock}", np.degrees(d[:, 0]),
                  [(d[:, c], *rest) for c, *rest in RH], r"$X / X_{\rm RH}$", label, ref=1.)
         d = run.out.read("rad_adi", shock=shock)
         if d is not None:

@@ -115,7 +115,7 @@ end function phi_weight
 Subroutine calculate(shock,radiative)
    use global
    use controls
-   use CD_termo, only: CD_termo_run
+   use CD_thermo, only: CD_thermo_run
    use shock_thermal, only: shock_thermal_run
    use CD_diste, only: CD_diste_run
    use CD_distp, only: CD_distp_run
@@ -147,7 +147,7 @@ Subroutine calculate(shock,radiative)
    allocate( E_pp(mE_f), Lpp_sh_tot(mE_f) )
    LIC_st_tot = 0.d0
 
-   if (termo_calc) call CD_termo_run(shock, radiative)
+   if (thermo_calc) call CD_thermo_run(shock, radiative)
 
    if (Xrad_calc) call shock_thermal_run(shock, radiative)
 
@@ -199,7 +199,7 @@ Subroutine calculate(shock,radiative)
       !=============================================================
       !  Save the totals (whole BS)
 
-      if (escribir_e) then
+      if (write_e) then
 
          if (radic_st_calc .and. rotate) then           ! this has the full 3D geometry
             open(newunit=iu, file=output_file('radic_st_'//system//'_'//shock//'_tot.dat'))
@@ -259,7 +259,7 @@ Subroutine calculate(shock,radiative)
 
       if (radpp_calc) call CD_radpp_run(shock)
 
-      if (escribir_p .and. radpp_calc) then
+      if (write_p .and. radpp_calc) then
          open(newunit=iu, file=output_file('radpp_'//shock//'.dat'))            ! One linear emitter
          read(iu,*) (E_pp(i_E), Lpp_sh_tot(i_E), i_E=1,mE_f)
          close(iu)

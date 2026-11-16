@@ -22,7 +22,7 @@ contains
       logical, intent(in) :: aniso 
       character(LEN=*), intent(in) :: target_field
       real(dp) :: Eps(mE_f),dEps,Eps_int,Ef_int,gamma_e(mE_e),x0,z,t_K
-      real(dp) :: Ndot,sum,sum_ic,cte_Ndot,T_ad
+      real(dp) :: Ndot,sum,sum_ic,coef_Ndot,T_ad
       real(dp) :: T_ad_ang
       allocate( N_e(mE_e),E_e(mE_e), Ef(mE_f),L_ic(mE_f) )
 
@@ -54,7 +54,7 @@ contains
 
       T_ad = k*T/mec2     ! adimensional temperature
       T_ad_ang = T_ad     ! dummy definition so compiler doesn't warn possible uninitialization
-      cte_Ndot = 2.d0*re**2*mec2**3*Kappa*T_ad**2/(pi*h_bar**3*c**2)
+      coef_Ndot = 2.d0*re**2*mec2**3*Kappa*T_ad**2/(pi*h_bar**3*c**2)
 
       if (aniso) T_ad_ang = T_ad*(1.-cos(incli)) 
       
@@ -68,11 +68,11 @@ contains
                if (aniso) then                !anisotropic IC
                   t_K = 2.*gamma_e(j)*T_ad_ang  
                   x0 = z/( (1.-z)*t_K )
-                  Ndot = (cte_Ndot/gamma_e(j)**2) * ( (z**2/(2.*(1.-z)))*F_1(x0) + F_2(x0) ) 
+                  Ndot = (coef_Ndot/gamma_e(j)**2) * ( (z**2/(2.*(1.-z)))*F_1(x0) + F_2(x0) ) 
                else
                   t_K = 4.*gamma_e(j)*T_ad      !isotropic IC
                   x0 = z/( (1.-z)*t_K )
-                  Ndot = (cte_Ndot/gamma_e(j)**2) * ( (z**2/(2.*(1.-z)))*F_3(x0) + F_4(x0) ) 
+                  Ndot = (coef_Ndot/gamma_e(j)**2) * ( (z**2/(2.*(1.-z)))*F_3(x0) + F_4(x0) ) 
                endif
                P_eps = Eps(i)*Ndot !N^dot = nf*c*dsigmaIC
                dE_e = E_e(j)*(Eint_e-1.d0)

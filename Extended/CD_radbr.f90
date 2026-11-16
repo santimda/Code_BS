@@ -19,7 +19,7 @@ contains
    subroutine CD_radbr_run(screened, shock)
       logical, intent(in) :: screened
       character(LEN=*), intent(in) :: shock
-      real(dp) :: Ef_int, Eint, cte_sigma, sum_br
+      real(dp) :: Ef_int, Eint, coef_sigma, sum_br
       integer  :: l, i, j, iu
       real(dp), allocatable :: rho(:), n_a(:)
       real(dp), allocatable :: E_e(:), gamma_e(:), dE_e(:), N_etot(:,:)
@@ -35,16 +35,16 @@ contains
       !------------------------------------------------------------------------
       !  Read information (thermodynamical quantities and relativistic electrons)
 
-      open(newunit=iu, file=output_file('termo_'//shock//'.dat'))
+      open(newunit=iu, file=output_file('thermo_'//shock//'.dat'))
       read(iu,*) (dummy, rho(l), dummy, dummy, dummy, dummy, dummy, dummy, dummy, dummy, dummy, dummy, &
                   l=1,m_theta)    ! all the 12 columns
       close(iu)
       if (shock == 'RS') then
          n_a = rho/mp/mu_sw       ! ambient number density
-         cte_sigma = 4.d0*alfa*re**2*Zq_sw**2*z_br
+         coef_sigma = 4.d0*alpha_fs*re**2*Zq_sw**2*z_br
       else
          n_a = rho/mp/mu_ISM
-         cte_sigma = 4.d0*alfa*re**2*Zq_ISM**2*z_br
+         coef_sigma = 4.d0*alpha_fs*re**2*Zq_ISM**2*z_br
       end if
 
       ! Electron distribution N_etot(l,i)
@@ -66,7 +66,7 @@ contains
       ! Relativistic bremsstrahlung spectrum, L_E [erg/s/erg]
 
       Phi = Phi_Br( spread(Ef,2,mE_e)/spread(E_e,1,mE_f), spread(gamma_e,1,mE_f), screened )
-      Lbr = spread(n_a*c*cte_sigma, 2, mE_f) * matmul( N_etot*spread(dE_e,1,m_theta), transpose(Phi) )
+      Lbr = spread(n_a*c*coef_sigma, 2, mE_f) * matmul( N_etot*spread(dE_e,1,m_theta), transpose(Phi) )
       Lbr_tot = sum(Lbr, dim=1)
       sum_br  = sum(Lbr_tot*Ef)*(Ef_int-1.d0)
 

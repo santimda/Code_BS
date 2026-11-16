@@ -14,7 +14,7 @@ set ylabel offset 1.,0.0
 #-------------------------------------------------------------
 # CONSTANTS:
 
-# 1 Jy = 10^-23 erg/cm2/s/Hz, nu en $1 est· en GHz y Sv en $2 en mJy
+# 1 Jy = 10^-23 erg/cm2/s/Hz, nu en $1 est√° en GHz y Sv en $2 en mJy
 #dist = 1.45*3.0856e21
 dist = 1.32*3.0856e21
 h = 6.6260755e-27

@@ -38,7 +38,7 @@ contains
     !------------------------------------------------------------------
     ! Read the density and the proton distribution
 
-    open(newunit=iu, file=output_file('termo_'//shock//'.dat'))
+    open(newunit=iu, file=output_file('thermo_'//shock//'.dat'))
     read(iu,*) (dummy, rho(l), dummy, dummy, dummy, dummy, dummy, dummy, dummy, dummy, dummy, dummy, &
                 l=1,m_theta)    ! all the 12 columns
     close(iu)

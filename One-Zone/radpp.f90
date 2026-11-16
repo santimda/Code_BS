@@ -19,7 +19,7 @@ contains
       real(dp) :: Ef_int,dEf,sum_pp,Epp,L1,n_a 
       real(dp) :: E_th=1.22d9*eV, TeV=1.d12*eV
       real(dp) :: Epi_min,Epi_max,Epi_int,dE_pi,integral
-      real(dp), parameter :: K_pi=0.17d0, n_pp=0.86d0 ! n_pp=1.1 for alfa=2, n_pp=0.86 for alpha=2.5
+      real(dp), parameter :: K_pi=0.17d0, n_pp=0.86d0 ! n_pp=1.1 for alpha_fs=2, n_pp=0.86 for alpha=2.5
       integer :: mE_pi,i_p
       interface
          function F(a,b)
@@ -160,7 +160,7 @@ Function sigma_pp(L1,Ep)
    real(dp), intent(in) :: L1,Ep
    real(dp) :: E_th=1.22d9*eV
    real(dp) :: sigma_pp
-   sigma_pp = (34.3d0 + 1.88d0*L1 + 0.25d0*L1**2)*1.d-27 !cm²
+   sigma_pp = (34.3d0 + 1.88d0*L1 + 0.25d0*L1**2)*1.d-27 !cmÂ²
    sigma_pp = sigma_pp*(1.d0-(E_th/Ep)**4)**2 ! Add factor for better fit at low energies 
    return
 end Function sigma_pp

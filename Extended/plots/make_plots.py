@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Plots according to controles.f90.
+Plots according to controls.f90.
 
   python3 plots/make_plots.py
   python3 plots/make_plots.py --dry-run # list the plots, without making them
@@ -20,7 +20,7 @@ import plot_dist
 import plot_maps
 import plot_radio_sed
 import plot_sed
-import plot_termo
+import plot_thermo
 import plot_timescales
 from bsplot.common import base_parser, default_figdir
 from bsplot.fortran import read_controls, read_string
@@ -39,15 +39,15 @@ def all_of(f, *names):
 # A plot is made only if the module that writes its data was run (main.f90).
 
 JOBS = [
-    ("termo", lambda f: all_of(f, "termo_calc"),
-     plot_termo, []),
+    ("thermo", lambda f: all_of(f, "thermo_calc"),
+     plot_thermo, []),
     ("diste", lambda f: all_of(f, "electrons", "diste_calc"),
      plot_dist, ["--species", "e"]),
     ("distp", lambda f: all_of(f, "protons", "distp_calc"),
      plot_dist, ["--species", "p"]),
-    ("tcoole", lambda f: all_of(f, "electrons", "diste_calc", "escribir_e"),
+    ("tcoole", lambda f: all_of(f, "electrons", "diste_calc", "write_e"),
      plot_timescales, ["--species", "e"]),
-    ("tcoolp", lambda f: all_of(f, "protons", "distp_calc", "escribir_p"),
+    ("tcoolp", lambda f: all_of(f, "protons", "distp_calc", "write_p"),
      plot_timescales, ["--species", "p"]),
     ("sed", lambda f: (f.get("electrons") and any_of(f, "radsyn_sw_calc", "radbr_sw_calc",
                                                      "radic_st_calc", "radic_ir_calc"))

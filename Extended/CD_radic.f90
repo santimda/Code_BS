@@ -177,8 +177,8 @@ contains
     ! Anisotropic IC emission with a BB photon field (Khangulyan et al. 2014)
     real(dp), intent(in)  :: Ee(mE_e),Ne(mE_e),Ef(mE_f),Kappa,T_ad,ang
     real(dp), intent(out) :: L_IC(mE_f),L_unabs
-    real(dp) :: gamm(mE_e),NedEe(mE_e),Eps(mE_f),Eps_int,T_ad_ang2,cte_Ndot_ani
-    real(dp) :: z_ic,x0_K,Ndot,suma
+    real(dp) :: gamm(mE_e),NedEe(mE_e),Eps(mE_f),Eps_int,T_ad_ang2,coef_Ndot_ani
+    real(dp) :: z_ic,x0_K,Ndot,accum
     integer  :: i, j
 
     T_ad_ang2 = 2.d0*T_ad*(1.d0-cos(ang))
@@ -186,19 +186,19 @@ contains
     NedEe = Ne*Ee*(Ee(2)/Ee(1)-1.d0)      ! N(E)*dE, to speed up the calculation
     Eps   = Ef/mec2
     Eps_int = Eps(2)/Eps(1)
-    cte_Ndot_ani = cte_Ndot*T_ad**2*Kappa
+    coef_Ndot_ani = coef_Ndot*T_ad**2*Kappa
 
     do i = 1, mE_f              ! Ef
-      suma = 0.d0
+      accum = 0.d0
       do j = 1, mE_e            ! Ee
         z_ic = Eps(i)/gamm(j)
         if (z_ic < 1.d0) then
           x0_K = z_ic/( (1.d0-z_ic)*gamm(j)*T_ad_ang2 )
-          Ndot = (cte_Ndot_ani/gamm(j)**2) * ( (z_ic**2/(2.d0*(1.d0-z_ic)))*F_tab_eval(1,x0_K) + F_tab_eval(2,x0_K) )
-          suma = suma + Eps(i)*Ndot*NedEe(j)   ! N^dot = nf*c*dsigma_IC
+          Ndot = (coef_Ndot_ani/gamm(j)**2) * ( (z_ic**2/(2.d0*(1.d0-z_ic)))*F_tab_eval(1,x0_K) + F_tab_eval(2,x0_K) )
+          accum = accum + Eps(i)*Ndot*NedEe(j)   ! N^dot = nf*c*dsigma_IC
         endif
       enddo
-      L_IC(i) = suma            ! specific luminosity (plot E*L_IC(E))
+      L_IC(i) = accum            ! specific luminosity (plot E*L_IC(E))
     enddo
     L_unabs = sum(L_IC*Eps)*(Eps_int-1.d0)*mec2
 
@@ -210,8 +210,8 @@ contains
     ! Isotropic IC emission with a BB photon field (Khangulyan et al. 2014)
     real(dp), intent(in)  :: Ee(mE_e),Ne(mE_e),Ef(mE_f),Kappa,T_ad
     real(dp), intent(out) :: L_IC(mE_f),L_unabs
-    real(dp) :: gamm(mE_e),NedEe(mE_e),Eps(mE_f),Eps_int,T_ad4,cte_Ndot_iso
-    real(dp) :: z_ic,x0_K,Ndot,suma
+    real(dp) :: gamm(mE_e),NedEe(mE_e),Eps(mE_f),Eps_int,T_ad4,coef_Ndot_iso
+    real(dp) :: z_ic,x0_K,Ndot,accum
     integer  :: i, j
 
     T_ad4 = 4.d0*T_ad
@@ -219,19 +219,19 @@ contains
     NedEe = Ne*Ee*(Ee(2)/Ee(1)-1.d0)      ! N(E)*dE, to speed up the calculation
     Eps   = Ef/mec2
     Eps_int = Eps(2)/Eps(1)
-    cte_Ndot_iso = cte_Ndot*T_ad**2*Kappa
+    coef_Ndot_iso = coef_Ndot*T_ad**2*Kappa
 
     do i = 1, mE_f              ! Ef
-      suma = 0.d0
+      accum = 0.d0
       do j = 1, mE_e            ! Ee
         z_ic = Eps(i)/gamm(j)
         if (z_ic < 1.d0) then
           x0_K = z_ic/( (1.d0-z_ic)*gamm(j)*T_ad4 )
-          Ndot = (cte_Ndot_iso/gamm(j)**2) * ( (z_ic**2/(2.d0*(1.d0-z_ic)))*F_tab_eval(3,x0_K) + F_tab_eval(4,x0_K) )
-          suma = suma + Eps(i)*Ndot*NedEe(j)   ! N^dot = nf*c*dsigma_IC
+          Ndot = (coef_Ndot_iso/gamm(j)**2) * ( (z_ic**2/(2.d0*(1.d0-z_ic)))*F_tab_eval(3,x0_K) + F_tab_eval(4,x0_K) )
+          accum = accum + Eps(i)*Ndot*NedEe(j)   ! N^dot = nf*c*dsigma_IC
         endif
       enddo
-      L_IC(i) = suma            ! specific luminosity (plot E*L_IC(E))
+      L_IC(i) = accum            ! specific luminosity (plot E*L_IC(E))
     enddo
     L_unabs = sum(L_IC*Eps)*(Eps_int-1.d0)*mec2
 

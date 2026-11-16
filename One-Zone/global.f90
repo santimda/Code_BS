@@ -75,15 +75,15 @@ contains
    SUBROUTINE vector_log(Emin,Emax,Eint,E_vec)
       implicit none
       real(dp), intent(in) :: Emin,Emax
-      integer :: N_puntos, i_vec
+      integer :: n_points, i_vec
       real(dp), intent(out) :: Eint
       real(dp), intent(out) :: E_vec(:)
 
-      N_puntos = SIZE(E_vec)
-      Eint = (Emax/Emin)**(1.d0/dfloat(N_puntos-1))
+      n_points = SIZE(E_vec)
+      Eint = (Emax/Emin)**(1.d0/dfloat(n_points-1))
 
       E_vec(1) = Emin
-      do i_vec=2,N_puntos
+      do i_vec=2,n_points
          E_vec(i_vec)=E_vec(i_vec-1)*Eint
       end do
 
@@ -93,10 +93,10 @@ contains
 
 
    !============================================================================
-   ! integrar
+   ! integrate
    !============================================================================
 
-   SUBROUTINE integrar(N,H,FI,S)
+   SUBROUTINE integrate(N,H,FI,S)
       ! Subroutine for integration over f(x) with the Simpson rule.
       ! FI: integrand f(x); H: interval; S: integral.
       integer, intent(in) :: N
@@ -120,7 +120,7 @@ contains
       IF(MOD(N,2).eq.0) S = S + H*(5.d0*FI(N) + 8.d0*FI(N-1) - FI(N-2))/12.d0
       RETURN
 
-   End SUBROUTINE integrar
+   End SUBROUTINE integrate
 
    !============================================================================
    !  Black-Body spectrum

@@ -2,7 +2,7 @@
 """Regression test for the numerical summary printed by the BD+43 run (Tests/cases/BD43).
 
 The code is copied to a temporary directory, with the frozen system_parameters.f90
-and controles.f90 of Tests/cases/BD43, the grid of global.f90 fixed (GRID) and a
+and controls.f90 of Tests/cases/BD43, the grid of global.f90 fixed (GRID) and a
 radiative FS (system_parameters.f90), and the values printed in the terminal are
 compared with reference_terminal_output.json.
 The sources in Extended/ are not modified.
@@ -55,10 +55,47 @@ PATTERNS = {
 PATTERNS["synchrotron_radio_RS"] = r"ELECTRONS:\s*L_syn\(unabsorbed\)=\s+[0-9.E+-]+" + \
     "".join(r"\s*S_\w+\[mJy\]=\s+" + NUMBER for _ in range(7))
 
+# Description of each quantity in the summary printed on the screen
+LABELS = {
+    "injected_power": "L_w, L_inj(RS), L_inj(FS) [erg/s]",
+    "magnetic_field_apex": "B at the apex, RS and FS [G]",
+    "temperature_apex": "T at the apex, RS and FS [K]",
+    "density_apex": "n at the apex, RS and FS [cm^-3]",
+    "free_free_RS": "L_ff(RS) [erg/s]",
+    "synchrotron_unabsorbed": "L_syn [erg/s]",
+    "bremsstrahlung": "L_br [erg/s]",
+    "ic_dust": "L_IC,IR [erg/s]",
+    "ic_stellar": "L_IC,st [erg/s]",
+    "x_rays": "L_X [erg/s]",
+    "proton_proton": "L_pp [erg/s]",
+    "free_free_hot_layer": "L_ff(FS, hot layer) [erg/s]",
+    "free_free_isothermal_layer": "L_ff(FS, isothermal layer) [erg/s]",
+    "maps_synchrotron": "S_syn of the maps [mJy]",
+    "maps_convolved": "S of the convolved maps [mJy]",
+    "synchrotron_radio_RS": "S_syn(RS) at the printed frequencies [mJy]",
+}
+TOLERANCE = 2e-3
+
 
 def values(pattern, output):
     matches = re.findall(pattern, output, flags=re.DOTALL)
     return [float(value) for match in matches for value in (match if isinstance(match, tuple) else (match,))]
+
+
+def summary(found, reference):
+    # Values of this run and largest relative difference with the reference
+    print(f" {'BD+43 3654 (this run)':<44} {'values':<52} max. rel. diff.")
+    for name, label in LABELS.items():
+        actual, expected = found.get(name, []), reference.get(name, [])
+        text = ", ".join(f"{x:.4g}" for x in actual) or "not found"
+        diff = ""
+        if expected and len(actual) == len(expected):
+            d = max(abs(a/e - 1.) if e else abs(a) for a, e in zip(actual, expected))
+            diff = f"{d:.1e}" + ("  <-- differs" if d > TOLERANCE else "")
+        elif expected:
+            diff = "<-- differs"
+        print(f" {label:<44} {text:<52} {diff}")
+    print()
 
 
 def run_checked(command, cwd):
@@ -103,7 +140,7 @@ def main():
         for filename in ("Makefile", "Makefile.depend"):
             shutil.copy2(ROOT / filename, test_root / filename)
         shutil.copy2(ROOT / "gauntff.dat", test_root / "gauntff.dat")
-        for filename in ("controles.f90", "system_parameters.f90"):
+        for filename in ("controls.f90", "system_parameters.f90"):
             shutil.copy2(CONFIGURATION / filename, test_root / filename)
         fix_grid(test_root / "global.f90")
         fix_radiative_fs(test_root / "system_parameters.f90")
@@ -116,10 +153,12 @@ def main():
     if update:
         lines = [f'  "{name}": {json.dumps(found[name])}' for name in PATTERNS]
         REFERENCE.write_text("{\n" + ",\n".join(lines) + "\n}\n")
+        summary(found, {})
         print(f"Reference rewritten: {REFERENCE}")
         return 0
 
     reference = json.loads(REFERENCE.read_text())
+    summary(found, reference)
     failures = []
     for name, expected in reference.items():
         actual = found.get(name, [])
@@ -127,7 +166,7 @@ def main():
             failures.append(f"{name}: expected {len(expected)} values, found {len(actual)}")
             continue
         for index, (actual_value, expected_value) in enumerate(zip(actual, expected), start=1):
-            if not math.isclose(actual_value, expected_value, rel_tol=2e-3, abs_tol=1e-30):
+            if not math.isclose(actual_value, expected_value, rel_tol=TOLERANCE, abs_tol=1e-30):
                 failures.append(f"{name}[{index}]: expected {expected_value:g}, found {actual_value:g}")
 
     if failures:

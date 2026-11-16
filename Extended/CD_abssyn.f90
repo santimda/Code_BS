@@ -284,7 +284,7 @@ contains
          read(iu,*) dummy, T_IL(l)
       end do
       close(iu)
-      open(newunit=iu, file=output_file('termo_FS.dat'))
+      open(newunit=iu, file=output_file('thermo_FS.dat'))
       do l = 1, m_theta
          read(iu,*) (dummy, j=1,11), rhoIL(l)        ! column 12
       end do

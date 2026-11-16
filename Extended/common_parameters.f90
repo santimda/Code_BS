@@ -59,7 +59,7 @@ module common_parameters
 
    !--------------------------------------------------------------------------------------
    ! Non-thermal particles
-   real(dp), dimension(:), allocatable :: efi_ac_sh
+   real(dp), dimension(:), allocatable :: eff_ac_sh
    real(dp), parameter :: lambda_diff = 1.d0
    real(dp), parameter :: inj_p = frac_NT-inj_e ! Fraction L_NT_p/L_inj_perp
 

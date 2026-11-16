@@ -20,7 +20,7 @@ logical, parameter :: BBrad_calc = no!yes
 logical, parameter :: opacff_calc = yes  !also calculates emi_ff(wind), needs also electrons = yes
 
 logical, parameter :: CD_calc = yes
-logical, parameter :: termo_calc = yes
+logical, parameter :: thermo_calc = yes
 logical, parameter :: Xrad_calc = yes ! shock thermal emission
 logical, parameter :: rotate = yes
 
@@ -36,7 +36,7 @@ logical, parameter :: radic_st_calc = yes
 logical, parameter :: radic_IR_calc = yes
 logical, parameter :: abssyn_calc = yes !needs maps = yes
 logical, parameter :: maps_calc = yes
-logical, parameter :: convolution = yes! no
+logical, parameter :: convolution = yes
 ! Radio-map frequencies
 ! nu: freq in Hz
 ! label: str
@@ -58,7 +58,7 @@ type(map_freq_t), parameter :: map_avg = &
 
 !----------
 
-logical, parameter :: escribir_e = yes
+logical, parameter :: write_e = yes
 
 !----------
 
@@ -67,14 +67,14 @@ logical, parameter :: protons = yes
 logical, parameter :: distp_calc = yes
 logical, parameter :: radpp_calc = yes
 
-logical, parameter :: escribir_p = yes
+logical, parameter :: write_p = yes
 
 !----------
 
 logical, parameter :: stromgren = yes
 
 !----------
-logical, parameter :: rad_alpha = yes
+logical, parameter :: rad_alpha = no
 logical, parameter :: convolution_alpha = yes
 
 !===================================================

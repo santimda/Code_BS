@@ -25,12 +25,12 @@ module CD_distp
       integer  :: index1, index2, n_count, steps
       logical  :: new_count, fast
       real(dp) :: Eint, L1, b_pp, D_diff, t_pp_l
-      real(dp) :: Ka, integral, Np, cool, dE_aprox, suma, flux, dt_bin
+      real(dp) :: Ka, integral, Np, cool, dE_approx, accum, flux, dt_bin
       real(dp) :: Q_E(mE_p)        ! private copy per OpenMP thread (small, on each thread's stack)
       ! Shock quantities (one value per position l)
       real(dp), allocatable :: theta(:), rho(:), B(:), v_t(:), n_a(:)
       real(dp), allocatable :: L_inj_p(:), dR(:), H_theta(:), R_acel(:), dV_ring(:)
-      real(dp), allocatable :: efi_ac_sh(:), alpha_sh(:), E_corr(:)
+      real(dp), allocatable :: eff_ac_sh(:), alpha_sh(:), E_corr(:)
       real(dp), allocatable :: t_cell(:), t_adv(:), t_adi(:), t_adi_pp(:)
       real(dp), allocatable :: log10Emax(:), Emax_p0(:), rg_p_max(:)
       real(dp), allocatable :: E_NT(:), U_NT(:), U_B(:)
@@ -40,7 +40,7 @@ module CD_distp
 
       allocate( theta(m_theta), rho(m_theta), B(m_theta), v_t(m_theta), n_a(m_theta) )
       allocate( L_inj_p(m_theta), dR(m_theta), H_theta(m_theta), R_acel(m_theta), dV_ring(m_theta) )
-      allocate( efi_ac_sh(m_theta), alpha_sh(m_theta), E_corr(m_theta) )
+      allocate( eff_ac_sh(m_theta), alpha_sh(m_theta), E_corr(m_theta) )
       allocate( t_cell(m_theta), t_adv(m_theta), t_adi(m_theta), t_adi_pp(m_theta) )
       allocate( log10Emax(m_theta), Emax_p0(m_theta), rg_p_max(m_theta) )
       allocate( E_NT(m_theta), U_NT(m_theta), U_B(m_theta) )
@@ -57,7 +57,7 @@ module CD_distp
       !  width, acceleration parameters and t_adv at each cell
 
       call read_shock_p(shock, theta, rho, B, v_t, n_a, L_inj_p, dR, H_theta, R_acel, dV_ring, &
-                        efi_ac_sh, alpha_sh, t_adv)
+                        eff_ac_sh, alpha_sh, t_adv)
 
       open(newunit=iu, file=output_file('L_inj_p_'//shock//'.dat'))
       write(iu,'(es17.8e3)') sum(L_inj_p)
@@ -86,7 +86,7 @@ module CD_distp
       !$omp parallel do default(shared) schedule(dynamic) private(l, i, L1, b_pp, D_diff, t_pp_l)
       do l = 1, m_theta
          ! Maximum energy (the cut in l is applied below, after the loop)
-         call Biseccion_p(B(l),log10Emax(l),t_adi_pp(l),t_adv(l),efi_ac_sh(l),R_acel(l))
+         call bisection_p(B(l),log10Emax(l),t_adi_pp(l),t_adv(l),eff_ac_sh(l),R_acel(l))
 
          do i = 1, mE_p
             if (E_p(i) <= E_th) then    ! E_th = 1.22 GeV
@@ -107,10 +107,10 @@ module CD_distp
 
       t_coolp = 1.d0/(1.d0/t_pp + 1.d0/spread(t_adi,2,mE_p))          ! Cooling losses
       t_loss  = 1.d0/(1.d0/t_coolp + 1.d0/t_esc)                       ! general losses
-      t_ac    = lambda_diff * spread(efi_ac_sh,2,mE_p)*spread(E_p,1,m_theta)/(spread(B,2,mE_p)*c*qe)
+      t_ac    = lambda_diff * spread(eff_ac_sh,2,mE_p)*spread(E_p,1,m_theta)/(spread(B,2,mE_p)*c*qe)
       E_dot   = spread(E_p,1,m_theta)/t_coolp
 
-      ! Biseccion_p returns log10Emax < log10(1.5*Emin_p) when there is no acceleration:
+      ! bisection_p returns log10Emax < log10(1.5*Emin_p) when there is no acceleration:
       ! particle acceleration stops at the first such position, l_cut
       l_cut = findloc(log10Emax < log10(1.5d0*Emin_p), .true., dim=1)
       m_theta_inj_max = m_theta              ! Default value is to inject up to m_theta
@@ -118,7 +118,7 @@ module CD_distp
          m_theta_inj_max = l_cut
          log10Emax(l_cut) = log10(1.001d0*Emin_p)
       end if
-      Emax_p0 = MIN( 10.d0**log10Emax, E_Hillas(B, R_acel, efi_ac_sh) )
+      Emax_p0 = MIN( 10.d0**log10Emax, E_Hillas(B, R_acel, eff_ac_sh) )
       if (l_cut > 0) Emax_p0(l_cut+1:) = 1.0001d0*Emin_p   ! Dummy value, no particle acceleration
       if (any(Emax_p0 >= 0.5d0*Emax_p)) print *, 'Emax_p in global.f90 is too small! max(Emax_p0) [eV] =', maxval(Emax_p0)/eV
 
@@ -140,17 +140,24 @@ module CD_distp
       close(iu)
 
       !========================================================================
+      ! Transport along the linear emitters: same scheme as in CD_diste (see the
+      ! comments there). The protons injected in l_min with energy E_p(i) are
+      ! followed as a packet in one bin, index1, with a constant flux F = N*dE/t_cell:
+      !  - negligible cooling until the end of the BS: the packet keeps its bin
+      !  - slow cooling (t_cell < dt_bin = dE/E_dot): the packet changes bin after
+      !    "steps" cells, conserving N*dE
+      !  - fast cooling (t_cell > dt_bin): the packet is spread over the bins it
+      !    crosses within the cell (F*dt_bin/dE each); below the lowest bin it is removed
+      ! Diffusive escape (t_diff) is only taken into account in the injection cell.
+      !========================================================================
 
-      ! Consider different starting points for each linear emitter
-      E_corr = E_break**(alpha_1-alpha_sh)
+      E_corr = E_break**(alpha_1-alpha_sh) ! continuity of Q at E_break
 
       N_ptot = 0.d0
-      ! At the starting point of the line we calculate the distribution
-      ! Np_0(E_0), the cooling rate Edot0, and we sum it to Np_tot(l,i).
 
       !$omp parallel do default(shared) schedule(dynamic) reduction(+:N_ptot) &
       !$omp private(l_min, n_E, Q_E, integral, Ka, i, Np, index1, index2, l, l2, &
-      !$omp         n_count, steps, new_count, cool, dE_aprox, suma, flux, dt_bin, fast)
+      !$omp         n_count, steps, new_count, cool, dE_approx, accum, flux, dt_bin, fast)
       Do l_min = 1, m_theta_inj_max ! After m_theta_inj_max, particles are no longer accelerated
          ! Q = Ka*fQp(E). The normalization constant Ka is obtained by the condition:
          ! integral Q(E')*E'dE' = Linj. [Linj]=erg/s, [Ka]=erg/s, [Q]=1/erg/seg
@@ -165,62 +172,63 @@ module CD_distp
          !------------------------------------------------------------------------
 
          do i = 1, n_E
-            ! N(E) = Q(E)*dt, with dt = min(t_cell, t_cool) and diffusion treated
-            ! as an effective energy loss; [N(E)] = 1/erg
+            ! Injection cell: N(E) = Q(E)*dt [1/erg], with dt the time the particles
+            ! injected at E spend in the bin (t_cell, or less if they cool or escape)
             index1 = i
             if (dE(i)/E_dot(l_min,i) >= t_cell(l_min)) then
-               ! Slow cooling
+               ! Slow cooling: the particles stay in the bin i during t_cell
                Np = Ka*Q_E(i) * min(t_cell(l_min), 1.d0/(1.d0/t_coolp(l_min,i) + 1.d0/t_diff(l_min,i)))
                N_ptot(l_min,i) = N_ptot(l_min,i) + Np
-               Np = Ka*Q_E(i) * min(t_cell(l_min), t_diff(l_min,i))   ! advected to the next cell
+               Np = Ka*Q_E(i) * min(t_cell(l_min), t_diff(l_min,i)) ! advected (not escaped by diffusion)
             else
-               ! Fast cooling
+               ! Fast cooling: flux F of protons that do not escape by diffusion, which
+               ! cross the bins i, i-1, ... staying dt_bin in each one
                flux = Ka*Q_E(i)*dE(i) * t_diff(l_min,i)/(t_diff(l_min,i) + t_coolp(l_min,i))
-               suma = 0.d0
+               accum = 0.d0
                index1 = i + 1
-               do while (suma < t_cell(l_min) .and. index1 > 1)
+               do while (accum < t_cell(l_min) .and. index1 > 1)
                   index1 = index1 - 1
                   dt_bin = dE(index1)/E_dot(l_min,index1)
-                  N_ptot(l_min,index1) = N_ptot(l_min,index1) + flux*min(dt_bin, t_cell(l_min)-suma)/dE(index1)
-                  suma = suma + dt_bin
+                  N_ptot(l_min,index1) = N_ptot(l_min,index1) + flux*min(dt_bin, t_cell(l_min)-accum)/dE(index1)
+                  accum = accum + dt_bin
                end do
-               if (suma < t_cell(l_min)) cycle
-               Np = flux*t_cell(l_min)/dE(index1)        ! advected to the next cell
+               if (accum < t_cell(l_min)) cycle ! cooled below Emin_p within the cell
+               Np = flux*t_cell(l_min)/dE(index1) ! packet advected to the next cell
             end if
 
-            ! Evolved version of the injected distribution at each position "l":
-            ! N_l*dE_l = N_l-1*dE_l-1*(t_cell(l)/t_cell(l-1)), where the energy
-            ! evolves as E0(l) given by t_cell(l) = int_E0^El dE/Edot
+            ! Following cells: the packet has energy E_p(index1) <= E_p(i) in the cell l
 
-            index2 = index1       ! For the previous cell, "l-1"
+            index2 = index1 ! bin of the packet in the previous cell, l-1
             l = l_min + 1
-            n_count = 0           ! Counter for when to change the index if losses are small
+            n_count = 0 ! cells spent in the bin index1 (slow cooling)
             cool = 0.d0
             new_count = .true.
 
             do while( l <= m_theta .and. index1 > 1) ! if index1 = 1, the p+ are completely cooled
-               ! The cooling parameter "cool" determines whether particles cool efficiently or not
-               if (l == l_min+1) then ! The total cooling parameter from l_min to m_theta
+               ! cool = sum of t_cell/t_coolp from l to the end of the BS (relative energy
+               ! lost until the end), at the energy of the packet
+               if (l == l_min+1) then
                   cool = sum( t_cell(l:m_theta)/t_coolp(l:m_theta,index1) )
                else
                   cool = cool - t_cell(l-1)/t_coolp(l-1,index1)
                end if
-               dE_aprox = (1.d0-t_cell(l)/t_coolp(l,index1))
+               dE_approx = (1.d0-t_cell(l)/t_coolp(l,index1)) ! E(after the cell)/E(before)
                fast = .false.
 
-               if ( 1.d0-cool > 0.99d0/Eint ) then ! negligible cooling
+               if ( 1.d0-cool > 0.99d0/Eint ) then ! negligible cooling: less than one bin until the end
                   continue
 
-               elseif ( 1.d0-cool <= 0.99d0/Eint .and. dE_aprox > 1.d0/Eint ) then
+               elseif ( 1.d0-cool <= 0.99d0/Eint .and. dE_approx > 1.d0/Eint ) then
+                  ! Slow cooling: less than one bin per cell
                   if (new_count) then
-                     suma = 1.d0
-                     steps = 0 ! number of steps until it changes E(index1) -> E(index1-1)
+                     accum = 1.d0
+                     steps = 0 ! number of cells until E(index1) -> E(index1-1)
                      l2 = l
-                     do while (suma > 1.d0/Eint .and. l2 <= m_theta)
+                     do while (accum > 1.d0/Eint .and. l2 <= m_theta)
                         steps = steps + 1
-                        suma = suma*(1.d0-t_cell(l2)/t_coolp(l2,index1))
+                        accum = accum*(1.d0-t_cell(l2)/t_coolp(l2,index1))
                         l2 = l2 + 1
-                        if (suma > 1.d0/Eint .and. l2 == m_theta) steps = m_theta ! NOT COOLING
+                        if (accum > 1.d0/Eint .and. l2 == m_theta) steps = m_theta ! NOT COOLING
                      end do
                      new_count = .false.
                   end if
@@ -232,23 +240,26 @@ module CD_distp
                      new_count = .true.
                   end if
 
-               elseif ( dE_aprox <= 1.d0/Eint ) then
-                  ! Fast cooling:
+               elseif ( dE_approx <= 1.d0/Eint ) then
+                  ! Fast cooling: one bin or more per cell (see CD_diste). The cascade
+                  ! starts in the bin below the one of the previous cell
                   fast = .true.
-                  flux = Np*dE(index2)/t_cell(l-1)
-                  suma = 0.d0
-                  do while (suma < t_cell(l) .and. index1 > 1)
+                  flux = Np*dE(index2)/t_cell(l-1) ! F, particles per unit time
+                  accum = 0.d0 ! time spent in the cell
+                  do while (accum < t_cell(l) .and. index1 > 1)
                      index1 = index1 - 1
                      dt_bin = dE(index1)/E_dot(l,index1)
-                     N_ptot(l,index1) = N_ptot(l,index1) + flux*min(dt_bin, t_cell(l)-suma)/dE(index1)
-                     suma = suma + dt_bin
+                     N_ptot(l,index1) = N_ptot(l,index1) + flux*min(dt_bin, t_cell(l)-accum)/dE(index1)
+                     accum = accum + dt_bin
                   end do
-                  Np = flux*t_cell(l)/dE(index1)
+                  Np = flux*t_cell(l)/dE(index1) ! packet advected, in the last bin
                end if
 
                if (.not. fast) then
+                  ! The whole packet is in the bin index1: N*dE conserved if the bin
+                  ! changed, and N proportional to the time spent in the cell
                   Np = Np * ( dE(index2)/dE(index1) ) * (t_cell(l)/t_cell(l-1))
-                  N_ptot(l,index1) = N_ptot(l,index1) + Np  ! The energies match by construction
+                  N_ptot(l,index1) = N_ptot(l,index1) + Np
                end if
 
                index2 = index1  ! index2 keeps the value of the previous step
@@ -257,7 +268,7 @@ module CD_distp
             end do              ! End loop in shock position
          end do                 ! End loop in proton starting energies
 
-      end do            
+      end do ! End loop in starting position (l_min = # linear emitters)
       !$omp end parallel do
 
       !----------------------------------------------------------------------
@@ -284,7 +295,7 @@ module CD_distp
       !------------------------------------------------------------
 
       deallocate( theta, rho, B, v_t, n_a, L_inj_p, dR, H_theta, R_acel, dV_ring )
-      deallocate( efi_ac_sh, alpha_sh, E_corr, t_cell, t_adv, t_adi, t_adi_pp )
+      deallocate( eff_ac_sh, alpha_sh, E_corr, t_cell, t_adv, t_adi, t_adi_pp )
       deallocate( log10Emax, Emax_p0, rg_p_max, E_NT, U_NT, U_B )
       deallocate( E_p, dE, N_ptot, E_dot, t_pp, t_coolp, t_diff, t_esc, t_loss, t_ac )
 
@@ -309,13 +320,13 @@ module CD_distp
       real(dp) :: Eint, integral
       real(dp), allocatable :: theta(:), rho(:), B(:), v_t(:), n_a(:)
       real(dp), allocatable :: L_inj_p(:), dR(:), H_theta(:), R_acel(:), dV_ring(:)
-      real(dp), allocatable :: efi_ac_sh(:), alpha_sh(:), E_corr(:), t_adv(:), t_cell(:)
+      real(dp), allocatable :: eff_ac_sh(:), alpha_sh(:), E_corr(:), t_adv(:), t_cell(:)
       real(dp), allocatable :: Emax_p0(:), E_NT(:), U_NT(:), U_B(:)
       real(dp), allocatable :: E_p(:), dE(:), Q_inj(:,:), N_ptot(:,:)
 
       allocate( theta(m_theta), rho(m_theta), B(m_theta), v_t(m_theta), n_a(m_theta) )
       allocate( L_inj_p(m_theta), dR(m_theta), H_theta(m_theta), R_acel(m_theta), dV_ring(m_theta) )
-      allocate( efi_ac_sh(m_theta), alpha_sh(m_theta), E_corr(m_theta), t_adv(m_theta), t_cell(m_theta) )
+      allocate( eff_ac_sh(m_theta), alpha_sh(m_theta), E_corr(m_theta), t_adv(m_theta), t_cell(m_theta) )
       allocate( Emax_p0(m_theta), E_NT(m_theta), U_NT(m_theta), U_B(m_theta) )
       allocate( E_p(mE_p), dE(mE_p), Q_inj(m_theta,mE_p), N_ptot(m_theta,mE_p) )
 
@@ -323,7 +334,7 @@ module CD_distp
 
 
       call read_shock_p(shock, theta, rho, B, v_t, n_a, L_inj_p, dR, H_theta, R_acel, dV_ring, &
-                        efi_ac_sh, alpha_sh, t_adv)
+                        eff_ac_sh, alpha_sh, t_adv)
 
       call vector_log(Emin_p,Emax_p,Eint,E_p)
       dE = E_p*(Eint - 1.d0)
@@ -331,7 +342,7 @@ module CD_distp
       t_cell = dR/v_t                                  ! Cell advection time
 
       ! Maximum energy: advection (t_adv = t_ac) or Hillas
-      Emax_p0 = MIN( t_adv*(B*c*qe)/(lambda_diff*efi_ac_sh), E_Hillas(B, R_acel, efi_ac_sh) )
+      Emax_p0 = MIN( t_adv*(B*c*qe)/(lambda_diff*eff_ac_sh), E_Hillas(B, R_acel, eff_ac_sh) )
       if (any(Emax_p0 >= 0.5d0*Emax_p)) print *, 'Emax_p in global.f90 is too small! max(Emax_p0) [eV] =', maxval(Emax_p0)/eV
 
       ! Injection Q_inj(l_min,E) = Ka*fQp(E) [1/erg/s], normalized with integral Q(E')*E'dE' = Linj
@@ -372,7 +383,7 @@ module CD_distp
       close(iu)
 
       deallocate( theta, rho, B, v_t, n_a, L_inj_p, dR, H_theta, R_acel, dV_ring )
-      deallocate( efi_ac_sh, alpha_sh, E_corr, t_adv, t_cell, Emax_p0, E_NT, U_NT, U_B )
+      deallocate( eff_ac_sh, alpha_sh, E_corr, t_adv, t_cell, Emax_p0, E_NT, U_NT, U_B )
       deallocate( E_p, dE, Q_inj, N_ptot )
 
    END subroutine CD_distp_approx_run
@@ -389,25 +400,25 @@ module CD_distp
    !--------------------------------------------------------------------------!
 
    subroutine read_shock_p(shock, theta, rho, B, v_t, n_a, L_inj_p, dR, H_theta, R_acel, dV_ring, &
-                           efi_ac_sh, alpha_sh, t_adv)
+                           eff_ac_sh, alpha_sh, t_adv)
       ! Reads the shock quantities at each cell
       character(LEN=*), intent(in) :: shock
       real(dp), dimension(m_theta), intent(out) :: theta, rho, B, v_t, n_a, L_inj_p, dR, H_theta, &
-                                                    R_acel, dV_ring, efi_ac_sh, alpha_sh, t_adv
+                                                    R_acel, dV_ring, eff_ac_sh, alpha_sh, t_adv
       integer  :: l, l2, iu_L, iu_t, iu_H, iu_e, iu_a, iu_c
       real(dp) :: dum, L_inj(m_theta)
 
       open(newunit=iu_L, file=output_file('Linj_'//shock//'.dat'))
-      open(newunit=iu_t, file=output_file('termo_'//shock//'.dat'))
+      open(newunit=iu_t, file=output_file('thermo_'//shock//'.dat'))
       open(newunit=iu_H, file=output_file('Hnorm_'//shock//'.dat'))
-      open(newunit=iu_e, file=output_file('efi_ac_'//shock//'.dat'))
+      open(newunit=iu_e, file=output_file('eff_ac_'//shock//'.dat'))
       open(newunit=iu_a, file=output_file('alpha_'//shock//'.dat'))
       open(newunit=iu_c, file=output_file('t_conv_'//shock//'.dat'))
       do l = 1, m_theta
          read(iu_L,*) dum, dum, L_inj(l), dR(l)
          read(iu_t,*) l2, rho(l), dum, v_t(l), dum, B(l), dum, theta(l) ! all in CGS units
          read(iu_H,*) dum, H_theta(l), R_acel(l), dum, dV_ring(l)
-         read(iu_e,*) dum, efi_ac_sh(l)
+         read(iu_e,*) dum, eff_ac_sh(l)
          read(iu_a,*) dum, alpha_sh(l)
          read(iu_c,*) dum, t_adv(l)   ! Characteristic advection time
       end do
@@ -470,7 +481,7 @@ module CD_distp
 
    !=========================================================================
 
-   subroutine Biseccion_p(Bl,x3,t_coolp,t_adv,xi,Rdiff)
+   subroutine bisection_p(Bl,x3,t_coolp,t_adv,xi,Rdiff)
       ! Bisection in log10(E) for the maximum energy: t_loss(E) = t_ac(E)
       real(dp), intent(in) :: Bl,t_coolp,t_adv,xi,Rdiff
       real(dp), intent(out) :: x3
@@ -479,14 +490,14 @@ module CD_distp
 
       a_ = log10(1.2d0*Emin_p)
       b_ = log10(Emax_p)
-      fa = resta_p(a_,Bl,t_coolp,t_adv,xi,Rdiff)
+      fa = t_balance_p(a_,Bl,t_coolp,t_adv,xi,Rdiff)
       if (fa < 0.1d0*err) then   ! t_ac > t_loss already at the lowest energy: no acceleration
          x3 = a_ - 1.d0          ! log10Emax < log10(1.5*Emin_p) -> cut in CD_distp_run
          return
       end if
       do while ( abs(b_ - a_) > err )
          c_ = (a_+b_)/2.d0
-         fc = resta_p(c_,Bl,t_coolp,t_adv,xi,Rdiff)
+         fc = t_balance_p(c_,Bl,t_coolp,t_adv,xi,Rdiff)
          if (fc < 0.1d0*err ) then
             b_ = c_
          elseif (fa*fc < 0.d0) then
@@ -497,14 +508,14 @@ module CD_distp
          end if
       end do
       x3 = b_
-   end subroutine Biseccion_p
+   end subroutine bisection_p
 
    !=========================================================================
 
-   function resta_p(log10E,Bl,t_coolp,t_adv,xi,Rdiff)
+   function t_balance_p(log10E,Bl,t_coolp,t_adv,xi,Rdiff)
       ! t_loss - t_ac at E = 10**log10E
       real(dp), intent(in) :: log10E,Bl,t_coolp,t_adv,xi,Rdiff
-      real(dp) :: resta_p
+      real(dp) :: t_balance_p
       real(dp) :: E_l,D_diff,t_diff,t_esc,t_loss,t_ac
 
       E_l = 10.d0**log10E
@@ -516,8 +527,8 @@ module CD_distp
       t_loss = 1.d0/(1.d0/t_coolp + 1.d0/t_esc) ! general losses
 
       t_ac = lambda_diff*xi*E_l/(Bl*c*qe)
-      resta_p = t_loss - t_ac
-   end function resta_p
+      t_balance_p = t_loss - t_ac
+   end function t_balance_p
 
    !=========================================================================
 

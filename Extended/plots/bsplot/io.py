@@ -6,8 +6,8 @@ import os
 import numpy as np
 
 FILES = {
-    # CD_termo
-    "termonorm": "termonorm_{shock}.dat",
+    # CD_thermo
+    "thermonorm": "thermonorm_{shock}.dat",
     "rad_adi": "rad_adi_{sys}_{shock}.dat",
     "vs_RH": "new_vs_RH_{shock}.dat",
     # CD_diste, CD_distp: N of one linear emitter; totals for one quadrant (x n_emit/4)

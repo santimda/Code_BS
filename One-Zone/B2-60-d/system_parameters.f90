@@ -15,7 +15,7 @@ module system_parameters
    ! i = 0° is face-on, i = 90° corresponds to BS in front of the star, i = -90° is BS behind the star
    real(dp), parameter :: incli = pi/2.d0 - inclination ! angle that I use
    ! incli = 90° is BS in front of the star, incli = 0° is edge-on,  incli = -90° is BS behind the star real(dp), parameter :: theta_max = (110.d0/180.d0)*pi ! ~ extension of the BS modelled ~ pi/2
-   real(dp), parameter :: cte_cs = sqrt(g_ad*3./16.d0)  ! c_s ~ sqrt(g_ad*P/rho_sh) = cte_cs*v (P~3/4*rho*v^2, rho_sh=4*rho)
+   real(dp), parameter :: coef_cs = sqrt(g_ad*3./16.d0)  ! c_s ~ sqrt(g_ad*P/rho_sh) = coef_cs*v (P~3/4*rho*v^2, rho_sh=4*rho)
    real(dp), parameter :: frac_BS = 0.5d0   ! Fraction of kinetic power injeted in the BS (geometric factor)
 
    !--------------------------------------------------------------------------------------
@@ -64,7 +64,7 @@ module system_parameters
    real(dp), parameter :: rho_w = Mdot/(4.d0*pi*R0**2*v_w)    
    real(dp), parameter :: n_sh_RS = 4.*rho_w/(mp*mu_sw)  ! number density (reverse shock)
    real(dp), parameter :: T_sh_RS = 1.36d7*(v_w/1.d8)**2  ! temperature (RS)
-   real(dp), parameter :: c_s_RS = v_w*cte_cs            ! velocity of the shocked fluid (RS)
+   real(dp), parameter :: c_s_RS = v_w*coef_cs            ! velocity of the shocked fluid (RS)
    real(dp), parameter :: z_br = 2.24               ! Padovani+2018 for Wilms+2000 abundances
    real(dp), parameter :: z_pp = 2.17               ! Padovani+2018 for Wilms+2000 abundances
    real(dp), parameter :: z_ion = 2.01              ! Padovani+2018 for Wilms+2000 abundances
@@ -73,7 +73,7 @@ module system_parameters
    ! Shocked ISM (Forward Shock)
    real(dp), parameter :: n_sh_FS = 4.*n_ISM                ! number density (forward shock)
    real(dp), parameter :: T_sh_FS = 1.36d7*(v_ISM/1.d8)**2  ! temperature (FS)
-   real(dp), parameter :: c_s_FS = v_ISM*cte_cs             ! velocity of the shocked fluid (FS)
+   real(dp), parameter :: c_s_FS = v_ISM*coef_cs             ! velocity of the shocked fluid (FS)
 
    !--------------------------------------------------------------------------------------
    ! Heated dust (IR)   
@@ -90,8 +90,8 @@ module system_parameters
 
    !--------------------------------------------------------------------------------------
    ! Non-thermal particles
-   real(dp), parameter :: efi_ac_RS = 2.d0*pi*(c/v_w)**2    ! Particle accel. efficiency at the RS
-   real(dp), parameter :: efi_ac_FS = 2.d0*pi*(c/v_ISM)**2  ! Particle accel. efficiency at the FS
+   real(dp), parameter :: eff_ac_RS = 2.d0*pi*(c/v_w)**2    ! Particle accel. efficiency at the RS
+   real(dp), parameter :: eff_ac_FS = 2.d0*pi*(c/v_ISM)**2  ! Particle accel. efficiency at the FS
    real(dp), parameter :: alpha_NT = 2.d0            ! Injection spectral index
    real(dp), parameter :: R_acel_RS = R_eff_RS  !
    real(dp), parameter :: R_acel_FS = R_eff_FS

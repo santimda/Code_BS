@@ -41,7 +41,7 @@ module global
    real(dp), dimension(:), allocatable :: x,y,z
    real(dp), dimension(:), allocatable :: theta,r_norm,R_theta
 
-   ! termo
+   ! thermo
    real(dp), dimension(:), allocatable :: P,rho,T,v_t,v_perp,B,B_par,alpha_sh
    real(dp), dimension(:), allocatable :: rho_med, C_s_med,Mach,C_s_sh,C_s_sh_new,r
    real(dp), dimension(:), allocatable :: v_t_RH, P_RH, rho_RH, B_RH, rho_min, rho_IL
@@ -79,7 +79,7 @@ module global
    real(dp) :: Kappa_st, Kappa_IR(m_theta) ! = (R/2D)**2 
    !real(dp) :: X_st(3),X_emi(3),X_eE(3),X_obs(3) ! Position vectors for absorption integrals
    real(dp), parameter :: e_obs(3) = [ -sin(incli), cos(incli), 0.d0 ]   ! unit vector towards the observer (apex at -x; incli = 90 deg: BS in front of the star)
-   real(dp), parameter :: cte_Ndot = 2.*re**2*mec2**3/(pi*h_bar**3*c**2)
+   real(dp), parameter :: coef_Ndot = 2.*re**2*mec2**3/(pi*h_bar**3*c**2)
    logical, parameter :: ani = .True., iso = .False. 
 
    ! br

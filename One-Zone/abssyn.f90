@@ -21,14 +21,14 @@ contains
       Implicit none
       Character(LEN=*), intent(in) :: shock
       Real(dp) :: alphaffw(mr_ff,mE_ff)
-      Real(dp) :: r_ff(mr_ff),dr_ff,R_aprox
+      Real(dp) :: r_ff(mr_ff),dr_ff,R_approx
       Real(dp) :: theta1,x1,y1,z1,r1,dr0,x1_0,y1_0,z1_0,x,y,z
       Real(dp) :: dr_x,dr_y,sinc,cinc
       Real(dp) :: log_nu_int,flux,flux1,flux2
-      Real(dp) :: emision1,emision2,emision1_abs,emision2_abs
+      Real(dp) :: emission1,emission2,emission1_abs,emission2_abs
       Real(dp) :: dE_nu,Eint_nu,sum
       Integer :: ir,inu_max,i_1G,i_5G,i_ff
-      Logical :: integra
+      Logical :: integrating
 
       allocate( tauff(m_nu) ) 
       allocate( Ef(m_nu),nu(m_nu),L_sy(m_nu),L_sy_abs(m_nu) )
@@ -79,29 +79,29 @@ contains
       y = 0.d0
       z = 0.d0
 
-      x1_0 = x - dr0*sinc                 ! i = 0° = face-on, in that case dx=0
+      x1_0 = x - dr0*sinc                 ! i = 0Â° = face-on, in that case dx=0
       y1_0 = y + dr0*cinc
       z1_0 = z                            ! it does not vary, it moves at cte z 
       dr_ff = dr0/64.d0                  ! integration step along the LOS
-      dr_x = -dr_ff*sinc                  ! If i > 0°, x decreaces
+      dr_x = -dr_ff*sinc                  ! If i > 0Â°, x decreaces
       dr_y = dr_ff*cinc     
 
-      ! $omp parallel do private(i,r,x1,y1,z1,ir,integra)
+      ! $omp parallel do private(i,r,x1,y1,z1,ir,integrating)
       do i=1,inu_max           ! Photon frequency
          x1 = x1_0  
          y1 = y1_0
          z1 = z1_0          
 
-         integra = .true.
-         do while(integra) 
+         integrating = .true.
+         do while(integrating) 
             r1 = sqrt(x1**2 + y1**2 + z1**2)                     
             theta1 = abs(atan(y1/x1))
-            R_aprox = R0 * sqrt(3.*(1.-theta1/tan(theta1)))/sin(theta1) ! R_BS(theta)
-            if( r1 > r_ff(mr_ff) .or. r1 > R_aprox ) then   ! Stop integration too far
-               integra = .false.
-            else     ! "inside" the BS ( r1 <= R_aprox ) 
+            R_approx = R0 * sqrt(3.*(1.-theta1/tan(theta1)))/sin(theta1) ! R_BS(theta)
+            if( r1 > r_ff(mr_ff) .or. r1 > R_approx ) then   ! Stop integration too far
+               integrating = .false.
+            else     ! "inside" the BS ( r1 <= R_approx ) 
                ir = int((r1-r_ff(1))/dr_ff) + 1       
-               integra = .true.  
+               integrating = .true.  
                tauff(i) = tauff(i) + alphaffw(ir,i)*dr_ff 
             endif      
             x1 = x1 + dr_x ! CHECK
@@ -142,16 +142,16 @@ contains
          endif
       end do
 
-      emision1 = L_sy(i_1G) * flux1 ! At 1. GHz
-      emision1_abs = emision1 * exp(-tauff(i_1G))
-      emision2 = L_sy(i_5G) * flux2 ! At 4.8 GHz
-      emision2_abs = emision2 * exp(-tauff(i_5G))
+      emission1 = L_sy(i_1G) * flux1 ! At 1. GHz
+      emission1_abs = emission1 * exp(-tauff(i_1G))
+      emission2 = L_sy(i_5G) * flux2 ! At 4.8 GHz
+      emission2_abs = emission2 * exp(-tauff(i_5G))
       write(*,*) 'Unabsorbed:'
-      write(*,88) 'S(1.4GHz)=',emision1,'mJy'
-      write(*,88) 'S(4.8GHz)=',emision2,'mJy'
+      write(*,88) 'S(1.4GHz)=',emission1,'mJy'
+      write(*,88) 'S(4.8GHz)=',emission2,'mJy'
       write(*,*) 'Absorbed:'
-      write(*,88) 'S(1.4GHz)=',emision1_abs,'mJy'
-      write(*,88) 'S(4.8GHz)=',emision2_abs,'mJy'
+      write(*,88) 'S(1.4GHz)=',emission1_abs,'mJy'
+      write(*,88) 'S(4.8GHz)=',emission2_abs,'mJy'
 
       88  format(A11,X,Es10.2,X,A3)
       89  format(A11,X,Es10.2)

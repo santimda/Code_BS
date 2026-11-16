@@ -19,7 +19,7 @@ contains
       !logical, intent(in) :: screened
       character(LEN=*), intent(in) :: shock
       real(dp) :: Ef_int,dEf,sum,sum_br,dsigma_Br,u_br
-      real(dp) :: gamma(mE_e),cte_sigma,dq_Ef,q_Ef,n_a 
+      real(dp) :: gamma(mE_e),coef_sigma,dq_Ef,q_Ef,n_a 
       interface
          function Phi_Br(u_br,gamma_e)!,screened)
             use iso_fortran_env, only: dp => real64
@@ -36,7 +36,7 @@ contains
 
       write(*,*) '\n Calculate the (unabsorbed) rel. brem. emission in the SW'
 
-      cte_sigma = 4.d0*alfa*re**2*z_br  ! z_br > 1 if not pure H
+      coef_sigma = 4.d0*alpha_fs*re**2*z_br  ! z_br > 1 if not pure H
 
       if (shock=='RS') then        
          n_a = n_sh_RS
@@ -51,7 +51,7 @@ contains
       open (14,file='dist_e_'//shock//'.dat')
       do i=1,mE_e
          read(14,*) E_e(i),N_e(i)
-         E_e(i) = E_e(i)*eV    !   Pasamos la energía a ergios
+         E_e(i) = E_e(i)*eV    ! eV -> erg
       end do
       close(14) 
       Eint_e = E_e(2)/E_e(1)
@@ -76,7 +76,7 @@ contains
             if (u_br > 1.d0) then   ! Ef <= Ee from energy conservation
                dsigma_Br = 0.d0     ![cm**2/m_e c2]
             else
-               dsigma_Br = cte_sigma/Ef(i)*Phi_Br(u_br,gamma(j))!,screened) 
+               dsigma_Br = coef_sigma/Ef(i)*Phi_Br(u_br,gamma(j))!,screened) 
                if (dsigma_Br > 0.d0) then ! Phi_Br can yield negative values in bad E ranges
                   q_Ef = n_a*c*dsigma_Br
                   dE_e = E_e(j)*(Eint_e-1.d0)

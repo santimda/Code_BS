@@ -16,12 +16,12 @@ contains
 
   subroutine opac_ff_run
     real(dp) :: dr, log_nu_int, Mdot_eff, A_ff
-    real(dp) :: nu_S, B_ff_D2, cte_Tau, convert, Delta_r
+    real(dp) :: nu_S, B_ff_D2, coef_Tau, convert, Delta_r
     real(dp) :: E_st_0, E_st_int, Q_ion, alpha_B, R_str, vol, vol_str
     real(dp) :: ne_ISM, ni_ISM, nH_ISM, nu_int_ff
     real(dp) :: P_trans, M_tot, V_trans
     ! stellar wind
-    real(dp), allocatable :: dif_R(:), r_ff(:), g_ff_w(:), cte_alpha(:), kappa_nu(:), S(:)
+    real(dp), allocatable :: dif_R(:), r_ff(:), g_ff_w(:), coef_alpha(:), kappa_nu(:), S(:)
     real(dp), allocatable :: alphaff(:,:)
     ! wind radio maps
     real(dp), allocatable :: r_map(:), S_ff_cm2(:), S_map(:), phi_map(:)
@@ -31,7 +31,7 @@ contains
     character(len=32) :: fmt
 
     allocate( nu(mE_ff), nu_ISM(mE_ff) )
-    allocate( dif_R(m_theta), r_ff(mr_ff), g_ff_w(mE_ff), cte_alpha(mr_ff), kappa_nu(mE_ff), S(mE_ff) )
+    allocate( dif_R(m_theta), r_ff(mr_ff), g_ff_w(mE_ff), coef_alpha(mr_ff), kappa_nu(mE_ff), S(mE_ff) )
     allocate( alphaff(mr_ff,mE_ff) )
     allocate( r_map(mr_map), S_ff_cm2(mr_map), S_map(mr_map), phi_map(mphi) )
     allocate( E_st(mE_ph), g_ff_ISM(mE_ff), p_ff(mE_ff), factor_opac(mE_ff), Lnu(mE_ff) )
@@ -69,9 +69,9 @@ contains
     ! Opacity alpha_ff(r,nu) [1/cm] (Rybicki & Lightman, Eq. 5.18b)
     Mdot_eff = Mdot/sqrt(filling)              ! effective mass-loss rate (clumping)
     A_ff = Mdot_eff/(4.d0*pi*v_w*mu_w*mp)      ! r >> R_st: v_w = v_infty
-    cte_alpha = 3.7d8*Zq_w**2*gamma_w*(A_ff/r_ff**2)**2/sqrt(T_wind)
+    coef_alpha = 3.7d8*Zq_w**2*gamma_w*(A_ff/r_ff**2)**2/sqrt(T_wind)
     kappa_nu  = nu**(-3)*(1.d0-exp(-h*nu/(k*T_wind)))*g_ff_w
-    alphaff   = spread(cte_alpha,2,mE_ff)*spread(kappa_nu,1,mr_ff)
+    alphaff   = spread(coef_alpha,2,mE_ff)*spread(kappa_nu,1,mr_ff)
 
     write(fmt,'(a,i0,a)') '(', mE_ff, 'es17.8e3)'
     open(newunit=iu, file=output_file('windalphaff.dat'))
@@ -98,9 +98,9 @@ contains
        i_nu = nu_index(maps(im)%nu, nu(1), log_nu_int, mE_ff)
        nu_S = nu(i_nu)
        B_ff_D2 = 2.d0*nu_S**2*k*T_wind/c**2/distance**2*1.d26
-       cte_Tau = 3.7d8*h*Zq_w**2*g_ff_w(i_nu)/(k*T_wind**1.5d0*nu_S**2) * gamma_w*A_ff**2*pi/2.d0
+       coef_Tau = 3.7d8*h*Zq_w**2*g_ff_w(i_nu)/(k*T_wind**1.5d0*nu_S**2) * gamma_w*A_ff**2*pi/2.d0
 
-       call S_ff_map(B_ff_D2, cte_Tau, R_st, R0, S_ff_cm2, r_map)
+       call S_ff_map(B_ff_D2, coef_Tau, R_st, R0, S_ff_cm2, r_map)
        Delta_r = r_map(2)-r_map(1)
        S_map = S_ff_cm2*r_map*Delta_r*0.5d0*pi/mphi          ! flux of each cell [mJy]
 
@@ -184,7 +184,7 @@ contains
     write(*,'(a, Es10.2)') ' V_trans[cm/s] =', V_trans
 
     deallocate( nu, nu_ISM )
-    deallocate( dif_R, r_ff, g_ff_w, cte_alpha, kappa_nu, S )
+    deallocate( dif_R, r_ff, g_ff_w, coef_alpha, kappa_nu, S )
     deallocate( r_map, S_ff_cm2, S_map, phi_map )
     deallocate( E_st, g_ff_ISM, p_ff, factor_opac, Lnu )
 
@@ -194,8 +194,8 @@ contains
   ! Brightness of the wind at impact parameter r_map (Wright & Barlow 1975, Eq. 5)
   !=========================================================================
 
-  subroutine S_ff_map(B_ff_D2, cte_Tau, r_i, r_f, S_ff_cm2, r_map)
-    real(dp), intent(in)  :: B_ff_D2, cte_Tau, r_i, r_f
+  subroutine S_ff_map(B_ff_D2, coef_Tau, r_i, r_f, S_ff_cm2, r_map)
+    real(dp), intent(in)  :: B_ff_D2, coef_Tau, r_i, r_f
     real(dp), intent(out) :: S_ff_cm2(mr_map), r_map(mr_map)
     real(dp) :: R_c, x_c(mr_map), Tau_max(mr_map)
     integer  :: ir
@@ -205,9 +205,9 @@ contains
     x_c = r_map/R_c
 
     where (r_map >= R_c)
-       Tau_max = cte_Tau/r_map**3
+       Tau_max = coef_Tau/r_map**3
     elsewhere
-       Tau_max = cte_Tau/r_map**3*( 0.5d0 - acos(x_c)/pi - sqrt(1.d0-x_c**2)*x_c/pi )
+       Tau_max = coef_Tau/r_map**3*( 0.5d0 - acos(x_c)/pi - sqrt(1.d0-x_c**2)*x_c/pi )
     end where
     S_ff_cm2 = B_ff_D2*(1.d0-exp(-Tau_max))
 

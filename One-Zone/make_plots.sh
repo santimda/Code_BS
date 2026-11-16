@@ -15,16 +15,16 @@ sleep 0.01
 cd plots
 
 # To rename the name tag, we create a temporary file
-sed "s/NAME/${name}/g" plot_tiempose_FS.gp > temp.gp
+sed "s/NAME/${name}/g" plot_timescales_e_FS.gp > temp.gp
 gnuplot temp.gp
 
-sed "s/NAME/${name}/g" plot_tiempose_RS.gp > temp.gp
+sed "s/NAME/${name}/g" plot_timescales_e_RS.gp > temp.gp
 gnuplot temp.gp
 
-sed "s/NAME/${name}/g" plot_tiemposp_FS.gp > temp.gp
+sed "s/NAME/${name}/g" plot_timescales_p_FS.gp > temp.gp
 gnuplot temp.gp
 
-sed "s/NAME/${name}/g" plot_tiemposp_RS.gp > temp.gp
+sed "s/NAME/${name}/g" plot_timescales_p_RS.gp > temp.gp
 gnuplot temp.gp
 
 sed "s/NAME/${name}/g" plot_diste_RS.gp > temp.gp

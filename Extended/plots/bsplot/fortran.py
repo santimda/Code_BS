@@ -1,5 +1,5 @@
 """
-Read parameters from the Fortran sources (controles.f90, main.f90,
+Read parameters from the Fortran sources (controls.f90, main.f90,
 system_parameters.f90, global.f90).
 """
 import re
@@ -70,7 +70,7 @@ def read_distance(paths, default=None):
 
 
 def read_map_catalogue(path):
-    # map_catalogue and map_avg of controles.f90
+    # map_catalogue and map_avg of controls.f90
     item = rf"map_freq_t\(\s*{NUM}\s*,\s*'([^']*)'\s*,\s*\[\s*([^,\]]+),\s*([^\]]+)\]\s*,\s*([\w.]+)\s*\)"
 
     def freq(m):

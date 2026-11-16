@@ -3,7 +3,7 @@
 Run from `Extended/`:
 
 ```
-make test                                     # everything (Tests/test_set.sh), ~7 min with 2 cores
+make test                                     # everything (Tests/test_set.sh), ~8 min with 2 cores
 sh Tests/test_set.sh --only BD43 HVS          # all the unit tests and the regression, some physical cases
 python3 Tests/test_terminal_output.py         # only the regression
 python3 Tests/test_physics.py --only HVS      # only some physical cases
@@ -34,12 +34,13 @@ plus the physical checks.
 
 Runs the BD+43 case and compares the values printed in the terminal (luminosities, apex
 values, radio fluxes, maps) with `reference_terminal_output.json` (relative tolerance 2e-3).
-The run uses a radiative FS (`radiative_FS = .true.` in the copy of `main.f90`).
+The values of the run are always printed, with the largest relative difference with the
+reference for each quantity. The frozen case uses a radiative FS (`radiative_FS = .true.`).
 
-`Tests/cases/BD43/` has frozen copies of `system_parameters.f90` and `controles.f90`; the
+`Tests/cases/BD43/` has frozen copies of `system_parameters.f90` and `controls.f90`; the
 grid of `global.f90` is fixed in `GRID`. So the reference does not depend on the system or
 the options being used in `Extended/`. If a new parameter is added to `system_parameters.f90`
-or `controles.f90`, it must also be added to the copies in `Tests/cases/BD43/`.
+or `controls.f90`, it must also be added to the copies in `Tests/cases/BD43/`.
 
 If the results change on purpose (a bug fix, a new physical ingredient), rewrite the
 reference with `python3 Tests/test_terminal_output.py --update-reference` and commit it
@@ -50,7 +51,7 @@ together with the change.
 | case | configuration | checks |
 |---|---|---|
 | `BD43` | default (RS + radiative FS, maps, convolutions, H-alpha) | energy budgets; SED summed over the linear emitters = SED of `CD_radsyn`; `S_abs <= S_unabs`; sum of the maps = total flux; flux conserved in the convolutions; thermodynamics; no NaN |
-| `termo_RH` | Rankine-Hugoniot conditions in the adiabatic shocks (in the copy of `CD_termo.f90`; same `L_inj`) | luminosities and radio fluxes within a factor 2 of Martinez et al. 2022 |
+| `thermo_RH` | Rankine-Hugoniot conditions in the adiabatic shocks (in the copy of `CD_thermo.f90`; same `L_inj`) | luminosities and radio fluxes at the lowest and highest map frequencies within a factor 2 of Martinez et al. 2022 |
 | `HVS` | B2-60-d (`Tests/cases/B2-60-d`), R0 ~ 0.5 AU, adiabatic FS | `0.1 <= L_IC,st/L_inj,e <= 1`; energy budgets of both shocks |
 | `HVS_IR` | B2-60-d with `L_st x 1e10` (only the dust IR field changes) | radiated <= injected; electron transport <= 1.3 |
 | `dense_ISM` | BD+43 with `n_ISM = 6e6`, adiabatic FS, protons only | p-p losses >= 0.3 `L_inj,p`; `L_pp <= L_inj,p/3`; energy budgets |
@@ -70,15 +71,3 @@ Energy budgets (each shock with that process):
   (lower bound 0.7 in `dense_ISM`: protons that cool to 1 GeV of total energy leave the grid
   with their rest-mass energy).
 - injection: `L_inj(RS) <= L_w`; `L_inj(FS) <= 0.5 rho_ISM v^3 pi y_max^2`.
-
-## Checks that fail with the current code
-
-`CD_diste` and `CD_distp` multiply the density by `E_dot(index2)/E_dot(index1)` when the
-particles change of energy bin, which overestimates the number of particles when they cool
-(see the proposed changes):
-
-- `HVS`: electron transport 1.34 (1.07 with the proposed changes).
-- `adiabatic_FS`: the run stops when the maps are saved (`merge_map` in `main.f90`): with an
-  adiabatic FS there is no hot layer, but `abs_maps` and `SW_conv_run` read its files.
-- `dense_ISM`: proton transport ~100 and p-p losses ~6 `L_inj,p` (protons piled up below the
-  p-p threshold, where `E_dot` drops by ~1e4).

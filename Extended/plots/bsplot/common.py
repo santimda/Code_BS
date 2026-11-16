@@ -22,7 +22,7 @@ def base_parser(description):
     p = argparse.ArgumentParser(description=description,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--data", default=os.path.join(BASE_DIR, "output"), help="output files of the code")
-    p.add_argument("--controls", default=os.path.join(BASE_DIR, "controles.f90"))
+    p.add_argument("--controls", default=os.path.join(BASE_DIR, "controls.f90"))
     p.add_argument("--figdir", default=None, help="figures folder (default: figures/<system>/)")
     p.add_argument("--system", default=None, help="block of plot_config.SYSTEMS (default: system)")
     p.add_argument("--label", default=None, help="system label in the plots")

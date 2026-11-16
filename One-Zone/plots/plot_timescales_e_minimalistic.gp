@@ -20,7 +20,7 @@ plot '../tcoole_RS.dat' u (log10($1)):(log10($2)) t 'IC' w l lw 2,\
 
 
 set terminal postscript color solid enhanced dl 2.5 lw 1.7 "Helvetica" 20
-set output 'tiempose_RS.ps'
+set output 'timescales_e_RS.ps'
 replot
-!./fixbb tiempose_RS.ps
+!./fixbb timescales_e_RS.ps
 

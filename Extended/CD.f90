@@ -17,7 +17,7 @@ contains
    subroutine CD_run
       real(dp), parameter :: theta_0 = 1.d-4   ! theta(1) = 0 yields numerical errors
       real(dp) :: dtheta
-      real(dp), allocatable :: dR(:), Length(:), R_acel(:), r_aprox(:)
+      real(dp), allocatable :: dR(:), Length(:), R_acel(:), r_approx(:)
       integer  :: iu
 
       interface
@@ -30,7 +30,7 @@ contains
       end interface
 
       allocate( x(m_theta), y(m_theta) )
-      allocate( dR(m_theta), Length(m_theta), R_acel(m_theta), r_aprox(m_theta) )
+      allocate( dR(m_theta), Length(m_theta), R_acel(m_theta), r_approx(m_theta) )
 
       print*, 'Calculate the CD position'
 
@@ -40,7 +40,7 @@ contains
       !  and r(0)=R0/R0=1 (theta(0)=0) is the stagnation point obtained from pressure balance.
       !  We assume that the stellar wind has reached its terminal velocity.
       !  The outputs are: a table with theta, r_norm, dR (CD.dat for the Christie+ solution,
-      !  CD_aprox.dat for the W96 sol), and a table with cartesian coords x, y (CD_xy.dat)
+      !  CD_approx.dat for the W96 sol), and a table with cartesian coords x, y (CD_xy.dat)
       !-----------------------------------------------------------------------------
 
       80  format(A12,X,F5.2)
@@ -72,29 +72,29 @@ contains
       ! alpha = 0 (consistency check) and accelerator size for diffusive escape
       x = -r_norm*cos(theta)
       y =  r_norm*sin(theta)
-      r_aprox = sqrt(3.d0*(1.d0-theta/tan(theta)))/sin(theta)
+      r_approx = sqrt(3.d0*(1.d0-theta/tan(theta)))/sin(theta)
       R_acel = max(y, 1.d0)          ! = R0 near the apex, y further away
 
       open(newunit=iu, file=output_file('CD.dat'))
       write(iu,'(5es25.16e3)') (theta(l), r_norm(l), dR(l), Length(l)/R0, R_acel(l), l=1,m_theta)
       close(iu)
 
-      open(newunit=iu, file=output_file('CD_aprox.dat'))
-      write(iu,'(2es25.16e3)') (theta(l), r_aprox(l), l=1,m_theta)
+      open(newunit=iu, file=output_file('CD_approx.dat'))
+      write(iu,'(2es25.16e3)') (theta(l), r_approx(l), l=1,m_theta)
       close(iu)
 
       open(newunit=iu, file=output_file('CD_xy.dat'))
       write(iu,'(2es25.16e3)') (x(l), y(l), l=1,m_theta)
       close(iu)
 
-      open(newunit=iu, file=output_file('CD_xy_aprox.dat'))
-      write(iu,'(2es25.16e3)') (-r_aprox(l)*cos(theta(l)), r_aprox(l)*sin(theta(l)), l=1,m_theta)
+      open(newunit=iu, file=output_file('CD_xy_approx.dat'))
+      write(iu,'(2es25.16e3)') (-r_approx(l)*cos(theta(l)), r_approx(l)*sin(theta(l)), l=1,m_theta)
       close(iu)
 
       write(*,'(A,X,F8.1)') 'Length[arcsec] =', sqrt((x(m_theta)+1.d0)**2 + y(m_theta)**2)*R0/distance*206265.d0   ! apex to the end of the CD, not projected
 
       deallocate( x, y )
-      deallocate( dR, Length, R_acel, r_aprox )
+      deallocate( dR, Length, R_acel, r_approx )
 
    End subroutine CD_run
 

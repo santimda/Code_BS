@@ -4,7 +4,7 @@ system_parameters.o: system_parameters.f90 constants.o
 
 global.o: global.f90 constants.o system_parameters.o
 
-controles.o: controles.f90
+controls.o: controls.f90
 
 diste.o: diste.f90 global.o
 
@@ -24,4 +24,4 @@ abssyn.o: abssyn.f90 global.o
 
 radadi.o: radadi.f90 global.o
 
-main.o: main.f90 global.o controles.o diste.o distp.o radsyn.o radbr.o radic.o radpp.o opac_ff.o abssyn.o radadi.o
+main.o: main.f90 global.o controls.o diste.o distp.o radsyn.o radbr.o radic.o radpp.o opac_ff.o abssyn.o radadi.o
