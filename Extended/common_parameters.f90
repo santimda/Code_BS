@@ -48,7 +48,7 @@ module common_parameters
    !--------------------------------------------------------------------------------------
    ! Shocked stellar-wind (sw)
    real(dp), parameter :: mu_sw = mu ! mean atomic weight for complete ionization
-   real(dp), parameter :: Zq_sw = 1.23_dp
+   real(dp), parameter :: Zq_sw = 1.11_dp    ! later squared 1.23_dp
 
    real(dp), parameter :: z_br = 2.24 ! Padovani+2018 for Wilms+2000 abundances
    real(dp), parameter :: z_pp = 2.17 ! Padovani+2018 for Wilms+2000 abundances

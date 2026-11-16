@@ -96,8 +96,8 @@ def luminosities(w, shock, ne):
     L = {"inj": float(np.sum(bt.load(w, f"Linj_{shock}.dat")[:, 2])) * ne}
     ff = bt.load(w, f"ionized_ff_{SYSTEM}_{shock}.dat")
     L["ff"] = float(np.sum(ff[:, 1]) * np.log(ff[1, 0] / ff[0, 0]))
-    if (w / "output" / f"{shock}_ff.dat").exists():                 # hot layer (radiative FS)
-        L["ff_HL"] = bt.sed_luminosity(w, f"{shock}_ff.dat")
+    if (w / "output" / f"{shock}_ff_{SYSTEM}.dat").exists():         # hot layer (radiative FS) or just the entire layer (adiabatic shock)
+        L["ff_HL"] = bt.sed_luminosity(w, f"{shock}_ff_{SYSTEM}.dat")
     if (w / "output" / f"L_inj_e_{shock}.dat").exists():
         L["inj_e"] = bt.first(w, f"L_inj_e_{shock}.dat") * ne
         L["syn"] = bt.first(w, f"radsyn_tot_{shock}.dat")
@@ -409,14 +409,14 @@ ONE_ZONE_HVS = {"system_parameters.f90": dict(
     distance="1.d0*kpc", inclination="60.d0*pi/180.d0", v_st="60000.d5", T_st="2.d4",
     R_st="4.d0*R_sun", L_st="4.d0*pi*R_st**2*sigma*T_st**4", Mdot="1.d-10*M_sun_yr", v_w="1000.d5",
     n_ISM="10.d0", T_ISM="1.d2", mu_ISM="1.28d0", frac_B="sqrt(0.1d0)", frac_NT="1.d-1",
-    inj_e="frac_NT", inj_p="0.d0", alpha_NT="2.d0",
+    inj_e="frac_NT*0.05d0", inj_p="frac_NT*0.95d0", alpha_NT="2.d0",
     T_IR="27.d0*(0.2d0)**(-1.d0/6.d0)*(L_st/1.d38)**(1.d0/6.d0)*(R0/pc)**(-1.d0/3.d0)")}
 
 
 def case_one_zone_HVS(c, args, results):
     # HVS B2-60-d, where the electrons cool fast by IC with the stellar photons, so the
     # transport (CD_diste) matters. Same injection in both codes (power law, index 2),
-    # adiabatic FS, only electrons (inj_p = 0).
+    # adiabatic FS
     # Not compared in the RS: L_syn and L_IC,IR, which differ by factors ~50 and ~20 with
     # both transports (E_max and the IR photon field are computed differently); in the FS:
     # IC (One-Zone uses R_eff_FS = 5 R0)

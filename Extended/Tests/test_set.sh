@@ -14,14 +14,14 @@ failed=""
 
 echo "=== 1. Unit tests ==="
 unit_dir=$(mktemp -d "${TMPDIR:-/tmp}/code-bs-unit-XXXXXX")
-cp constants.f90 numerical_utils.f90 global.f90 Tests/test_numerical_utilities.f90 \
+cp constants.f90 common_parameters.f90 numerical_utils.f90 global.f90 Tests/test_numerical_utilities.f90 \
    Tests/test_global_functions.f90 "$unit_dir"/
 cp Tests/cases/BD43/system_parameters.f90 "$unit_dir"/
 FFLAGS="-fopenmp -ffree-line-length-none -fbackslash -O2"
 if (cd "$unit_dir" && \
-    gfortran $FFLAGS -c constants.f90 numerical_utils.f90 system_parameters.f90 global.f90 && \
+    gfortran $FFLAGS -c constants.f90 numerical_utils.f90 system_parameters.f90 common_parameters.f90 global.f90 && \
     gfortran $FFLAGS test_numerical_utilities.f90 constants.o numerical_utils.o -o test_numerical_utilities && \
-    gfortran $FFLAGS test_global_functions.f90 constants.o numerical_utils.o system_parameters.o global.o \
+    gfortran $FFLAGS test_global_functions.f90 constants.o numerical_utils.o system_parameters.o common_parameters.o global.o \
              -o test_global_functions && \
     ./test_numerical_utilities && ./test_global_functions); then
     :
