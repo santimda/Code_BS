@@ -382,10 +382,8 @@ module CD_termo
       ! Injection spectral index at the shocks (above E_break)
 
       allocate( alpha_sh(m_theta) )
-      alpha_sh = 3._dp
-      !alpha_sh = 2._dp
-      !alpha_sh = 2.55_dp
-      !alpha_sh = (r+2.d0)/(r-1.d0)
+      alpha_sh = alpha_2
+      !alpha_sh = (r+2.d0)/(r-1.d0) ! According to shock compression
       open(newunit=iu, file=output_file('alpha_'//shock//'.dat'))
       write(iu,'(2es17.8e3)') (theta(l), alpha_sh(l), l=1,m_theta)
       close(iu)

@@ -37,7 +37,9 @@ module system_parameters
    !--------------------------------------------------------------------------------------
    ! Non-thermal particles
    real(dp), parameter :: frac_sh = sqrt(0.2) ! Magnetic field value
-   real(dp), parameter :: alpha_1 = -1.d0
+   ! Injection spectral index: Q_inj \propto E^-alpha
+   real(dp), parameter :: alpha_1 = -1.d0 ! Injection index below E_break
+   real(dp), parameter :: alpha_2 = 3.d0 ! Injection index above E_break
    real(dp), parameter :: frac_NT = 0.13_dp
    real(dp), parameter :: inj_e = frac_NT*0.1d0
 
