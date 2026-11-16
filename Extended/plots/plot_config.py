@@ -10,7 +10,7 @@ import os
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OBS_DIR = os.path.join(HERE, "..", "data", "radio")
-SENS_DIR = os.path.join(HERE, "..", "sensitivities")
+SENS_DIR = os.path.join(HERE, "..", "data", "sensitivities")
 
 MeV = 1.602176e-6 # erg
 
