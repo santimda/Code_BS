@@ -25,7 +25,7 @@ module global
    !integer, parameter :: mphi = 30      ! amount of linear-emitters
    !real(dp), parameter :: delta_phi = 0.5d0*pi/(mphi-1.d0) ! angular separation between linear-emitters
    !real(dp), parameter :: d_phi = 0.5d0*pi/mphi            ! angular width of each linear-emitter or wedge
-   integer,  parameter :: mphi = 50                    ! rotation angles phi = 0, ..., pi/2 (linear emitters)
+   integer,  parameter :: mphi = 30                    ! rotation angles phi = 0, ..., pi/2 (linear emitters)
    integer,  parameter :: n_emit = 4*(mphi-1)          ! distinct linear emitters in a ring (phi, phi+pi and mirror images)
    real(dp), parameter :: delta_phi = 2.d0*pi/n_emit   ! angular separation between linear emitters = 0.5*pi/(mphi-1)
    real(dp), parameter :: d_phi = delta_phi            ! angular width of each linear emitter (wedge)
