@@ -32,7 +32,7 @@ module system_parameters
 
    !--------------------------------------------------------------------------------------
    ! Heated dust (IR)
-   real(dp), parameter :: L_IR = L_st/350.!4.d0*pi*distance**2*5.0d-8 ! Dust luminosity, F_IR = 5e-8 erg/s/cm2 (Kobulnicky+2017, Table 5)
+   real(dp), parameter :: L_IR = 4.d0*pi*distance**2*5.0d-8 ! Dust luminosity, F_IR = 5e-8 erg/s/cm2 (Kobulnicky+2017, Table 5)
 
    !--------------------------------------------------------------------------------------
    ! Non-thermal particles
