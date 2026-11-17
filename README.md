@@ -30,7 +30,7 @@ The FS (`radiative_FS` in `system_parameters.f90`) can be:
 
 The code also estimates the emission of the particles that escape into the HII region, and makes synthetic maps (synchrotron, free-free, H-alpha) convolved with the instrumental beam.
 
-The main free parameters are the ratio of magnetic to thermal pressure, `eta_B` (`frac_sh = sqrt(eta_B)`), the fraction of the wind kinetic power that goes to relativistic particles, `f_NT` (`frac_NT`, of which `inj_e` goes to electrons), and, for a radiative FS, the reduction of the IL width, `eta_H` ≤ 1 (`frac_H`).
+The main free parameters are the ratio of magnetic to thermal pressure, `eta_B` (`frac_sh = sqrt(eta_B)`), the fraction of the wind kinetic power that goes to relativistic particles, `f_NT` (`frac_NT`, of which `inj_e` goes to electrons), and, for a radiative FS, the reduction of the IL width, `eta_H` ≤ 1 (`frac_H`), because of thermal conduction and instabilities.
 
 ![Sketch (not to scale) of the BS of a runaway star. The FS and the RS are separated by the CD (black line). The post-shock ISM, the shocked medium ionised by the star and the shocked wind are shown in red, orange and blue; the arrows are the streamlines of the shocked gas.](docs/Radiative_BS.jpg)
 
