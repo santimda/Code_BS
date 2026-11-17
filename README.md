@@ -14,7 +14,7 @@ make test                    # ~4 min: checks that the code works and returns th
 ./make_plots.sh             # run and plot a (hypothetical) hypervelocity star
 ```
 
-The two `make_plots` scripts do the whole cycle: they ask for a system, copy its `system_parameters.f90` (from `Runaway-Stars/` or `Hypervelocity_stars/`), compile, run, and make the plots in `figures/<system>/`. Extra arguments are passed to the plotting script, e.g. `sh make_plots_runaway.sh --no-usetex`.
+The two `make_plots` scripts do the whole cycle: they ask for a system, copy its `system_parameters.f90` (from `Runaway-Stars/` or `Hypervelocity_stars/`), compile, run, and make the plots in `figures/<system>/`. Extra arguments are passed to the plotting script.
 
 
 ## Model summary
