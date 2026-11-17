@@ -10,8 +10,8 @@ Requirements: `gfortran` (with OpenMP), `make`, and Python 3 with `numpy` and `m
 ```
 cd Extended
 make test                    # ~4 min: checks that the code works and returns the expected outputs for BD+43 3654
-sh make_plots_runaway.sh     # run and plot a runaway star
-sh make_plots.sh             # run and plot a (hypothetical) hypervelocity star
+./make_plots_runaway.sh     # run and plot a runaway star
+./make_plots.sh             # run and plot a (hypothetical) hypervelocity star
 ```
 
 The two `make_plots` scripts do the whole cycle: they ask for a system, copy its `system_parameters.f90` (from `Runaway-Stars/` or `Hypervelocity_stars/`), compile, run, and make the plots in `figures/<system>/`. Extra arguments are passed to the plotting script, e.g. `sh make_plots_runaway.sh --no-usetex`.
