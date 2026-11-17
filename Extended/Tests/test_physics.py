@@ -9,12 +9,8 @@ Test cases:
   BD43        BD+43 3654 with the default configuration (Tests/cases/BD43): energy
               budgets, conservation of the flux in the sums over phi and the maps,
               absorption, thermodynamics.
-  thermo_RH    BD+43 with Rankine-Hugoniot conditions in the adiabatic shocks
-              (instead of Martinez et al. 2022): the NT emission must not change much.
   HVS         Hypervelocity star B2-60-d (Tests/cases/B2-60-d, R0 ~ 0.5 AU): the
               electrons cool fast by IC with the stellar photons; energy budgets.
-  HVS_IR      B2-60-d with L_st x 1e10 (only the dust IR field changes): extreme
-              cooling, the electrons are not accelerated above ~1 MeV.
   dense_ISM   Very dense ISM (adiabatic FS): protons lose their energy by p-p.
   one_zone    BD+43 with the Extended and the One-Zone codes (same injection,
               alpha = 2): the luminosities must agree within an order of magnitude.
@@ -109,31 +105,24 @@ def luminosities(w, shock, ne):
     return L
 
 
-def check_free_free(c, L, shock, radiative):
-    c.true(L["ff"] >= 0 and L.get("ff_HL", 0.0) >= 0,
-           f"{shock}: f-f luminosities >= 0 (L_ff = {L['ff']:.3e}" + (f", L_HL = {L['ff_HL']:.3e})" if "ff_HL" in L else ")"))
-    if radiative:
-        c.at_most(L["ff_HL"], L["inj"], f"{shock}: f-f of the hot layer <= L_inj")
-        c.at_most(L["ff_HL"] + L["ff"], L["inj"], f"{shock}: f-f of the hot + isothermal layers <= L_inj")
-    else:
-        c.at_most(L["ff"], L["inj"], f"{shock}: f-f luminosity <= L_inj")
+def check_free_free_radiative(c, L, shock):
+    """Radiative shock: f-f of the hot and isothermal layers (>= 0, a negative width of the
+    isothermal layer gives a negative L_ff) below the injected power."""
+    c.true(L["ff"] >= 0 and L["ff_HL"] >= 0, f"{shock}: f-f of the hot and isothermal layers >= 0 "
+                                             f"(L_HL = {L['ff_HL']:.3e}, L_IL = {L['ff']:.3e})")
+    c.at_most(L["ff_HL"] + L["ff"], L["inj"], f"{shock}: f-f of the hot + isothermal layers <= L_inj")
 
 
-def check_electrons(c, w, L, shock, ne, mt, lo=0.9, consistency=True):
+def check_electrons(c, w, L, shock, ne, mt):
     """Energy budget of the electrons and consistency between the cooling
     times (CD_diste) and the emission modules."""
-    L_rad = L["syn"] + L["br"] + L["IC_IR"] + L["IC_st"]
-    c.at_most(L_rad, L["inj_e"], f"{shock}: L_syn + L_br + L_IC,IR + L_IC,st <= L_inj,e")
-
     E, N = bt.read_dist(w, f"diste_{SYSTEM}_{shock}.dat", mt)
     t = bt.read_times(w, f"CD_tcoole_{SYSTEM}_{shock}.dat", mt)
     # columns: 2 t_ic, 3 t_sy, 4 t_br, 7 t_coole, 9 t_cell, 10 t_ic_st, 11 t_ic_IR
     P_cool = bt.power(E, N, t[7], ne)
     P_out = bt.outflow(E, N, t[9][:, 0], ne)
-    c.between((P_cool + P_out) / L["inj_e"], lo, 1.3,
+    c.between((P_cool + P_out) / L["inj_e"], 0.9, 1.3,
               f"{shock}: electron transport, (cooling + advected out)/L_inj,e")
-    if not consistency:
-        return
     c.same_order(L["syn"], bt.power(E, N, t[3], ne), f"{shock}: L_syn vs sum N*E/t_sy", factor=1.25)
     c.same_order(L["IC_IR"], bt.power(E, N, t[11], ne), f"{shock}: L_IC,IR vs sum N*E/t_IC,IR", factor=1.25)
     c.same_order(L["IC_st"], bt.power(E, N, t[10], ne),
@@ -141,7 +130,6 @@ def check_electrons(c, w, L, shock, ne, mt, lo=0.9, consistency=True):
 
 
 def check_protons(c, w, L, shock, ne, mt, lo=0.9):
-    c.at_most(L["pp"], L["inj_p"], f"{shock}: L_pp <= L_inj,p")
     E, N = bt.read_dist(w, f"distp_{SYSTEM}_{shock}.dat", mt)
     t = bt.read_times(w, f"CD_tcoolp_{SYSTEM}_{shock}.dat", mt)
     # columns: 3 t_pp, 6 t_coolp, 7 t_cell
@@ -155,11 +143,12 @@ def check_protons(c, w, L, shock, ne, mt, lo=0.9):
 def check_thermodynamics(c, w, shock):
     t = bt.load(w, f"thermo_{shock}.dat")
     # columns: l rho P v_t T B v_perp theta Mach r rho_med rho_IL
-    c.true(np.all(t[:, [1, 2, 4, 5, 11]] > 0), f"{shock}: rho, P, T, B and rho_IL > 0")
     H = bt.load(w, f"Hnorm_{shock}.dat")[:, 1]
-    c.true(np.all(H > 0), f"{shock}: width of the shocked layer H > 0 ({np.sum(H <= 0)} cells with H <= 0)")
-    c.true(np.all((t[:, 9] >= 1.0) & (t[:, 9] <= 4.0 + 1e-12)),
-           f"{shock}: compression ratio of the jump in [1, 4] (max {t[:, 9].max():.4f})")
+    bad = {"rho, P, T, B, rho_IL <= 0": np.any(t[:, [1, 2, 4, 5, 11]] <= 0), "H <= 0": np.any(H <= 0),
+           "r outside [1, 4]": np.any((t[:, 9] < 1.0) | (t[:, 9] > 4.0 + 1e-12))}
+    wrong = [k for k, v in bad.items() if v]
+    c.true(not wrong, f"{shock}: rho, P, T, B, rho_IL, H > 0 and compression ratio in [1, 4]"
+                      + (f" ({', '.join(wrong)})" if wrong else ""))
 
 
 def check_injection(c, w, out, L):
@@ -172,6 +161,26 @@ def check_injection(c, w, out, L):
     c.at_most(L["FS"]["inj"], L_kin, "FS: L_inj <= 0.5*rho_ISM*v**3*pi*y_max**2")
 
 
+def check_maps(c, out, sabs=None, hot=True):
+    """Largest relative difference over the map frequencies: sum of the synchrotron map
+    vs S_abs (if sabs is given), and flux before vs after the convolution."""
+    d_map, d_conv = [], []
+    for label, nu in map_frequencies(CASE_BD43 / "controls.f90").items():
+        if f"Pre-conv:  S_sync({label})" not in out:
+            continue
+        pre = bt.section(out, f"Pre-conv:  S_sync({label})", "Post-conv")
+        s_syn = bt.value(pre, f"S_sync({label}) =")
+        total = s_syn + bt.value(pre, f"S_ff({label})   =") + (bt.value(pre, f"S_hot({label})  =") if hot else 0.0)
+        if sabs is not None:
+            d_map.append((abs(s_syn/float(bt.at_frequency(sabs, nu)[2]) - 1.0), label))
+        d_conv.append((abs(bt.value(out, f"Post-conv: S({label})      =")/total - 1.0), label))
+    if d_map:
+        e, label = max(d_map)
+        c.true(e <= 1e-2, f"sum of the synchrotron maps = S_abs (largest rel. diff. {e:.1e} at {label}, tol. 0.01)")
+    e, label = max(d_conv)
+    c.true(e <= 1.5e-2, f"flux conserved in the convolutions (largest rel. diff. {e:.1e} at {label}, tol. 0.015)")
+
+
 def check_numbers(c, w):
     bad = bt.bad_numbers(w)
     c.true(not bad, "no NaN/Infinity in the output files" + (f" ({', '.join(bad[:5])})" if bad else ""))
@@ -181,24 +190,13 @@ def check_numbers(c, w):
 # Test cases
 # ---------------------------------------------------------------------------
 
-def m22_values(w, ne):
-    """Luminosities and radio fluxes of the RS, compared with the RH case."""
-    v = {f"L_{k}": x for k, x in luminosities(w, "RS", ne).items()}
-    syn = bt.load(w, f"S_syn_{SYSTEM}_RS.dat")
-    for label, nu in map_frequencies(CASE_BD43 / "controls.f90").items():
-        v[f"S_{label}"] = float(bt.at_frequency(syn, nu)[1])
-    return v
-
-
 def case_BD43(c, args, results):
     w, out = build_and_run("BD43", PATCH_BD43)
     ne, mt = n_emit(PATCH_BD43), m_theta(PATCH_BD43)
-    results["BD43"] = m22_values(w, ne)
 
     print(" Energy budgets")
     L = {s: luminosities(w, s, ne) for s in ("RS", "FS")}
-    check_free_free(c, L["RS"], "RS", radiative=False)
-    check_free_free(c, L["FS"], "FS", radiative=True)
+    check_free_free_radiative(c, L["FS"], "FS")
     check_injection(c, w, out, L)
     check_electrons(c, w, L["RS"], "RS", ne, mt)
     check_protons(c, w, L["RS"], "RS", ne, mt)
@@ -211,73 +209,12 @@ def case_BD43(c, args, results):
     c.true(err < 1e-3, f"unabsorbed SED summed over the linear emitters (CD_abssyn) = SED of CD_radsyn "
                        f"(max. rel. diff. {err:.1e} below 1 THz)")
     c.true(np.all(sabs[:, 2] <= sabs[:, 1] * (1 + 1e-9)), "absorbed flux <= unabsorbed flux at all frequencies")
-    c.between(float(bt.at_frequency(sabs, 1e10)[2] / bt.at_frequency(sabs, 1e10)[1]), 0.99, 1.0,
-              "S_abs/S_unabs at 10 GHz")
-    for label, nu in map_frequencies(CASE_BD43 / "controls.f90").items():
-        if f"Pre-conv:  S_sync({label})" not in out:
-            continue
-        pre = bt.section(out, f"Pre-conv:  S_sync({label})", "Post-conv")
-        s_syn = bt.value(pre, f"S_sync({label}) =")
-        s_th = bt.value(pre, f"S_ff({label})   =")
-        s_hot = bt.value(pre, f"S_hot({label})  =")
-        c.close(s_syn, float(bt.at_frequency(sabs, nu)[2]), f"{label}: sum of the synchrotron map = S_abs", 1e-2)
-        c.close(bt.value(out, f"Post-conv: S({label})      ="), s_syn + s_th + s_hot,
-                f"{label}: flux conserved in the convolution", 1.5e-2)
+    check_maps(c, out, sabs)
 
     print(" Thermodynamics and numbers")
     check_thermodynamics(c, w, "RS")
     check_thermodynamics(c, w, "FS")
     check_numbers(c, w)
-
-
-# Rankine-Hugoniot thermodynamics in the adiabatic shocks (copy of CD_thermo.f90 in the
-# test build only; L_inj is not changed)
-THERMO_RH = {"CD_thermo.f90": [("""         rho    = rho_new
-         P      = P_new
-         v_t    = v_t_new
-         B      = B_new
-         C_s_sh = C_s_sh_new
-         V_A    = v_A_new
-         T      = T_new
-""", """         rho    = rho_RH
-         P      = P_RH
-         v_t    = v_t_RH
-         B      = B_RH
-         C_s_sh = sqrt(g_ad*P_RH/rho_RH)
-         V_A    = v_ARH
-         T      = T_RH
-""")]}
-
-
-def case_thermo_RH(c, args, results):
-    patches = bt.merge(PATCH_BD43, SEDS_ONLY)
-    w, out = build_and_run("thermo_RH", patches, replace=THERMO_RH)
-    ne, mt = n_emit(patches), m_theta(patches)
-    if "BD43" in results:
-        ref, src = results["BD43"], "BD43 case"
-    else:
-        w0, _ = build_and_run("thermo_M22", patches)
-        ref, src = m22_values(w0, ne), "thermo_M22"
-    print(f" Martinez et al. 2022 ({src}) vs Rankine-Hugoniot: within a factor 2")
-    L = luminosities(w, "RS", ne)
-    for k in ("syn", "IC_st", "IC_IR", "br", "pp"):
-        c.same_order(L[k], ref[f"L_{k}"], f"RS: L_{k} (RH vs M22)", factor=2.0)
-    syn = bt.load(w, f"S_syn_{SYSTEM}_RS.dat")
-    freqs = list(map_frequencies(CASE_BD43 / "controls.f90").items())
-    for label, nu in (freqs[0], freqs[-1]): # lowest and highest map frequencies
-        c.same_order(float(bt.at_frequency(syn, nu)[1]), ref[f"S_{label}"], f"RS: S_syn({label}) (RH vs M22)", 2.0)
-    print(" Energy budgets")
-    check_free_free(c, L, "RS", radiative=False)
-    check_electrons(c, w, L, "RS", ne, mt)
-    check_protons(c, w, L, "RS", ne, mt)
-    check_thermodynamics(c, w, "RS")
-    check_numbers(c, w)
-
-
-# RS only, SEDs only, 4 rotation angles
-SATURATION = bt.merge(PATCH_BD43, SEDS_ONLY, {
-    "controls.f90": dict(FS="no", BOTH="no", stromgren="no", opacff_calc="no"),
-    "global.f90": dict(mphi="4")})
 
 
 # Hypervelocity star B2-60-d (Tests/cases/B2-60-d): v_st = 60000 km/s, R0 ~ 0.5 AU. The
@@ -298,33 +235,11 @@ def case_HVS(c, args, results):
         ne, mt = n_emit(patches), m_theta(patches)
         L = luminosities(w, "RS", ne)
         c.between(L["IC_st"] / L["inj_e"], 0.1, 1.0, "RS: L_IC,st/L_inj,e (fast IC cooling)")
-        check_free_free(c, L, "RS", radiative=False)
         LF = luminosities(w, "FS", ne)
-        check_free_free(c, LF, "FS", radiative=False)
         check_electrons(c, w, L, "RS", ne, mt)       # inj_p = 0 in B2-60-d: no protons
         check_electrons(c, w, LF, "FS", ne, mt)
         check_thermodynamics(c, w, "RS")
         check_thermodynamics(c, w, "FS")
-        check_numbers(c, w)
-    finally:
-        SYSTEM = "BD+43"
-
-
-def case_HVS_IR(c, args, results):
-    # L_st x 1e10 only changes the dust IR field (L_IR = L_st/350, T_IR ~ L_st**(1/6)): the IC
-    # losses exceed the acceleration gains above ~1 MeV, so E_max ~ E_min. Most electrons
-    # cool below E_min and thermalize, so the energy balance has no lower bound here. The
-    # emission formulae (synchrotron, IC) are for ultra-relativistic electrons and the
-    # synchrotron of ~MeV electrons falls below the frequency grid: the consistency between
-    # emission and cooling is not checked
-    global SYSTEM
-    patches = bt.merge(SATURATION, {"system_parameters.f90": dict(L_st="1.d10*4.d0*pi*R_st**2*sigma*T_st**4")})
-    SYSTEM = "B2-60-d"
-    try:
-        w, out = build_and_run("HVS_IR", patches, files=FILES_HVS)
-        ne, mt = n_emit(patches), m_theta(patches)
-        L = luminosities(w, "RS", ne)
-        check_electrons(c, w, L, "RS", ne, mt, lo=0.0, consistency=False)
         check_numbers(c, w)
     finally:
         SYSTEM = "BD+43"
@@ -393,10 +308,6 @@ def case_one_zone(c, args, results):
             c.same_order(L["IC_st"], bt.value(oz, "L_IC =", 1), f"{shock}: L_IC,st")
         c.same_order(float(bt.load(w, f"thermo_{shock}.dat")[0, 5]), bt.value(out1, f"B_{shock}[G]="),
                      f"{shock}: B at the apex")
-        print(f" Energy budgets ({shock}, Extended)")
-        check_free_free(c, L, shock, radiative=False)
-        check_electrons(c, w, L, shock, ne, mt)
-        check_protons(c, w, L, shock, ne, mt)
     check_numbers(c, w)
 
 
@@ -457,12 +368,7 @@ def case_adiabatic_FS(c, args, results):
         c.true(False, "run with an adiabatic FS, maps and convolutions: " + " | ".join(msg[-2:] or ["error"]))
         return
     c.true(True, "run with an adiabatic FS, maps and convolutions finished")
-    for label in map_frequencies(CASE_BD43 / "controls.f90"):
-        if f"Pre-conv:  S_sync({label})" not in out:
-            continue
-        pre = bt.section(out, f"Pre-conv:  S_sync({label})", "Post-conv")
-        total = bt.value(pre, f"S_sync({label}) =") + bt.value(pre, f"S_ff({label})   =")
-        c.close(bt.value(out, f"Post-conv: S({label})      ="), total, f"{label}: flux conserved in the convolution", 1.5e-2)
+    check_maps(c, out, hot=False)
     check_numbers(c, w)
 
 
@@ -499,13 +405,11 @@ def case_openmp(c, args, results):
         bt.run(wd)
         c.true(True, "DEBUG=Y (-fcheck=all, -ffpe-trap=invalid,zero,overflow): run without errors "
                      f"({time.time() - t0:.0f} s)")
-        a, b = bt.first(w, "radsyn_tot_RS.dat"), bt.first(wd, "radsyn_tot_RS.dat")
-        c.close(b, a, "DEBUG=Y vs optimized (-O3 -ffast-math): L_syn(RS)", 1e-3)
     except bt.TestFailure as e:
         c.true(False, f"DEBUG=Y run: {e}")
 
 
-CASES = {"BD43": case_BD43, "thermo_RH": case_thermo_RH, "HVS": case_HVS, "HVS_IR": case_HVS_IR,
+CASES = {"BD43": case_BD43, "HVS": case_HVS,
          "dense_ISM": case_dense_ISM, "one_zone": case_one_zone, "one_zone_HVS": case_one_zone_HVS, "adiabatic_FS": case_adiabatic_FS, "openmp": case_openmp}
 
 

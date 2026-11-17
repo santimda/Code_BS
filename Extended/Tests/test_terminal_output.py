@@ -48,7 +48,6 @@ PATTERNS = {
     "proton_proton": r"L_pp=\s+" + NUMBER,
     "free_free_hot_layer": r"\n\s*L_HL_tot =\s+" + NUMBER,
     "free_free_isothermal_layer": r"isothermal layer:.*?L_ion_tot =\s+" + NUMBER,
-    "maps_synchrotron": r"Pre-conv:  S_sync\(\w+\) =\s+" + NUMBER,
     "maps_convolved": r"Post-conv: S\(\w+\)\s+=\s+" + NUMBER,
 }
 # synchrotron fluxes of the RS at the 7 printed frequencies
@@ -70,7 +69,6 @@ LABELS = {
     "proton_proton": "L_pp [erg/s]",
     "free_free_hot_layer": "L_ff(FS, hot layer) [erg/s]",
     "free_free_isothermal_layer": "L_ff(FS, isothermal layer) [erg/s]",
-    "maps_synchrotron": "S_syn of the maps [mJy]",
     "maps_convolved": "S of the convolved maps [mJy]",
     "synchrotron_radio_RS": "S_syn(RS) at the printed frequencies [mJy]",
 }

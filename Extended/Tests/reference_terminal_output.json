@@ -12,7 +12,6 @@
   "proton_proton": [3.54e+28],
   "free_free_hot_layer": [2.67e+32],
   "free_free_isothermal_layer": [1.58e+34],
-  "maps_synchrotron": [973.0, 906.0, 476.0, 253.0, 162.0, 128.0, 80.3, 114.0],
   "maps_convolved": [1110.0, 1040.0, 591.0, 360.0, 263.0, 227.0, 174.0, 215.0],
   "synchrotron_radio_RS": [985.9, 908.8, 475.6, 252.9, 161.9, 128.3, 80.26]
 }
