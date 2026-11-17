@@ -3,7 +3,7 @@
 Run from `Extended/`:
 
 ```
-make test                                     # everything (Tests/test_set.sh), ~6 min with 2 cores
+make test                                     # everything (Tests/test_set.sh), ~4 min
 sh Tests/test_set.sh --only BD43 HVS          # all the unit tests and the regression, some physical cases
 python3 Tests/test_terminal_output.py         # only the regression
 python3 Tests/test_physics.py --only HVS      # only some physical cases
@@ -57,7 +57,6 @@ together with the change.
 | `one_zone` | Extended and One-Zone with the BD+43 parameters and the same injection (power law, index 2); adiabatic FS | `L_syn`, `S(1.4 GHz)`, `L_br`, `L_pp`, `L_IC` (RS) and `B` within a factor 10 (the budgets of Extended are checked in `BD43`) |
 | `one_zone_HVS` | Extended and One-Zone with the B2-60-d parameters, same injection (index 2), adiabatic FS, electrons only | `L_syn`, `S(1.4 GHz)`, `L_br`, `B` and, in the RS, `L_IC,IR` and `L_IC,st`, within a factor 10 |
 | `adiabatic_FS` | BD+43 with an adiabatic FS (`radiative_FS = .false.`), coarse grids, all the modules | the run (maps and convolutions) finishes; flux conserved in the convolutions; no NaN |
-| `openmp` | coarse grids, all the modules | same results with 1 and 3 OpenMP threads; run compiled with `DEBUG=Y` |
 
 Energy budgets (each shock with that process):
 
