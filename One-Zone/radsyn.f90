@@ -17,7 +17,6 @@ contains
 
    subroutine radsyn_run(shock)  
       use global
-      !$ use omp_lib
       implicit none
       character(LEN=*), intent(in) :: shock
       real(dp) :: Eps(m_nu),dEps,Eps_int, gamma(mE_e)
@@ -29,9 +28,6 @@ contains
       80  format(A14,X,Es10.2)
 
       write(*,*) '\n Calculate the (unabsorbed) sync. emission in the SW'
-
-      ! set omp threads number
-      !$ call omp_set_num_threads(nth) 
 
       !------------------------------------------------------------------------
       !  Read information and define variables
@@ -87,7 +83,7 @@ contains
          dEps = Eps(i)*(Eps_int-1.d0)
          sum = 0.d0
 
-         !$omp parallel do private(nuc,dP_Eps,P_Eps,dE_e) &
+         !$omp parallel do private(nuc,x_sy,dP_Eps,P_Eps,dE_e) &
          !$omp reduction(+ : sum)
          do j = 1,mE_e         ! loop in electron energy distribution (Ne(j), nuc(j), gamma(j))
             nuc = 4.22d6*B_par*gamma(j)**2

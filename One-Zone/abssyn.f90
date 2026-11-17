@@ -17,7 +17,6 @@ contains
 
    subroutine abssyn_run(shock) 
       use global
-      !$ use omp_lib
       Implicit none
       Character(LEN=*), intent(in) :: shock
       Real(dp) :: alphaffw(mr_ff,mE_ff)
@@ -34,9 +33,6 @@ contains
       allocate( Ef(m_nu),nu(m_nu),L_sy(m_nu),L_sy_abs(m_nu) )
 
       write(*,*) '\n Calculate the free-free synchrotron absorption'
-
-      ! set omp threads number
-      !$ call omp_set_num_threads(nth)  
 
       !============================================================
       ! Define some variables first and then read the opacity table

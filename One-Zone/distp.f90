@@ -31,10 +31,10 @@ contains
       integer :: mE2
 
       interface
-         subroutine bisection_p(logEmax,t_pp,t_adv,coef_ac,B)
+         subroutine bisection_p(logEmax,t_pp,t_adv,coef_ac,B,R_acel)
             use iso_fortran_env, only: dp => real64
             implicit none
-            real(dp), intent(in) :: t_pp,t_adv,coef_ac,B
+            real(dp), intent(in) :: t_pp,t_adv,coef_ac,B,R_acel
             real(dp), intent(out) :: logEmax
          end subroutine bisection_p
       end interface
@@ -87,7 +87,7 @@ contains
       endif
 
       ! Search for maximum proton energy
-      call bisection_p(log10Emax,t_pp,t_adv,coef_ac,B)
+      call bisection_p(log10Emax,t_pp,t_adv,coef_ac,B,R_acel)
       Emax_p = MIN(10.d0**log10Emax,qe*B_par*R_acel)! Hillas criterion
 
       ! Build a logarithmic-spaced energy vector
@@ -188,20 +188,20 @@ END module distp
 !                                                                         //
 !///////////////////////////////////////////////////////////////////////////
 
-Subroutine bisection_p(x3,t_pp,t_adv,c_ac,B)
+Subroutine bisection_p(x3,t_pp,t_adv,c_ac,B,R_acel)
    use global
    implicit none
    integer, parameter :: t_err = 4
-   real(dp), intent(in) :: t_pp,t_adv,c_ac,B
+   real(dp), intent(in) :: t_pp,t_adv,c_ac,B,R_acel
    real(dp), intent(out) :: x3
    real(dp) :: a_,b_,c_,err
 
    interface
-      function t_balance_p(a,t1,t2,c_ac,B)
+      function t_balance_p(a,t1,t2,c_ac,B,R_acel)
          use iso_fortran_env, only: dp => real64
          implicit none
          real(dp) :: t_balance_p
-         real(dp), intent(in) :: a,t1,t2,c_ac,B
+         real(dp), intent(in) :: a,t1,t2,c_ac,B,R_acel
       end function t_balance_p
    end interface
 
@@ -213,11 +213,11 @@ Subroutine bisection_p(x3,t_pp,t_adv,c_ac,B)
    do while ( abs(b_ - a_) > err )
       i = i+1
       c_ = (a_+b_)/2.
-      if ( abs(t_balance_p(c_,t_pp,t_adv,c_ac,B)) <= 1.d-8 ) then
+      if ( abs(t_balance_p(c_,t_pp,t_adv,c_ac,B,R_acel)) <= 1.d-8 ) then
          b_ = c_
-         else if (t_balance_p(a_,t_pp,t_adv,c_ac,B)*t_balance_p(c_,t_pp,t_adv,c_ac,B) < 0) then
+         else if (t_balance_p(a_,t_pp,t_adv,c_ac,B,R_acel)*t_balance_p(c_,t_pp,t_adv,c_ac,B,R_acel) < 0) then
          b_ = c_
-         else if (t_balance_p(a_,t_pp,t_adv,c_ac,B)*t_balance_p(c_,t_pp,t_adv,c_ac,B) > 0) then
+         else if (t_balance_p(a_,t_pp,t_adv,c_ac,B,R_acel)*t_balance_p(c_,t_pp,t_adv,c_ac,B,R_acel) > 0) then
          a_ = c_
       endif
    end do
@@ -227,12 +227,12 @@ end Subroutine bisection_p
 
 !/////////////////////////////////////////////////////////////////////////
 
-Function t_balance_p(log10E,t_pp,t_adv,c_ac,B)
+Function t_balance_p(log10E,t_pp,t_adv,c_ac,B,R_acel)
    use global
    implicit none
-   real(dp), intent(in) :: log10E,t_pp,t_adv,c_ac,B
+   real(dp), intent(in) :: log10E,t_pp,t_adv,c_ac,B,R_acel
    real(dp) :: t_balance_p,E_l,t_diff,t_ac,t_coolp
-   real(dp) :: t_loss,t_esc,R_acel
+   real(dp) :: t_loss,t_esc
 
    E_l = 10.d0**log10E
 

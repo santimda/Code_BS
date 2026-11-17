@@ -3,8 +3,10 @@ PROGRAM main
    use global
    use controls
    use radadi, only: radadi_run
-   
-   implicit none  
+   !$ use omp_lib
+
+   implicit none
+   integer :: st
    interface
       subroutine calculate(shock) 
          character(LEN=*), intent(in) :: shock
@@ -15,6 +17,10 @@ PROGRAM main
    write(*,*) '\n ======================================'
    write(*,*) '         START'
    write(*,*) '====================================== \n'
+
+   ! OpenMP threads (set once): OMP_NUM_THREADS or nth
+   call get_environment_variable('OMP_NUM_THREADS', status=st)
+   !$ if (st /= 0) call omp_set_num_threads(nth)
 
 
    88    format(A11,X,Es10.2)

@@ -34,10 +34,10 @@ module diste
       integer :: mE2
 
       interface
-      subroutine bisection(logEmax,c1,c2,c3,t_br,t_adv,coef_ac,cB,c_sy)
+      subroutine bisection(logEmax,c1,c2,c3,t_br,t_adv,coef_ac,cB,c_sy,R_acel)
          use iso_fortran_env, only: dp => real64
          implicit none
-         real(dp), intent(in) :: c1,c2,c3,t_br,t_adv,coef_ac,cB,c_sy
+         real(dp), intent(in) :: c1,c2,c3,t_br,t_adv,coef_ac,cB,c_sy,R_acel
          real(dp), intent(out) :: logEmax
       end subroutine bisection
       end interface
@@ -100,7 +100,7 @@ module diste
       t_br = 1.d15/n_a/z_br   ! added z_be according to Padovani+2018; very approximated expression
 
       ! Search for maximum electron energy
-      call bisection(log10Emax,C_ic_st,C_ic_IR,C_ic_CMB,t_br,t_adv,coef_ac,B,coef_sy)
+      call bisection(log10Emax,C_ic_st,C_ic_IR,C_ic_CMB,t_br,t_adv,coef_ac,B,coef_sy,R_acel)
       Emax_e = MIN(10.d0**log10Emax,qe*B_par*R_acel)! Hillas criterion
 
       ! Build a logarithmic-spaced energy vector
@@ -208,19 +208,19 @@ END module diste
 !                                                                         //
 !///////////////////////////////////////////////////////////////////////////
 
-Subroutine bisection(x3,c1,c2,c3,t_br,t_adv,c_ac,B,c_sy)
+Subroutine bisection(x3,c1,c2,c3,t_br,t_adv,c_ac,B,c_sy,R_acel)
    use global
    implicit none
    integer, parameter :: t_err = 4
    real(dp) :: a_,b_,c_,err
-   real(dp), intent(in) :: c1,c2,c3,t_br,t_adv,c_ac,B,c_sy 
+   real(dp), intent(in) :: c1,c2,c3,t_br,t_adv,c_ac,B,c_sy,R_acel
    real(dp), intent(out) :: x3
    interface
-   function t_balance(a,ic1,ic2,ic3,t_br,t_adv,c_ac,B,c_sy)
+   function t_balance(a,ic1,ic2,ic3,t_br,t_adv,c_ac,B,c_sy,R_acel)
       use iso_fortran_env, only: dp => real64
       implicit none
       real(dp) :: t_balance
-      real(dp), intent(in) :: a,ic1,ic2,ic3,t_br,t_adv,c_ac,B,c_sy
+      real(dp), intent(in) :: a,ic1,ic2,ic3,t_br,t_adv,c_ac,B,c_sy,R_acel
    end function t_balance
    end interface
 
@@ -232,11 +232,11 @@ Subroutine bisection(x3,c1,c2,c3,t_br,t_adv,c_ac,B,c_sy)
    do while ( abs(b_ - a_) > err )
       i = i+1
       c_ = (a_+b_)/2.
-      if ( abs(t_balance(c_,c1,c2,c3,t_br,t_adv,c_ac,B,c_sy)) <= 1.d-8 ) then
+      if ( abs(t_balance(c_,c1,c2,c3,t_br,t_adv,c_ac,B,c_sy,R_acel)) <= 1.d-8 ) then
          b_ = c_
-      elseif (t_balance(a_,c1,c2,c3,t_br,t_adv,c_ac,B,c_sy)*t_balance(c_,c1,c2,c3,t_br,t_adv,c_ac,B,c_sy) < 0) then
+      elseif (t_balance(a_,c1,c2,c3,t_br,t_adv,c_ac,B,c_sy,R_acel)*t_balance(c_,c1,c2,c3,t_br,t_adv,c_ac,B,c_sy,R_acel) < 0) then
          b_ = c_
-      elseif (t_balance(a_,c1,c2,c3,t_br,t_adv,c_ac,B,c_sy)*t_balance(c_,c1,c2,c3,t_br,t_adv,c_ac,B,c_sy) > 0) then
+      elseif (t_balance(a_,c1,c2,c3,t_br,t_adv,c_ac,B,c_sy,R_acel)*t_balance(c_,c1,c2,c3,t_br,t_adv,c_ac,B,c_sy,R_acel) > 0) then
          a_ = c_
       endif
    end do
@@ -246,13 +246,13 @@ end Subroutine bisection
 
 !/////////////////////////////////////////////////////////////////////////
 
-Function t_balance(log10E,c1,c2,c3,t_br,t_adv,c_ac,B,c_sy)
+Function t_balance(log10E,c1,c2,c3,t_br,t_adv,c_ac,B,c_sy,R_acel)
    use global
    implicit none
-   real(dp), intent(in) :: log10E,c1,c2,c3,t_br,t_adv,c_ac,B,c_sy
+   real(dp), intent(in) :: log10E,c1,c2,c3,t_br,t_adv,c_ac,B,c_sy,R_acel
    real(dp) :: t_balance,E_l,gamm
    real(dp) :: t_sy,t_ic_st,t_ic_IR,t_ic_CMB,t_ac,t_coole
-   real(dp) :: t_diff,t_loss,t_esc,R_acel
+   real(dp) :: t_diff,t_loss,t_esc
 
    E_l = 10.d0**log10E
 

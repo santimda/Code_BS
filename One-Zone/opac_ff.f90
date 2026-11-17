@@ -17,7 +17,6 @@ contains
 
    subroutine opac_ff_run
       use global   
-      !$ use omp_lib
       implicit none
       real(dp) :: T_w,S(mE_ff),ne,ni,gffinter
       real(dp) :: alphaff(mr_ff,mE_ff),gamma2,dg,dmu
@@ -38,11 +37,6 @@ contains
       allocate( nu(mE_ff) )
 
       write(*,*) '\n Calculate the f-f abs. and emi. coefficients in the stellar wind'
-
-      ! set omp threads number
-      !$ call omp_set_num_threads(nth)
-      ! !$ write(*,'(a, i3, a)') '# Using OpenMP with ', nth ,' threads'
-      ! !$ write(*,*)
 
       !--------------------------------------------------------------------------
       ! Assume spherically symmetric winds      
@@ -86,7 +80,7 @@ contains
       dg = ( (log10(gamma2)+6.d0)/0.2d0+1.d0 - float(j_g) )*0.2d0
 
       !$omp parallel do &
-      !$omp private(l,ni,ne,i,j_mu,dmu,gffinter) 
+      !$omp private(l,ni,ne,coef_alpha_ff,i,j_mu,dmu,gffinter)
       do l=1,mr_ff
          ni = A_ff/r_ff(l)**2/(gamma_w+1.d0)  ! mui = mu*(g_e+1)
          ne = gamma_w*ni      
@@ -96,7 +90,8 @@ contains
             ! After obtaining the evaluation point, interpolate linearly (2-variables)
             j_mu = int( (log10(mu_ff(i))+16.d0)/0.2d0 ) + 1
             dmu = ((log10(mu_ff(i))+16.d0)/0.2d0+1.d0 - float(j_mu))*0.2d0
-            call interpol(dg,dmu,gff(j_g,j_mu),gff(j_g+1,j_mu),gff(j_g,j_mu+1),gffinter)
+            ! gff(i_u,i_gamma2): rows of the table = log10(u), columns = log10(gamma2)
+            call interpol(dmu,dg,gff(j_mu,j_g),gff(j_mu+1,j_g),gff(j_mu,j_g+1),gffinter)
             !gffinter = 9.77d0*(1.d0+0.13d0*log10(T_w**1.5d0/Zq_sw/nu(i))) ! approx
             alphaff(l,i) = coef_alpha_ff*nu(i)**(-3.d0)*(1.d0-exp(-h*nu(i)/k/T_w))*gffinter !1/cm
          end do

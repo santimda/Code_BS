@@ -56,7 +56,7 @@ together with the change.
 | `HVS_IR` | B2-60-d with `L_st x 1e10` (only the dust IR field changes) | radiated <= injected; electron transport <= 1.3 |
 | `dense_ISM` | BD+43 with `n_ISM = 6e6`, adiabatic FS, protons only | p-p losses >= 0.3 `L_inj,p`; `L_pp <= L_inj,p/3`; energy budgets |
 | `one_zone` | Extended and One-Zone with the BD+43 parameters and the same injection (power law, index 2); adiabatic FS | `L_syn`, `S(1.4 GHz)`, `L_br`, `L_pp`, `L_IC` (RS) and `B` within a factor 10 |
-| `one_zone_HVS` | Extended and One-Zone with the B2-60-d parameters, same injection (index 2), adiabatic FS, electrons only | RS: `S(1.4 GHz)`, `L_br`, `L_IC,st`, `B`; FS: `L_syn`, `S(1.4 GHz)`, `L_br`, `B`, within a factor 10 (RS `L_syn` and `L_IC,IR` differ by ~50 and ~20: different `E_max` and IR field) |
+| `one_zone_HVS` | Extended and One-Zone with the B2-60-d parameters, same injection (index 2), adiabatic FS, electrons only | `L_syn`, `S(1.4 GHz)`, `L_br`, `B` and, in the RS, `L_IC,IR` and `L_IC,st`, within a factor 10 |
 | `adiabatic_FS` | BD+43 with an adiabatic FS (`radiative_FS = .false.`), coarse grids, all the modules | the run (maps and convolutions) finishes; flux conserved in the convolutions; no NaN |
 | `openmp` | coarse grids, all the modules | same results with 1 and 3 OpenMP threads; run compiled with `DEBUG=Y` |
 

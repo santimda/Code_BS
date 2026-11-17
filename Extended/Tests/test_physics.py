@@ -413,9 +413,7 @@ def case_one_zone_HVS(c, args, results):
     # HVS B2-60-d, where the electrons cool fast by IC with the stellar photons, so the
     # transport (CD_diste) matters. Same injection in both codes (power law, index 2),
     # adiabatic FS
-    # Not compared in the RS: L_syn and L_IC,IR, which differ by factors ~50 and ~20 with
-    # both transports (E_max and the IR photon field are computed differently); in the FS:
-    # IC (One-Zone uses R_eff_FS = 5 R0)
+    # Not compared in the FS: IC (One-Zone uses R_eff_FS = 5 R0)
     global SYSTEM
     patches = bt.merge(PATCH_BD43, SEDS_ONLY, {"global.f90": dict(mphi="10"), "controls.f90": dict(stromgren="no"),
                                                "system_parameters.f90": dict(alpha_2="2.d0", radiative_FS=".false.")})
@@ -432,12 +430,12 @@ def case_one_zone_HVS(c, args, results):
             L = luminosities(w, shock, ne)
             oz = bt.section(out1, start, end)
             syn = bt.load(w, f"S_syn_{SYSTEM}_{shock}.dat")
-            if shock == "FS":
-                c.same_order(L["syn"], bt.value(oz, "L_syn(unabs) ="), f"{shock}: L_syn")
+            c.same_order(L["syn"], bt.value(oz, "L_syn(unabs) ="), f"{shock}: L_syn")
             c.same_order(float(bt.at_frequency(syn, 1.4e9)[1]), bt.value(bt.section(oz, "Unabsorbed:"), "S(1.4GHz)="),
                          f"{shock}: S_syn(1.4 GHz)")
             c.same_order(L["br"], bt.value(oz, "L_Br(tot)="), f"{shock}: L_br")
             if shock == "RS":
+                c.same_order(L["IC_IR"], bt.value(oz, "L_IC =", 0), f"{shock}: L_IC,IR")
                 c.same_order(L["IC_st"], bt.value(oz, "L_IC =", 1), f"{shock}: L_IC,st")
             c.same_order(float(bt.load(w, f"thermo_{shock}.dat")[0, 5]), bt.value(out1, f"B_{shock}[G]="),
                          f"{shock}: B at the apex")
