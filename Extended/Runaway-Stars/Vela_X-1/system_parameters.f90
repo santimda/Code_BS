@@ -49,7 +49,7 @@ module system_parameters
 
    !--------------------------------------------------------------------------------------
    ! Isothermal shock width parameter
-   real(dp), parameter :: frac_H = 0.1d0
+   real(dp), parameter :: frac_H = 0.7d0
 
    !============================================================================
 

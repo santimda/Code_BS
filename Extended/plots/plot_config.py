@@ -105,6 +105,10 @@ SYSTEMS = {
     "Vela_X-1": dict(
         label="Vela X-1",
         sensitivities=[],
+        radio_obs=[
+            dict(file="Vela_X-1.dat", cols=(0, 1, 2, 3), dnu_half=True, label="VdE2022",
+                 color="blue", marker="s"),
+        ],
         radio_sed=dict(xlim=(0.1, 11)),
         maps=dict(
             rot_deg=4.6, arrow_deg=4.6, cosdec=0.759786128, inclination_deg=65.,
